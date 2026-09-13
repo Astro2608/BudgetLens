@@ -1,12 +1,17 @@
 import React from 'react';
-import { CATEGORY_LIST } from '../config/categoryConfig';
+import { CategoryConfig, CategoryKey } from '../types/finance';
+import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
 
 interface CategoryLegendProps {
+  categoryConfigs?: Record<CategoryKey, CategoryConfig>;
   onOpenSettings?: () => void;
 }
 
-export const CategoryLegend: React.FC<CategoryLegendProps> = ({ onOpenSettings }) => {
-  const displayCategories = CATEGORY_LIST.filter(c => c.key !== 'Savings');
+export const CategoryLegend: React.FC<CategoryLegendProps> = ({
+  categoryConfigs = DEFAULT_CATEGORY_CONFIGS,
+  onOpenSettings
+}) => {
+  const displayCategories = Object.values(categoryConfigs).filter((c) => c.key !== 'Savings');
 
   return (
     <div
@@ -34,7 +39,16 @@ export const CategoryLegend: React.FC<CategoryLegendProps> = ({ onOpenSettings }
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', fontSize: '12px' }}>
         {displayCategories.map((cat) => (
           <div key={cat.key} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-            <span style={{ width: '11px', height: '11px', borderRadius: '50%', backgroundColor: cat.color, flexShrink: 0 }}></span>
+            <span
+              style={{
+                width: '11px',
+                height: '11px',
+                borderRadius: '50%',
+                backgroundColor: cat.color,
+                flexShrink: 0,
+                transition: 'background-color 0.2s ease'
+              }}
+            ></span>
             <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{cat.label}</span>
           </div>
         ))}
@@ -53,11 +67,13 @@ export const CategoryLegend: React.FC<CategoryLegendProps> = ({ onOpenSettings }
           display: 'inline-flex',
           alignItems: 'center',
           gap: '0.25rem',
-          textDecoration: 'none'
+          textDecoration: 'none',
+          cursor: 'pointer'
         }}
+        title="Open Settings to customize category colors and baseline balance"
       >
         <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>tune</span>
-        <span>Edit in Settings / Add Category</span>
+        <span>Edit in Settings</span>
       </a>
     </div>
   );

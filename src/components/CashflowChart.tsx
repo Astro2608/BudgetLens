@@ -1,19 +1,24 @@
 import React, { useState, useMemo } from 'react';
-import { Transaction, TimeframeFilter, ChartBucket } from '../types/finance';
+import { Transaction, TimeframeFilter, ChartBucket, CategoryKey, CategoryConfig } from '../types/finance';
 import { generateChartBuckets, formatSGD } from '../utils/financeCalculator';
+import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
 
 interface CashflowChartProps {
   transactions: Transaction[];
+  categoryConfigs?: Record<CategoryKey, CategoryConfig>;
 }
 
-export const CashflowChart: React.FC<CashflowChartProps> = ({ transactions }) => {
+export const CashflowChart: React.FC<CashflowChartProps> = ({
+  transactions,
+  categoryConfigs = DEFAULT_CATEGORY_CONFIGS
+}) => {
   const [timeframe, setTimeframe] = useState<TimeframeFilter>('1M');
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
 
-  // Generate dynamic buckets based on transactions and timeframe
+  // Generate dynamic buckets based on transactions, timeframe, and categoryConfigs
   const currentBuckets: ChartBucket[] = useMemo(
-    () => generateChartBuckets(transactions, timeframe),
-    [transactions, timeframe]
+    () => generateChartBuckets(transactions, timeframe, categoryConfigs),
+    [transactions, timeframe, categoryConfigs]
   );
 
   // Find max value for scaling (min 1 to avoid division by zero)

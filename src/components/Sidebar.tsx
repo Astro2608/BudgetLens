@@ -4,9 +4,19 @@ import { formatSGD } from '../utils/financeCalculator';
 interface SidebarProps {
   totalBalance: number;
   overallRunwayMonths: number;
+  onOpenSettings: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ totalBalance, overallRunwayMonths }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  totalBalance,
+  overallRunwayMonths,
+  onOpenSettings
+}) => {
+  // Dynamic health calculation: 0 months -> 5%, 6 months -> 40%, 12 months -> 75%, >=18 months -> 100%
+  const healthPercent = Math.min(100, Math.max(8, Math.round((overallRunwayMonths / 18) * 100)));
+  const healthStatus = overallRunwayMonths >= 12 ? 'Healthy' : overallRunwayMonths >= 6 ? 'Stable' : 'Critical';
+  const healthColor = overallRunwayMonths >= 12 ? '#10b981' : overallRunwayMonths >= 6 ? 'var(--color-primary)' : '#ef4444';
+
   return (
     <aside className="sidebar">
       <div className="flex flex-col gap-6">
@@ -23,18 +33,45 @@ export const Sidebar: React.FC<SidebarProps> = ({ totalBalance, overallRunwayMon
 
         {/* Nav Links */}
         <nav className="nav-menu">
-          <a className="nav-item active" href="#">
+          <a
+            className="nav-item active"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
             <span className="material-symbols-outlined fill">grid_view</span>
             <span>Dashboard</span>
           </a>
-          <a className="nav-item" href="#analytics-section">
+          <a
+            className="nav-item"
+            href="#analytics-section"
+            onClick={(e) => {
+              e.preventDefault();
+              const el = document.getElementById('analytics-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+          >
             <span className="material-symbols-outlined">trending_up</span>
             <span>Analytics & Projections</span>
           </a>
-          <a className="nav-item" href="#settings-section">
+          <button
+            className="nav-item"
+            type="button"
+            onClick={onOpenSettings}
+            style={{
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              font: 'inherit'
+            }}
+          >
             <span className="material-symbols-outlined">tune</span>
             <span>Settings</span>
-          </a>
+          </button>
         </nav>
       </div>
 
@@ -50,12 +87,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ totalBalance, overallRunwayMon
         </div>
 
         <div style={{ width: '100%', height: '7px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
-          <div style={{ width: '72%', height: '100%', background: 'var(--color-primary)', borderRadius: '9999px' }}></div>
+          <div
+            style={{
+              width: `${healthPercent}%`,
+              height: '100%',
+              background: healthColor,
+              borderRadius: '9999px',
+              transition: 'width 0.3s ease, background-color 0.3s ease'
+            }}
+          ></div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', paddingTop: '2px' }}>
           <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{formatSGD(totalBalance)}</span>
-          <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 700 }}>Health: Stable</span>
+          <span style={{ fontSize: '11px', color: healthColor, fontWeight: 700 }}>
+            Health: {healthStatus}
+          </span>
         </div>
       </div>
     </aside>

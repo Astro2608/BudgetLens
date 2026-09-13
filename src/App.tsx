@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MOCK_TRANSACTIONS, INITIAL_BASELINE_BALANCE } from './mock/mockTransactions';
 import { calculateFinanceSummary } from './utils/financeCalculator';
-import { Transaction, CategoryKey } from './types/finance';
+import { Transaction, CategoryKey, CategoryConfig } from './types/finance';
+import { DEFAULT_CATEGORY_CONFIGS } from './config/categoryConfig';
 
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -14,14 +15,70 @@ import { TransactionLedger } from './components/TransactionLedger';
 import { QuickAddOutflows } from './components/QuickAddOutflows';
 import { PredictiveRunwayWidget } from './components/PredictiveRunwayWidget';
 import { AddTransactionModal } from './components/AddTransactionModal';
+import { SettingsModal } from './components/SettingsModal';
+
+const STORAGE_KEY_CONFIGS = 'lumina_category_configs';
+const STORAGE_KEY_BALANCE = 'lumina_initial_balance';
+const STORAGE_KEY_TXS = 'lumina_transactions';
 
 export const App: React.FC = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  // 1. Transactions state with local persistence
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_TXS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load transactions from localStorage', e);
+    }
+    return MOCK_TRANSACTIONS;
+  });
 
-  // Compute live financial summary using domain logic
-  const summary = calculateFinanceSummary(transactions, INITIAL_BASELINE_BALANCE);
+  // 2. Initial baseline balance with local persistence
+  const [initialBalance, setInitialBalance] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_BALANCE);
+      if (saved) return Number(saved);
+    } catch (e) {
+      console.error('Failed to load initial balance', e);
+    }
+    return INITIAL_BASELINE_BALANCE;
+  });
+
+  // 3. Category configurations with local persistence
+  const [categoryConfigs, setCategoryConfigs] = useState<Record<CategoryKey, CategoryConfig>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CONFIGS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load category configs', e);
+    }
+    return DEFAULT_CATEGORY_CONFIGS;
+  });
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Sync to local storage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_TXS, JSON.stringify(transactions));
+    } catch (e) {}
+  }, [transactions]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_BALANCE, initialBalance.toString());
+    } catch (e) {}
+  }, [initialBalance]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CONFIGS, JSON.stringify(categoryConfigs));
+    } catch (e) {}
+  }, [categoryConfigs]);
+
+  // Compute live financial summary using dynamic baseline & category configs
+  const summary = calculateFinanceSummary(transactions, initialBalance, categoryConfigs);
 
   const handleAddTransaction = (newTx: Omit<Transaction, 'id'>) => {
     const tx: Transaction = {
@@ -53,12 +110,24 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleResetDefaults = () => {
+    setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
+    setInitialBalance(INITIAL_BASELINE_BALANCE);
+    setTransactions(MOCK_TRANSACTIONS);
+    try {
+      localStorage.removeItem(STORAGE_KEY_CONFIGS);
+      localStorage.removeItem(STORAGE_KEY_BALANCE);
+      localStorage.removeItem(STORAGE_KEY_TXS);
+    } catch (e) {}
+  };
+
   return (
     <div className="app-layout">
       {/* Sidebar */}
       <Sidebar
         totalBalance={summary.totalBalance}
         overallRunwayMonths={summary.overallRunwayMonths}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* Main Wrapper */}
@@ -78,10 +147,16 @@ export const App: React.FC = () => {
           />
 
           {/* 2. Inline Category Color Key */}
-          <CategoryLegend />
+          <CategoryLegend
+            categoryConfigs={categoryConfigs}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+          />
 
-          {/* 3. Cash In / Out Flow Analysis Chart (Promoted directly below overview) */}
-          <CashflowChart transactions={transactions} />
+          {/* 3. Cash In / Out Flow Analysis Chart */}
+          <CashflowChart
+            transactions={transactions}
+            categoryConfigs={categoryConfigs}
+          />
 
           {/* 4. 2-Column Responsive Layout for Ledger, CSV, and Widgets */}
           <div className="dashboard-grid">
@@ -93,7 +168,7 @@ export const App: React.FC = () => {
               {/* Transaction Activity Ledger */}
               <TransactionLedger
                 transactions={transactions}
-                searchQuery={searchQuery}
+                categoryConfigs={categoryConfigs}
               />
             </div>
 
@@ -107,7 +182,7 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* 5. Runway & Longevity Projection Matrix (Moved to bottom section) */}
+          {/* 5. Runway & Longevity Projection Matrix */}
           <RunwaySection
             totalBalance={summary.totalBalance}
             overallRunwayMonths={summary.overallRunwayMonths}
@@ -122,6 +197,17 @@ export const App: React.FC = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddTransaction={handleAddTransaction}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        categoryConfigs={categoryConfigs}
+        onSaveCategoryConfigs={setCategoryConfigs}
+        initialBalance={initialBalance}
+        onSaveInitialBalance={setInitialBalance}
+        onResetDefaults={handleResetDefaults}
       />
     </div>
   );

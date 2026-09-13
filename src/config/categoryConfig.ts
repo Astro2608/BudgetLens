@@ -1,6 +1,6 @@
 import { CategoryConfig, CategoryKey } from '../types/finance';
 
-export const CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
+export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
   Transport: {
     key: 'Transport',
     label: 'Transport',
@@ -59,13 +59,18 @@ export const CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
   }
 };
 
-export const CATEGORY_LIST: CategoryConfig[] = Object.values(CATEGORY_CONFIGS);
+export const CATEGORY_CONFIGS = DEFAULT_CATEGORY_CONFIGS;
 
-export function getCategoryConfig(categoryKey: CategoryKey | string): CategoryConfig {
-  if (categoryKey in CATEGORY_CONFIGS) {
-    return CATEGORY_CONFIGS[categoryKey as CategoryKey];
+export const CATEGORY_LIST: CategoryConfig[] = Object.values(DEFAULT_CATEGORY_CONFIGS);
+
+export function getCategoryConfig(
+  categoryKey: CategoryKey | string,
+  configs: Record<CategoryKey, CategoryConfig> = DEFAULT_CATEGORY_CONFIGS
+): CategoryConfig {
+  if (categoryKey in configs) {
+    return configs[categoryKey as CategoryKey];
   }
-  return CATEGORY_CONFIGS.General;
+  return configs.General || DEFAULT_CATEGORY_CONFIGS.General;
 }
 
 export function detectCategoryFromTitle(title: string): CategoryKey {
