@@ -50,9 +50,23 @@ export const App: React.FC = () => {
   );
   const [showWelcome, setShowWelcome] = useState<boolean>(false);
 
-  const handleOnboardingComplete = () => {
+  const handleOnboardingComplete = async () => {
     localStorage.setItem(ONBOARDING_KEY, 'true');
     setShowOnboarding(false);
+
+    // 🔑 Always start fresh on first install — wipe any browser-session data
+    // so the installed PWA opens at $0 with no transactions.
+    try {
+      await saveAppData(STORAGE_KEY_TXS, []);
+      await saveAppData(STORAGE_KEY_BALANCE, 0);
+      await saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS);
+    } catch (e) {
+      console.warn('Fresh-start reset failed:', e);
+    }
+    setTransactions([]);
+    setInitialBalance(0);
+    setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
+
     // Show welcome only if this is also the first data session
     if (localStorage.getItem(WELCOME_KEY) !== 'true') {
       setShowWelcome(true);
@@ -63,6 +77,7 @@ export const App: React.FC = () => {
     localStorage.setItem(WELCOME_KEY, 'true');
     setShowWelcome(false);
   };
+
 
   // File System state (optional background sync)
   const [rawFileHandle, setRawFileHandle] = useState<FileSystemFileHandle | null>(null);
@@ -96,10 +111,14 @@ export const App: React.FC = () => {
             return { ...t, category, type };
           });
 
-          setTransactions(hasFutureDates ? MOCK_TRANSACTIONS : healedTxs);
+          const onboardingAlreadyDone = localStorage.getItem(ONBOARDING_KEY) === 'true';
+          setTransactions(hasFutureDates && !onboardingAlreadyDone ? MOCK_TRANSACTIONS : healedTxs);
+
         } else {
-          // Default start with mock data only if never set
-          if (savedTxs === undefined) {
+          // Only load mock data on the very first ever session (before onboarding)
+          // Once onboarding is done, always start empty — never inject mock data
+          const onboardingDone = localStorage.getItem(ONBOARDING_KEY) === 'true';
+          if (!onboardingDone && savedTxs === undefined) {
             setTransactions(MOCK_TRANSACTIONS);
           } else {
             setTransactions([]);
