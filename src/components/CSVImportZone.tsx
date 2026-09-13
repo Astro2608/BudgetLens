@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Transaction } from '../types/finance';
 import { parseBankCSV, CSVParseResult, generateSampleCSV } from '../utils/csvParser';
+import { parseBankPDF } from '../utils/pdfParser';
 import { formatSGD } from '../utils/financeCalculator';
 
 interface CSVImportZoneProps {
@@ -13,15 +14,19 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
   const [isParsing, setIsParsing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<CSVParseResult | null>(null);
-  const [lastBatch, setLastBatch] = useState<{ fileName: string; count: number; accuracy: number } | null>({
-    fileName: 'DBS_Oct_Statement.csv',
+  const [lastBatch, setLastBatch] = useState<{ fileName: string; count: number; accuracy: number; format: string } | null>({
+    fileName: 'DBS_Oct_Statement.pdf',
     count: 42,
-    accuracy: 94
+    accuracy: 94,
+    format: 'PDF'
   });
 
   const handleProcessFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setErrorMsg('Please select a valid .CSV file statement.');
+    const isPDF = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+    const isCSV = file.name.toLowerCase().endsWith('.csv') || file.type.includes('csv');
+
+    if (!isPDF && !isCSV) {
+      setErrorMsg('Please upload a valid .PDF or .CSV bank statement.');
       return;
     }
 
@@ -29,10 +34,15 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
     setErrorMsg(null);
 
     try {
-      const result = await parseBankCSV(file);
+      let result: CSVParseResult;
+      if (isPDF) {
+        result = await parseBankPDF(file);
+      } else {
+        result = await parseBankCSV(file);
+      }
       setParseResult(result);
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to parse the CSV file. Please verify the format.');
+      setErrorMsg(err?.message || 'Failed to parse the bank statement file. Please verify it is an official digital statement.');
     } finally {
       setIsParsing(false);
     }
@@ -43,7 +53,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
     if (file) {
       handleProcessFile(file);
     }
-    // reset input
+    // Reset file input so same file can be chosen again if needed
     e.target.value = '';
   };
 
@@ -72,11 +82,13 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
       const totalCount = parseResult.transactions.length;
       const recognized = totalCount - parseResult.unrecognizedCount;
       const accuracy = totalCount > 0 ? Math.round((recognized / totalCount) * 100) : 100;
+      const format = parseResult.fileName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'CSV';
 
       setLastBatch({
         fileName: parseResult.fileName,
         count: totalCount,
-        accuracy: Math.max(75, accuracy)
+        accuracy: Math.max(75, accuracy),
+        format
       });
 
       setParseResult(null);
@@ -98,11 +110,11 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
 
   return (
     <div className="lumina-card" id="import-section" style={{ gap: '1rem' }}>
-      {/* Hidden File Input */}
+      {/* Hidden File Input for PDF and CSV */}
       <input
         type="file"
         ref={fileInputRef}
-        accept=".csv"
+        accept=".pdf,.csv,application/pdf,text/csv"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
@@ -136,11 +148,39 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>description</span>
           </div>
           <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-              Bank e-Statement Import Engine
-            </h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-              100% Offline client-side CSV parsing with instant category rule-matching
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                Bank e-Statement Import Engine
+              </h3>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  backgroundColor: '#fee2e2',
+                  color: '#ef4444',
+                  border: '1px solid #fecdd3'
+                }}
+              >
+                PDF
+              </span>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  backgroundColor: '#ecfdf5',
+                  color: '#10b981',
+                  border: '1px solid #a7f3d0'
+                }}
+              >
+                CSV
+              </span>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              100% Offline client-side PDF & CSV statement parsing with automatic category matching
             </p>
           </div>
         </div>
@@ -161,10 +201,10 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
             color: 'var(--color-primary)',
             cursor: 'pointer'
           }}
-          title="Download a pre-formatted sample bank CSV to test"
+          title="Download a pre-formatted sample statement to test"
         >
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>download</span>
-          <span>Download Sample CSV</span>
+          <span>Download Sample Statement</span>
         </button>
       </div>
 
@@ -203,23 +243,23 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-            {isParsing ? 'sync' : 'file_upload'}
+            {isParsing ? 'sync' : 'upload_file'}
           </span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
             {isParsing ? (
-              'Parsing bank e-statement...'
+              'Extracting transactions from e-statement (100% Offline)...'
             ) : (
               <>
-                Drop your bank CSV statement here, or{' '}
+                Drop your official bank <strong>PDF or CSV statement</strong> here, or{' '}
                 <span style={{ color: 'var(--color-primary-hover)', textDecoration: 'underline' }}>browse files</span>
               </>
             )}
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-            Supports: DBS, OCBC, UOB, HSBC, Standard Chartered, Revolut & standard bank exports
+          <span style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '3px' }}>
+            Supports: DBS, POSB, OCBC, UOB, HSBC, Standard Chartered, Citibank, Revolut e-Statements
           </span>
         </div>
       </div>
@@ -264,10 +304,10 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Auto-categorized {lastBatch.count} transactions from {lastBatch.fileName}
+                Auto-categorized {lastBatch.count} transactions from {lastBatch.fileName} ({lastBatch.format})
               </span>
               <span style={{ fontSize: '11px', color: '#047857', fontWeight: 600 }}>
-                {lastBatch.accuracy}% accuracy with rule-based merchant matching
+                {lastBatch.accuracy}% accuracy with rule-based merchant mapping
               </span>
             </div>
           </div>
@@ -278,7 +318,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
             onClick={() => fileInputRef.current?.click()}
             style={{ padding: '0.35rem 0.75rem', fontSize: '12px' }}
           >
-            Import Another Batch
+            Import Another Statement
           </button>
         </div>
       )}
@@ -299,7 +339,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
           shield_with_heart
         </span>
         <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.45, margin: 0 }}>
-          <strong style={{ color: '#0f172a' }}>100% Offline & Private:</strong> Files are parsed entirely in your browser using PapaParse regex rules. Zero financial data is sent to external servers or AI APIs.
+          <strong style={{ color: '#0f172a' }}>100% Offline & Universal:</strong> Statements are parsed locally in your browser (Chrome, Edge, Safari, Brave, etc.) via PDF.js & PapaParse regex rules. Zero financial data is ever sent over the network.
         </p>
       </div>
 
@@ -361,11 +401,26 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>fact_check</span>
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    Review Extracted e-Statement
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                      Review Extracted e-Statement
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: parseResult.fileName.toLowerCase().endsWith('.pdf') ? '#fee2e2' : '#ecfdf5',
+                        color: parseResult.fileName.toLowerCase().endsWith('.pdf') ? '#ef4444' : '#10b981',
+                        border: parseResult.fileName.toLowerCase().endsWith('.pdf') ? '1px solid #fecdd3' : '1px solid #a7f3d0'
+                      }}
+                    >
+                      {parseResult.fileName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'CSV'}
+                    </span>
+                  </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    File: <strong>{parseResult.fileName}</strong> ({parseResult.transactions.length} rows parsed)
+                    File: <strong>{parseResult.fileName}</strong> ({parseResult.transactions.length} transactions extracted)
                   </span>
                 </div>
               </div>
@@ -379,7 +434,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               </button>
             </div>
 
-            {/* Summary KPI Ribbon */}
+            {/* Summary Ribbon */}
             <div
               style={{
                 padding: '0.875rem 1.5rem',
@@ -391,19 +446,19 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Parsed Rows</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Extracted Rows</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
-                  {parseResult.transactions.length} Transactions
+                  {parseResult.transactions.length} Items
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Inflow (+)</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Inflows (+)</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#10b981' }}>
                   +{formatSGD(parseResult.totalIncome)}
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Outflow (-)</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Outflows (-)</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#ef4444' }}>
                   -{formatSGD(parseResult.totalExpense)}
                 </span>
@@ -413,7 +468,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
             {/* Preview Table */}
             <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-                Sample Preview (First 8 Items):
+                Extracted Sample (First 8 Rows):
               </span>
 
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
