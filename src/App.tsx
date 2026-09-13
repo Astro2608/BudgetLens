@@ -17,8 +17,13 @@ import { PredictiveRunwayWidget } from './components/PredictiveRunwayWidget';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ResetConfirmModal } from './components/ResetConfirmModal';
+import { OnboardingWizard } from './components/OnboardingWizard';
+import { WelcomeScreen } from './components/WelcomeScreen';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
 import { exportToMarkdown } from './utils/exportUtils';
+
+const ONBOARDING_KEY = 'budgetlens_onboarding_done';
+const WELCOME_KEY = 'budgetlens_welcome_done';
 
 const STORAGE_KEY_CONFIGS = 'budgetlens_category_configs';
 const STORAGE_KEY_BALANCE = 'budgetlens_initial_balance';
@@ -38,6 +43,26 @@ export const App: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
+  // First-run onboarding & welcome — persisted in localStorage so they only show once
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(
+    () => localStorage.getItem(ONBOARDING_KEY) !== 'true'
+  );
+  const [showWelcome, setShowWelcome] = useState<boolean>(false);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    setShowOnboarding(false);
+    // Show welcome only if this is also the first data session
+    if (localStorage.getItem(WELCOME_KEY) !== 'true') {
+      setShowWelcome(true);
+    }
+  };
+
+  const handleWelcomeDismiss = () => {
+    localStorage.setItem(WELCOME_KEY, 'true');
+    setShowWelcome(false);
+  };
 
   // File System state (optional background sync)
   const [rawFileHandle, setRawFileHandle] = useState<FileSystemFileHandle | null>(null);
@@ -253,6 +278,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-layout">
+      {/* First-run onboarding wizard — shown once ever */}
+      {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} />}
+
+      {/* Post-onboarding welcome screen — shown once after wizard */}
+      {!showOnboarding && showWelcome && <WelcomeScreen onDismiss={handleWelcomeDismiss} />}
       {/* Sidebar */}
       <Sidebar
         totalBalance={summary.totalBalance}
