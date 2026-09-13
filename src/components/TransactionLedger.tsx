@@ -2,15 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, CategoryConfig, CategoryKey } from '../types/finance';
 import { getCategoryConfig, DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
 import { formatSGD } from '../utils/financeCalculator';
+import { exportToCSV, exportToMarkdown } from '../utils/exportUtils';
 
 interface TransactionLedgerProps {
   transactions: Transaction[];
   categoryConfigs?: Record<CategoryKey, CategoryConfig>;
+  onDeleteTransaction?: (id: string) => void;
 }
 
 export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
   transactions,
-  categoryConfigs = DEFAULT_CATEGORY_CONFIGS
+  categoryConfigs = DEFAULT_CATEGORY_CONFIGS,
+  onDeleteTransaction
 }) => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'income' | 'expense' | 'recurring'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -229,30 +232,80 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
             ))}
           </div>
 
-          {/* Archive Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setIsArchiveOpen((prev) => !prev)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              backgroundColor: isArchiveOpen ? '#0f172a' : 'var(--bg-canvas-subtle)',
-              color: isArchiveOpen ? 'white' : 'var(--text-main)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: isArchiveOpen ? '#38bdf8' : 'var(--color-primary)' }}>
-              {isArchiveOpen ? 'unfold_less' : 'inventory_2'}
-            </span>
-            <span>{isArchiveOpen ? 'Compact Mode (Top 6)' : 'View Statement Archive'}</span>
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {/* Export Buttons */}
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              <button
+                type="button"
+                onClick={() => exportToCSV(transactions)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '0.35rem 0.6rem',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--bg-canvas-subtle)',
+                  color: 'var(--text-main)',
+                  border: '1px solid var(--border-subtle)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                title="Export as CSV"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: '#10b981' }}>download</span>
+                CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => exportToMarkdown(transactions)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '0.35rem 0.6rem',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--bg-canvas-subtle)',
+                  color: 'var(--text-main)',
+                  border: '1px solid var(--border-subtle)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                title="Export as Markdown"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: '#9333ea' }}>description</span>
+                MD
+              </button>
+            </div>
+
+            {/* Archive Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsArchiveOpen((prev) => !prev)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '8px',
+                backgroundColor: isArchiveOpen ? '#0f172a' : 'var(--bg-canvas-subtle)',
+                color: isArchiveOpen ? 'white' : 'var(--text-main)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: isArchiveOpen ? '#38bdf8' : 'var(--color-primary)' }}>
+                {isArchiveOpen ? 'unfold_less' : 'inventory_2'}
+              </span>
+              <span>{isArchiveOpen ? 'Compact Mode (Top 6)' : 'View Statement Archive'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -380,7 +433,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                   </div>
                 </div>
 
-                {/* Right: Amount & Receipt Button */}
+                {/* Right: Amount & Receipt/Delete Buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexShrink: 0 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                     <span
@@ -397,26 +450,50 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedReceiptTx(tx)}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-muted)',
-                      backgroundColor: 'var(--bg-canvas-subtle)',
-                      border: '1px solid var(--border-subtle)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    title="View Transaction Receipt Details"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>receipt_long</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.375rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReceiptTx(tx)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--text-muted)',
+                        backgroundColor: 'var(--bg-canvas-subtle)',
+                        border: '1px solid var(--border-subtle)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="View Transaction Receipt Details"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>receipt_long</span>
+                    </button>
+                    {onDeleteTransaction && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteTransaction(tx.id)}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ef4444',
+                          backgroundColor: '#fee2e2',
+                          border: '1px solid #fecdd3',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Delete Transaction"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>delete</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

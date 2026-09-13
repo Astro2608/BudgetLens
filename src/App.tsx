@@ -16,6 +16,10 @@ import { QuickAddOutflows } from './components/QuickAddOutflows';
 import { PredictiveRunwayWidget } from './components/PredictiveRunwayWidget';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { SettingsModal } from './components/SettingsModal';
+import { PinLock } from './components/PinLock';
+import { FileSelectionModal } from './components/FileSelectionModal';
+import { getFileHandle, saveFileHandle, verifyPermission, writeToFile, readFile } from './utils/fileSystem';
+import { parseMarkdownTable } from './utils/mdParser';
 
 const STORAGE_KEY_CONFIGS = 'lumina_category_configs';
 const STORAGE_KEY_BALANCE = 'lumina_initial_balance';
@@ -68,6 +72,93 @@ export const App: React.FC = () => {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Auth state
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    return sessionStorage.getItem('lumina_unlocked') === 'true';
+  });
+
+  const handleUnlock = () => {
+    sessionStorage.setItem('lumina_unlocked', 'true');
+    setIsUnlocked(true);
+  };
+
+  // File System state
+  const [rawFileHandle, setRawFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [isRawFileReady, setIsRawFileReady] = useState(false);
+  const [isCheckingFile, setIsCheckingFile] = useState(true);
+
+  useEffect(() => {
+    const checkFile = async () => {
+      try {
+        const handle = await getFileHandle();
+        if (handle) {
+          const hasPerm = await verifyPermission(handle, false); // verify read
+          if (hasPerm) {
+            setRawFileHandle(handle);
+            setIsRawFileReady(true);
+            
+            // Read and parse
+            const content = await readFile(handle);
+            if (content.trim()) {
+              const file = new File([content], handle.name, { type: 'text/markdown' });
+              try {
+                const res = await parseMarkdownTable(file);
+                setTransactions(res.transactions);
+              } catch (e) {
+                console.error("Failed to parse raw MD file:", e);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to check file handle:", e);
+      }
+      setIsCheckingFile(false);
+    };
+    checkFile();
+  }, []);
+
+  const handleSelectRawFile = async () => {
+    try {
+      const [handle] = await (window as any).showOpenFilePicker({
+        types: [{ description: 'Data Files', accept: { 'text/*': ['.md', '.txt', '.csv'] } }]
+      });
+      await saveFileHandle(handle);
+      setRawFileHandle(handle);
+      setIsRawFileReady(true);
+      
+      const content = await readFile(handle);
+      if (content.trim()) {
+        const file = new File([content], handle.name, { type: 'text/markdown' });
+        try {
+          const res = await parseMarkdownTable(file);
+          setTransactions(res.transactions);
+        } catch (e) {
+          console.error("Failed to parse", e);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCreateRawFile = async () => {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: 'lumina_budget.md',
+        types: [{ description: 'Markdown File', accept: { 'text/markdown': ['.md'] } }]
+      });
+      await saveFileHandle(handle);
+      setRawFileHandle(handle);
+      setIsRawFileReady(true);
+      
+      // Auto save current transactions to the new file
+      // will be handled by the next useEffect
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Subtle visual feedback toast notification state
   const [toast, setToast] = useState<{
@@ -90,12 +181,29 @@ export const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Sync to local storage
+  // Sync to local storage & raw file
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_TXS, JSON.stringify(transactions));
     } catch (e) {}
-  }, [transactions]);
+    
+    // Auto save to raw MD file if available
+    const saveToRaw = async () => {
+      if (rawFileHandle && isRawFileReady) {
+        try {
+          const headers = ['| Date | Title | Amount | Type | Category | Source | Note | Recurring |', '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |'];
+          const rows = transactions.map(t => 
+            `| ${t.date} | ${t.title} | ${formatSGD(t.amount)} | ${t.type} | ${t.category} | ${t.source || ''} | ${t.note || ''} | ${t.isRecurring ? 'Yes' : 'No'} |`
+          );
+          const mdContent = `# Lumina Finance Export\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}`;
+          await writeToFile(rawFileHandle, mdContent);
+        } catch (e) {
+          console.error("Failed to auto-save to raw file", e);
+        }
+      }
+    };
+    saveToRaw();
+  }, [transactions, rawFileHandle, isRawFileReady]);
 
   useEffect(() => {
     try {
@@ -128,19 +236,25 @@ export const App: React.FC = () => {
   };
 
   const handleQuickAdd = (title: string, amount: number, category: CategoryKey) => {
+    const config = categoryConfigs[category];
+    const type = config?.type || 'expense';
     const tx: Transaction = {
       id: `tx-${Date.now()}`,
       title,
       amount,
-      type: 'expense',
+      type,
       category,
       date: new Date().toISOString().split('T')[0],
       isRecurring: false,
       note: '1-Click Quick Add',
-      source: 'Quick Outflow'
+      source: type === 'income' ? 'Quick Income' : 'Quick Outflow'
     };
     setTransactions((prev) => [tx, ...prev]);
-    showToast(title, amount, 'expense', String(category));
+    showToast(title, amount, type, String(category));
+  };
+
+  const handleDeleteTransaction = (id: string) => {
+    setTransactions((prev) => prev.filter(t => t.id !== id));
   };
 
   const handleScrollToImport = () => {
@@ -160,6 +274,14 @@ export const App: React.FC = () => {
       localStorage.removeItem(STORAGE_KEY_TXS);
     } catch (e) {}
   };
+
+  if (!isUnlocked) {
+    return <PinLock onUnlock={handleUnlock} />;
+  }
+
+  if (!isRawFileReady && !isCheckingFile) {
+    return <FileSelectionModal onSelectFile={handleSelectRawFile} onCreateFile={handleCreateRawFile} />;
+  }
 
   return (
     <div className="app-layout">
@@ -206,6 +328,7 @@ export const App: React.FC = () => {
               <TransactionLedger
                 transactions={transactions}
                 categoryConfigs={categoryConfigs}
+                onDeleteTransaction={handleDeleteTransaction}
               />
 
               {/* Universal Bank Statement & Ledger Import Zone */}

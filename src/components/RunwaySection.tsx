@@ -116,14 +116,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
       {/* 5 Category Runway Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
         {categoryRunways.map((cat) => {
-          let customPhrase = `With current balance, you have ${cat.remainingMonths} months worth of ${cat.label} ($${cat.monthlyBurn}/mo avg)`;
-          if (cat.category === 'Rent') {
-            customPhrase = `With current balance, you have ${cat.remainingMonths} months worth of Rent ($${cat.monthlyBurn.toLocaleString()}/mo)`;
-          } else if (cat.category === 'Bills') {
-            customPhrase = `With current balance, you have ${cat.remainingMonths} months worth of Bills ($${cat.monthlyBurn}/mo)`;
-          } else if (cat.category === 'General') {
-            customPhrase = `With current balance, you have ${cat.remainingMonths} months worth of General expenses ($${cat.monthlyBurn}/mo)`;
-          }
+          let customPhrase = `Your current balance covers ${cat.remainingMonths} months of ${cat.label} ($${cat.monthlyBurn.toLocaleString()}/mo avg)`;
 
           const progressPct = Math.min(100, Math.max(15, Math.round(cat.percentageOfSpend * 2.2)));
 
