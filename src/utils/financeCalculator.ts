@@ -117,21 +117,23 @@ export function generateChartBuckets(
   const MS_PER_DAY = 1000 * 60 * 60 * 24;
   const now = new Date();
   now.setHours(23, 59, 59, 999);
-  const maxTime = now.getTime();
 
   let buckets: ChartBucket[] = [];
 
   if (timeframe === '1M') {
-    // 30 days divided into 15 bins of 2 days each
+    // 30 days divided into 15 bins of 2 days each, anchored strictly to Today
     const totalBins = 15;
     const binDuration = 2 * MS_PER_DAY;
-    const startTime = maxTime - totalBins * binDuration;
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+    const startTime = todayEnd - totalBins * binDuration + 1;
 
     for (let i = 0; i < totalBins; i++) {
       const bStart = new Date(startTime + i * binDuration);
       const bEnd = new Date(startTime + (i + 1) * binDuration - 1);
+      // Label shows the end of the 2-day period so the rightmost bar is always Today (14 Sep)
+      const labelDate = bEnd;
       buckets.push({
-        label: `${bStart.getDate()} ${bStart.toLocaleString('default', { month: 'short' })}`,
+        label: `${labelDate.getDate()} ${labelDate.toLocaleString('default', { month: 'short' })}`,
         startDate: bStart.toISOString().split('T')[0],
         endDate: bEnd.toISOString().split('T')[0],
         totalInflow: 0,
@@ -141,10 +143,10 @@ export function generateChartBuckets(
       });
     }
 
-    // Allocate transactions
+    // Allocate transactions (any transactions older than 15 bins are discarded to the left)
     sortedTxs.forEach((tx) => {
-      const tTime = new Date(tx.date).getTime();
-      if (tTime >= startTime && tTime <= maxTime) {
+      const tTime = new Date(tx.date + 'T12:00:00').getTime();
+      if (tTime >= startTime && tTime <= todayEnd) {
         const binIndex = Math.min(
           totalBins - 1,
           Math.max(0, Math.floor((tTime - startTime) / binDuration))
@@ -167,16 +169,18 @@ export function generateChartBuckets(
       }
     });
   } else if (timeframe === '3M') {
-    // 13 weekly bins (91 days)
+    // 13 weekly bins (91 days), anchored strictly to Today
     const totalBins = 13;
     const binDuration = 7 * MS_PER_DAY;
-    const startTime = maxTime - totalBins * binDuration;
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+    const startTime = todayEnd - totalBins * binDuration + 1;
 
     for (let i = 0; i < totalBins; i++) {
       const bStart = new Date(startTime + i * binDuration);
       const bEnd = new Date(startTime + (i + 1) * binDuration - 1);
+      const labelDate = bEnd;
       buckets.push({
-        label: `${bStart.getDate()} ${bStart.toLocaleString('default', { month: 'short' })}`,
+        label: `${labelDate.getDate()} ${labelDate.toLocaleString('default', { month: 'short' })}`,
         startDate: bStart.toISOString().split('T')[0],
         endDate: bEnd.toISOString().split('T')[0],
         totalInflow: 0,
@@ -187,8 +191,8 @@ export function generateChartBuckets(
     }
 
     sortedTxs.forEach((tx) => {
-      const tTime = new Date(tx.date).getTime();
-      if (tTime >= startTime && tTime <= maxTime) {
+      const tTime = new Date(tx.date + 'T12:00:00').getTime();
+      if (tTime >= startTime && tTime <= todayEnd) {
         const binIndex = Math.min(
           totalBins - 1,
           Math.max(0, Math.floor((tTime - startTime) / binDuration))

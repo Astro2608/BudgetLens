@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CategoryConfig, CategoryKey, TransactionType } from '../types/finance';
-import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
+import { DEFAULT_CATEGORY_CONFIGS, getNextUniqueColor } from '../config/categoryConfig';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -36,18 +36,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // New Category State
   const [newCatName, setNewCatName] = useState('');
   const [newCatType, setNewCatType] = useState<TransactionType>('expense');
-  const [newCatColor, setNewCatColor] = useState('#06b6d4');
+  const [newCatColor, setNewCatColor] = useState('#ec4899');
   const [newCatIcon, setNewCatIcon] = useState('category');
   const [isAddingCategory, setIsAddingCategory] = useState(false);
 
   useEffect(() => {
     setLocalConfigs(categoryConfigs);
     setLocalBalance(initialBalance.toString());
+    setNewCatColor(getNextUniqueColor(categoryConfigs));
   }, [categoryConfigs, initialBalance, isOpen]);
 
   if (!isOpen) return null;
 
+  const handleOpenAddCategory = () => {
+    setNewCatColor(getNextUniqueColor(localConfigs));
+    setIsAddingCategory((prev) => !prev);
+  };
+
   const handleColorChange = (key: CategoryKey, newColor: string) => {
+    const duplicate = Object.values(localConfigs).find(
+      (c) => c.key !== key && c.color.toLowerCase() === newColor.toLowerCase()
+    );
+    if (duplicate) {
+      alert(`The color ${newColor.toUpperCase()} is already assigned to "${duplicate.label}". Each category must have a unique color code.`);
+      return;
+    }
     setLocalConfigs((prev) => ({
       ...prev,
       [key]: {
@@ -99,6 +112,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       return;
     }
 
+    const duplicateColor = Object.values(localConfigs).find(
+      (c) => c.color.toLowerCase() === newCatColor.toLowerCase()
+    );
+    if (duplicateColor) {
+      alert(`The color ${newCatColor.toUpperCase()} is already assigned to "${duplicateColor.label}". Please select a unique color.`);
+      return;
+    }
+
     const newConfig: CategoryConfig = {
       key,
       label: trimmed,
@@ -119,6 +140,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate that all categories have unique colors
+    const colorEntries = Object.values(localConfigs).map((c) => ({
+      label: c.label,
+      color: c.color.toLowerCase()
+    }));
+    const colorMap = new Map<string, string>();
+    for (const entry of colorEntries) {
+      if (colorMap.has(entry.color)) {
+        alert(
+          `Duplicate color detected: ${entry.color.toUpperCase()} is shared between "${colorMap.get(
+            entry.color
+          )}" and "${entry.label}". Each category must have a unique color code.`
+        );
+        return;
+      }
+      colorMap.set(entry.color, entry.label);
+    }
+
     onSaveCategoryConfigs(localConfigs);
 
     const parsedBalance = parseFloat(localBalance);
@@ -286,7 +326,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </p>
                   <button
                     type="button"
-                    onClick={() => setIsAddingCategory((prev) => !prev)}
+                    onClick={handleOpenAddCategory}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',

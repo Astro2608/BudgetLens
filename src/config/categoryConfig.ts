@@ -52,7 +52,7 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
   General: {
     key: 'General',
     label: 'General / Others',
-    color: '#94a3b8', // Slate Grey
+    color: '#06b6d4', // Cyan
     icon: 'category',
     type: 'expense',
     keywords: ['misc', 'shopping', 'watsons', 'guardian', 'kinokuniya', 'hardware', 'books', 'general']
@@ -73,12 +73,51 @@ export function getCategoryConfig(
   return configs.General || DEFAULT_CATEGORY_CONFIGS.General;
 }
 
-export function detectCategoryFromTitle(title: string): CategoryKey {
+export const UNIQUE_PALETTE = [
+  '#10b981', // Emerald Green (Transport)
+  '#f59e0b', // Amber / Gold (Food)
+  '#ef4444', // Red (Bills)
+  '#3b82f6', // Cobalt Blue (Rent)
+  '#f97316', // Orange (Salary)
+  '#8b5cf6', // Purple (Savings)
+  '#06b6d4', // Cyan (General)
+  '#ec4899', // Pink
+  '#14b8a6', // Teal
+  '#6366f1', // Indigo
+  '#84cc16', // Lime Green
+  '#d946ef', // Fuchsia
+  '#eab308', // Yellow
+  '#0284c7', // Sky Blue
+  '#f43f5e', // Rose
+  '#a855f7', // Violet
+  '#64748b'  // Slate
+];
+
+export function getNextUniqueColor(configs: Record<CategoryKey, CategoryConfig>): string {
+  const usedColors = new Set(
+    Object.values(configs).map((c) => c.color.toLowerCase())
+  );
+
+  for (const col of UNIQUE_PALETTE) {
+    if (!usedColors.has(col.toLowerCase())) {
+      return col;
+    }
+  }
+
+  // Fallback random distinct vibrant HSL color if all 17 colors are exhausted
+  const hue = Math.floor(Math.random() * 360);
+  return `hsl(${hue}, 75%, 50%)`;
+}
+
+export function detectCategoryFromTitle(
+  title: string,
+  configs: Record<CategoryKey, CategoryConfig> = DEFAULT_CATEGORY_CONFIGS
+): CategoryKey {
   if (!title) return 'General';
   const lower = title.toLowerCase();
 
-  for (const config of CATEGORY_LIST) {
-    if (config.keywords.some(kw => lower.includes(kw.toLowerCase()))) {
+  for (const config of Object.values(configs)) {
+    if (config.keywords && config.keywords.some((kw) => lower.includes(kw.toLowerCase()))) {
       return config.key;
     }
   }
