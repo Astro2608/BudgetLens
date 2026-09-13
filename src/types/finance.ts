@@ -1,13 +1,6 @@
 export type TransactionType = 'income' | 'expense' | 'savings';
 
-export type CategoryKey = 
-  | 'Transport'
-  | 'Food'
-  | 'Bills'
-  | 'Rent'
-  | 'Salary'
-  | 'Savings'
-  | 'General';
+export type CategoryKey = string;
 
 export interface CategoryConfig {
   key: CategoryKey;

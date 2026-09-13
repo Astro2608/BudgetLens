@@ -182,7 +182,10 @@ export const App: React.FC = () => {
             {/* Right 4-Column Area: Quick Add Outflows, Predictive Runway */}
             <div className="col-span-4">
               {/* Quick Add Frequent Outflows */}
-              <QuickAddOutflows onQuickAdd={handleQuickAdd} />
+              <QuickAddOutflows
+                onQuickAdd={handleQuickAdd}
+                categoryConfigs={categoryConfigs}
+              />
 
               {/* Predictive Runway Simulation Widget */}
               <PredictiveRunwayWidget
@@ -209,6 +212,7 @@ export const App: React.FC = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddTransaction={handleAddTransaction}
+        categoryConfigs={categoryConfigs}
       />
 
       {/* Settings Modal */}

@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { TransactionType, CategoryKey, Transaction } from '../types/finance';
-import { CATEGORY_LIST } from '../config/categoryConfig';
+import { TransactionType, CategoryKey, Transaction, CategoryConfig } from '../types/finance';
+import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
+  categoryConfigs?: Record<CategoryKey, CategoryConfig>;
 }
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   isOpen,
   onClose,
-  onAddTransaction
+  onAddTransaction,
+  categoryConfigs = DEFAULT_CATEGORY_CONFIGS
 }) => {
   const [type, setType] = useState<TransactionType>('expense');
   const [title, setTitle] = useState('');
@@ -19,6 +21,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [category, setCategory] = useState<CategoryKey>('Food');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isRecurring, setIsRecurring] = useState(false);
+
+  const categories = Object.values(categoryConfigs);
 
   if (!isOpen) return null;
 
@@ -216,7 +220,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   outline: 'none'
                 }}
               >
-                {CATEGORY_LIST.filter(c => type === 'income' ? c.type === 'income' : c.type !== 'income').map((c) => (
+                {categories.filter(c => type === 'income' ? c.type === 'income' : c.type !== 'income').map((c) => (
                   <option key={c.key} value={c.key}>{c.label}</option>
                 ))}
               </select>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CategoryConfig, CategoryKey } from '../types/finance';
+import { CategoryConfig, CategoryKey, TransactionType } from '../types/finance';
 import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
 
 interface SettingsModalProps {
@@ -12,19 +12,11 @@ interface SettingsModalProps {
   onResetDefaults: () => void;
 }
 
-const PRESET_PALETTE = [
-  '#10b981', // Emerald Green
-  '#0d9488', // Teal
-  '#f59e0b', // Amber / Gold
-  '#f97316', // Orange
-  '#ef4444', // Red
-  '#f43f5e', // Rose
-  '#3b82f6', // Blue
-  '#6366f1', // Indigo
-  '#8b5cf6', // Violet
-  '#ec4899', // Pink
-  '#64748b', // Slate Grey
-  '#0f172a'  // Dark Navy
+const AVAILABLE_ICONS = [
+  'restaurant', 'local_cafe', 'directions_subway', 'local_taxi',
+  'bolt', 'apartment', 'payments', 'savings', 'shopping_bag',
+  'fitness_center', 'flight', 'sports_esports', 'medical_services',
+  'school', 'pets', 'work', 'redeem', 'category'
 ];
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -41,6 +33,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<'categories' | 'balance'>('categories');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // New Category State
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatType, setNewCatType] = useState<TransactionType>('expense');
+  const [newCatColor, setNewCatColor] = useState('#06b6d4');
+  const [newCatIcon, setNewCatIcon] = useState('category');
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+
   useEffect(() => {
     setLocalConfigs(categoryConfigs);
     setLocalBalance(initialBalance.toString());
@@ -56,6 +55,66 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         color: newColor
       }
     }));
+  };
+
+  const handleLabelChange = (key: CategoryKey, newLabel: string) => {
+    setLocalConfigs((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        label: newLabel
+      }
+    }));
+  };
+
+  const handleTypeChange = (key: CategoryKey, newType: TransactionType) => {
+    setLocalConfigs((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        type: newType
+      }
+    }));
+  };
+
+  const handleDeleteCategory = (key: CategoryKey) => {
+    if (Object.keys(localConfigs).length <= 1) {
+      alert('You must retain at least one category.');
+      return;
+    }
+    setLocalConfigs((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const handleAddNewCategory = () => {
+    const trimmed = newCatName.trim();
+    if (!trimmed) return;
+
+    const key = trimmed.replace(/[^a-zA-Z0-9]/g, '_');
+    if (localConfigs[key]) {
+      alert('A category with this name already exists.');
+      return;
+    }
+
+    const newConfig: CategoryConfig = {
+      key,
+      label: trimmed,
+      color: newCatColor,
+      icon: newCatIcon,
+      type: newCatType,
+      keywords: [trimmed.toLowerCase()]
+    };
+
+    setLocalConfigs((prev) => ({
+      ...prev,
+      [key]: newConfig
+    }));
+
+    setNewCatName('');
+    setIsAddingCategory(false);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -106,8 +165,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           backgroundColor: '#ffffff',
           borderRadius: 'var(--radius-2xl)',
           width: '100%',
-          maxWidth: '620px',
-          maxHeight: '90vh',
+          maxWidth: '680px',
+          height: '88vh',
+          maxHeight: '820px',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: 'var(--shadow-xl)',
@@ -122,7 +182,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#ffffff'
+            backgroundColor: '#ffffff',
+            flexShrink: 0
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
@@ -146,7 +207,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 System Settings
               </h2>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                Configure category color mapping and account baseline
+                Customize expandable categories, direct color swatches, and opening baseline
               </p>
             </div>
           </div>
@@ -168,7 +229,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Tab Toggle Navigation */}
-        <div style={{ padding: '0.75rem 1.5rem 0.25rem 1.5rem', display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ padding: '0.75rem 1.5rem 0.25rem 1.5rem', display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           <button
             type="button"
             onClick={() => setActiveTab('categories')}
@@ -187,8 +248,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               gap: '6px'
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>palette</span>
-            <span>Category Color Mapping</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>category</span>
+            <span>Dynamic Category Manager ({categories.length})</span>
           </button>
 
           <button
@@ -215,14 +276,162 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {activeTab === 'categories' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-                  Customize the theme color for each expense, income, and savings category. Changes will immediately sync across the stacked chart, legend, ledger, and runway matrix.
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                    Tap any color swatch directly to change color, rename categories, or add new custom categories:
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCategory((prev) => !prev)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--color-primary-light)',
+                      border: '1px solid var(--color-primary-border)',
+                      color: 'var(--color-primary)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                      {isAddingCategory ? 'close' : 'add'}
+                    </span>
+                    <span>{isAddingCategory ? 'Cancel' : 'Add New Category'}</span>
+                  </button>
+                </div>
 
+                {/* Add New Category Panel */}
+                {isAddingCategory && (
+                  <div
+                    style={{
+                      padding: '1rem',
+                      borderRadius: 'var(--radius-lg)',
+                      backgroundColor: '#f8fafc',
+                      border: '1px dashed var(--color-primary)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem'
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Create Custom Category
+                    </span>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Category Name (e.g. Gym & Fitness, Shopping)"
+                        value={newCatName}
+                        onChange={(e) => setNewCatName(e.target.value)}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-subtle)',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          outline: 'none',
+                          backgroundColor: '#ffffff'
+                        }}
+                      />
+
+                      <select
+                        value={newCatType}
+                        onChange={(e) => setNewCatType(e.target.value as TransactionType)}
+                        style={{
+                          padding: '7px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-subtle)',
+                          fontSize: '12px',
+                          backgroundColor: '#ffffff',
+                          outline: 'none'
+                        }}
+                      >
+                        <option value="expense">Expense (-)</option>
+                        <option value="income">Income (+)</option>
+                        <option value="savings">Savings (Vault)</option>
+                      </select>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {/* Direct Color Picker */}
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            backgroundColor: newCatColor,
+                            border: '2px solid #ffffff',
+                            boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            cursor: 'pointer'
+                          }}
+                          title="Click to choose color"
+                        >
+                          <input
+                            type="color"
+                            value={newCatColor}
+                            onChange={(e) => setNewCatColor(e.target.value)}
+                            style={{
+                              position: 'absolute',
+                              inset: '-10px',
+                              width: '50px',
+                              height: '50px',
+                              cursor: 'pointer',
+                              opacity: 0
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleAddNewCategory}
+                          disabled={!newCatName.trim()}
+                          className="btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Icon Picker Strip */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0 }}>Icon:</span>
+                      {AVAILABLE_ICONS.map((icon) => (
+                        <button
+                          key={icon}
+                          type="button"
+                          onClick={() => setNewCatIcon(icon)}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            border: newCatIcon === icon ? '2px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                            backgroundColor: newCatIcon === icon ? 'var(--color-primary-light)' : '#ffffff',
+                            color: newCatIcon === icon ? 'var(--color-primary)' : 'var(--text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            flexShrink: 0
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{icon}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Categories List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                   {categories.map((cat) => (
                     <div
@@ -239,78 +448,108 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         flexWrap: 'wrap'
                       }}
                     >
-                      {/* Left Category Info */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '150px' }}>
+                      {/* Left: Color Icon Button in front of Text & Category Label */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '220px' }}>
+                        {/* Interactive Color Swatch Icon */}
                         <div
                           style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: 'var(--radius-sm)',
-                            backgroundColor: `${cat.color}20`,
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: `${cat.color}25`,
                             color: cat.color,
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            border: `2px solid ${cat.color}`,
+                            flexShrink: 0
                           }}
+                          title="Click to change color"
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{cat.icon}</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
-                            {cat.label}
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                            {cat.icon || 'category'}
                           </span>
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            {cat.type}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Right Color Selector */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {/* Quick Color Swatches */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {PRESET_PALETTE.slice(0, 6).map((c) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => handleColorChange(cat.key, c)}
-                              style={{
-                                width: '18px',
-                                height: '18px',
-                                borderRadius: '50%',
-                                backgroundColor: c,
-                                border: cat.color.toLowerCase() === c.toLowerCase() ? '2px solid #0f172a' : '1px solid rgba(0,0,0,0.1)',
-                                cursor: 'pointer',
-                                padding: 0,
-                                transform: cat.color.toLowerCase() === c.toLowerCase() ? 'scale(1.15)' : 'none',
-                                transition: 'transform 0.15s ease'
-                              }}
-                              title={c}
-                            />
-                          ))}
-                        </div>
-
-                        {/* Native Color Picker & Hex Code */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px' }}>
                           <input
                             type="color"
                             value={cat.color}
                             onChange={(e) => handleColorChange(cat.key, e.target.value)}
                             style={{
-                              width: '28px',
-                              height: '28px',
-                              padding: '0',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              backgroundColor: 'transparent'
+                              position: 'absolute',
+                              inset: 0,
+                              width: '100%',
+                              height: '100%',
+                              opacity: 0,
+                              cursor: 'pointer'
                             }}
-                            title="Custom Hex Picker"
+                            title="Tap to pick custom color"
                           />
-                          <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-muted)', minWidth: '55px' }}>
-                            {cat.color.toUpperCase()}
+                        </div>
+
+                        {/* Editable Label */}
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                          <input
+                            type="text"
+                            value={cat.label}
+                            onChange={(e) => handleLabelChange(cat.key, e.target.value)}
+                            style={{
+                              border: 'none',
+                              backgroundColor: 'transparent',
+                              fontSize: '13px',
+                              fontWeight: 700,
+                              color: 'var(--text-main)',
+                              padding: '2px 4px',
+                              borderRadius: '4px',
+                              outline: 'none'
+                            }}
+                          />
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', paddingLeft: '4px' }}>
+                            Key: {cat.key} • Color: <strong>{cat.color.toUpperCase()}</strong>
                           </span>
                         </div>
+                      </div>
+
+                      {/* Right: Type Dropdown & Delete Button */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <select
+                          value={cat.type}
+                          onChange={(e) => handleTypeChange(cat.key, e.target.value as TransactionType)}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-subtle)',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            backgroundColor: '#ffffff',
+                            outline: 'none',
+                            color: 'var(--text-main)'
+                          }}
+                        >
+                          <option value="expense">Expense (-)</option>
+                          <option value="income">Income (+)</option>
+                          <option value="savings">Savings (Vault)</option>
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(cat.key)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderRadius: '4px'
+                          }}
+                          title={`Delete ${cat.label}`}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444' }}>
+                            delete
+                          </span>
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -384,7 +623,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '0.75rem'
+              gap: '0.75rem',
+              flexShrink: 0
             }}
           >
             <button
