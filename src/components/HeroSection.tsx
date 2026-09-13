@@ -16,6 +16,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onOpenAddModal,
   onScrollToImport
 }) => {
+  const isNegative = totalBalance < 0;
+  const isZero = totalBalance === 0;
+
+  // Dynamic color coding: Red for negative/deficit, Green for positive surplus, neutral for zero
+  const headlineColor = isNegative ? '#ef4444' : isZero ? 'var(--text-main)' : '#059669';
+  
+  const balanceBadge = isNegative
+    ? { text: 'Deficit / Negative Balance', bg: '#fee2e2', color: '#dc2626', border: '#fecdd3' }
+    : isZero
+    ? { text: 'Current Bank Balance ($0.00)', bg: 'var(--bg-canvas-subtle)', color: 'var(--text-muted)', border: 'var(--border-subtle)' }
+    : { text: 'Current Bank Balance (Surplus)', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
+
   return (
     <section className="lumina-card" style={{ padding: '1.75rem', gap: '1.25rem' }}>
       {/* Upper row: Balance + Action buttons */}
@@ -40,11 +52,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 gap: '0.25rem',
                 padding: '0.25rem 0.625rem',
                 borderRadius: '9999px',
-                backgroundColor: '#ecfdf5',
-                color: '#047857',
+                backgroundColor: isNegative ? '#fff1f2' : '#ecfdf5',
+                color: isNegative ? '#be123c' : '#047857',
                 fontSize: '11px',
                 fontWeight: 700,
-                border: '1px solid #a7f3d0',
+                border: `1px solid ${isNegative ? '#fecdd3' : '#a7f3d0'}`,
                 cursor: 'help'
               }}
               title="Real-time sync calculation active on offline local vault state."
@@ -54,7 +66,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   width: '7px',
                   height: '7px',
                   borderRadius: '50%',
-                  backgroundColor: '#10b981',
+                  backgroundColor: isNegative ? '#ef4444' : '#10b981',
                   animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
                 }}
               ></span>
@@ -77,9 +89,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               style={{
                 fontSize: '2.5rem',
                 fontWeight: 800,
-                color: 'var(--text-main)',
+                color: headlineColor,
                 letterSpacing: '-0.03em',
-                lineHeight: 1
+                lineHeight: 1,
+                transition: 'color 0.2s ease'
               }}
             >
               {formatSGD(totalBalance)}
@@ -90,12 +103,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 fontWeight: 700,
                 padding: '4px 10px',
                 borderRadius: '8px',
-                backgroundColor: 'var(--color-primary-light)',
-                color: 'var(--color-primary-hover)',
-                border: '1px solid var(--color-primary-border)'
+                backgroundColor: balanceBadge.bg,
+                color: balanceBadge.color,
+                border: `1px solid ${balanceBadge.border}`,
+                transition: 'all 0.2s ease'
               }}
             >
-              Current Bank Balance
+              {balanceBadge.text}
             </span>
           </div>
         </div>
@@ -194,39 +208,43 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Net Available */}
         <div
           style={{
-            backgroundColor: '#f0fdfa',
-            border: '1px solid var(--color-primary-border)',
+            backgroundColor: isNegative ? '#fff1f2' : '#f0fdfa',
+            border: `1px solid ${isNegative ? '#fecdd3' : 'var(--color-primary-border)'}`,
             borderRadius: 'var(--radius-lg)',
             padding: '1rem 1.125rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             cursor: 'help',
-            transition: 'border-color 0.2s ease, transform 0.2s ease'
+            transition: 'all 0.2s ease'
           }}
           title="Net Liquid Balance: Live capital available in accounts ready for immediate runway allocation."
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: '#115e59', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: isNegative ? '#991b1b' : '#115e59', display: 'flex', alignItems: 'center', gap: '4px' }}>
               Net Available Balance
-              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#0d9488' }}>info</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: isNegative ? '#e11d48' : '#0d9488' }}>info</span>
             </span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f766e' }}>{formatSGD(totalBalance)}</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: isNegative ? '#ef4444' : '#0f766e' }}>
+              {formatSGD(totalBalance)}
+            </span>
           </div>
           <div
             style={{
               width: '38px',
               height: '38px',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--color-primary)',
-              color: 'white',
+              backgroundColor: isNegative ? '#fee2e2' : 'var(--color-primary)',
+              color: isNegative ? '#ef4444' : 'white',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_balance_wallet</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              {isNegative ? 'warning' : 'account_balance_wallet'}
+            </span>
           </div>
         </div>
       </div>
