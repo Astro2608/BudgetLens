@@ -109,6 +109,39 @@ export function getNextUniqueColor(configs: Record<CategoryKey, CategoryConfig>)
   return `hsl(${hue}, 75%, 50%)`;
 }
 
+export function ensureUniqueCategoryColors(
+  configs: Record<CategoryKey, CategoryConfig>
+): Record<CategoryKey, CategoryConfig> {
+  const result: Record<CategoryKey, CategoryConfig> = {};
+  const usedColors = new Set<string>();
+
+  for (const [key, conf] of Object.entries(configs)) {
+    let color = conf.color;
+    if (usedColors.has(color.toLowerCase())) {
+      // Find next available unique color from palette
+      let found = false;
+      for (const col of UNIQUE_PALETTE) {
+        if (!usedColors.has(col.toLowerCase())) {
+          color = col;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        const hue = Math.floor(Math.random() * 360);
+        color = `hsl(${hue}, 75%, 50%)`;
+      }
+    }
+    usedColors.add(color.toLowerCase());
+    result[key] = {
+      ...conf,
+      color
+    };
+  }
+
+  return result;
+}
+
 export function detectCategoryFromTitle(
   title: string,
   configs: Record<CategoryKey, CategoryConfig> = DEFAULT_CATEGORY_CONFIGS

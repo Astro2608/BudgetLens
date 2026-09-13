@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MOCK_TRANSACTIONS, INITIAL_BASELINE_BALANCE } from './mock/mockTransactions';
 import { calculateFinanceSummary, formatSGD } from './utils/financeCalculator';
 import { Transaction, CategoryKey, CategoryConfig } from './types/finance';
-import { DEFAULT_CATEGORY_CONFIGS } from './config/categoryConfig';
+import { DEFAULT_CATEGORY_CONFIGS, ensureUniqueCategoryColors } from './config/categoryConfig';
 
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -56,7 +56,10 @@ export const App: React.FC = () => {
   const [categoryConfigs, setCategoryConfigs] = useState<Record<CategoryKey, CategoryConfig>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_CONFIGS);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return ensureUniqueCategoryColors(parsed);
+      }
     } catch (e) {
       console.error('Failed to load category configs', e);
     }
