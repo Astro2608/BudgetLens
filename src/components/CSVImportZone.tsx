@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Transaction, CategoryKey } from '../types/finance';
 import { parseBankCSV, CSVParseResult, generateSampleCSV } from '../utils/csvParser';
 import { parseBankPDF } from '../utils/pdfParser';
@@ -23,6 +23,18 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
     accuracy: 94,
     format: 'PDF'
   });
+
+  // Lock background body scroll when review modal is open
+  useEffect(() => {
+    if (parseResult) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [parseResult]);
 
   const handleProcessFile = async (file: File) => {
     const isPDF = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
@@ -437,12 +449,15 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               backgroundColor: '#ffffff',
               borderRadius: 'var(--radius-2xl)',
               width: '100%',
-              maxWidth: '820px',
-              maxHeight: '90vh',
+              maxWidth: '860px',
+              height: '88vh',
+              maxHeight: '820px',
+              minHeight: '450px',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: 'var(--shadow-xl)',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              position: 'relative'
             }}
           >
             {/* Modal Header */}
@@ -453,7 +468,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                flexShrink: 0
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -466,7 +482,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                     color: '#047857',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>fact_check</span>
@@ -496,7 +513,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={handleFlipAllTypes}
@@ -525,7 +542,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                     setParseResult(null);
                     setModalTransactions([]);
                   }}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                 >
                   <span className="material-symbols-outlined">close</span>
                 </button>
@@ -540,7 +557,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 borderBottom: '1px solid var(--border-subtle)',
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '0.75rem'
+                gap: '0.75rem',
+                flexShrink: 0
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -579,7 +597,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                flexShrink: 0
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -642,18 +661,45 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               </span>
             </div>
 
-            {/* Preview Table */}
-            <div style={{ padding: '0.75rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+            {/* Scrollable Preview Table */}
+            <div
+              style={{
+                padding: '0.75rem 1.5rem',
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: 'auto',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-lg)',
+                  overscrollBehavior: 'contain',
+                  backgroundColor: '#ffffff'
+                }}
+              >
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '90px' }}>Date</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>Description</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '130px', textAlign: 'center' }}>Type Toggle</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '140px' }}>Category</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '110px', textAlign: 'right' }}>Amount</th>
-                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '40px', textAlign: 'center' }}></th>
+                  <thead
+                    style={{
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 10,
+                      backgroundColor: '#f8fafc',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
+                    }}
+                  >
+                    <tr style={{ color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '90px' }}>Date</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700 }}>Description</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '130px', textAlign: 'center' }}>Type Toggle</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '140px' }}>Category</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '110px', textAlign: 'right' }}>Amount</th>
+                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '40px', textAlign: 'center' }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -766,7 +812,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 backgroundColor: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                flexShrink: 0
               }}
             >
               <button
