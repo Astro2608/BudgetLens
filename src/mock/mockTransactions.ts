@@ -1,10 +1,16 @@
 import { Transaction } from '../types/finance';
 
+function daysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().split('T')[0];
+}
+
 export const MOCK_TRANSACTIONS: Transaction[] = [
-  // Current Month (Oct / Recent)
+  // Current Week / Recent Days
   {
     id: 'tx-1',
-    date: '2026-10-15',
+    date: daysAgo(0), // Today
     title: 'Stripe Tech Partners - Bi-weekly Salary',
     amount: 8450.00,
     type: 'income',
@@ -15,7 +21,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-2',
-    date: '2026-10-14',
+    date: daysAgo(1), // Yesterday
     title: 'Condo Rental Monthly Giro',
     amount: 2500.00,
     type: 'expense',
@@ -26,7 +32,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-3',
-    date: '2026-10-13',
+    date: daysAgo(2),
     title: 'Osteria Morini & Bistro',
     amount: 128.00,
     type: 'expense',
@@ -37,7 +43,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-4',
-    date: '2026-10-12',
+    date: daysAgo(3),
     title: 'SMRT SimplyGo MRT/Bus Pass',
     amount: 45.20,
     type: 'expense',
@@ -48,7 +54,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-5',
-    date: '2026-10-10',
+    date: daysAgo(4),
     title: 'SP Group Utilities & Water Bill',
     amount: 184.60,
     type: 'expense',
@@ -59,7 +65,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-6',
-    date: '2026-10-08',
+    date: daysAgo(6),
     title: 'Kinokuniya Stationary & Books',
     amount: 38.50,
     type: 'expense',
@@ -70,7 +76,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-7',
-    date: '2026-10-05',
+    date: daysAgo(9),
     title: 'FairPrice Supermarket Orchard',
     amount: 164.20,
     type: 'expense',
@@ -81,7 +87,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-8',
-    date: '2026-10-01',
+    date: daysAgo(14),
     title: 'Stripe Tech Partners - Bi-weekly Salary',
     amount: 8450.00,
     type: 'income',
@@ -91,10 +97,10 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     source: 'DBS Multi-Currency •• 8092'
   },
 
-  // Month -1 (September)
+  // 2 - 4 Weeks Ago
   {
     id: 'tx-9',
-    date: '2026-09-28',
+    date: daysAgo(17),
     title: 'Freelance Design Retainer Payout',
     amount: 1400.00,
     type: 'income',
@@ -105,7 +111,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-10',
-    date: '2026-09-25',
+    date: daysAgo(20),
     title: 'Grab Ride Commute to CBD',
     amount: 28.50,
     type: 'expense',
@@ -116,7 +122,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-11',
-    date: '2026-09-20',
+    date: daysAgo(24),
     title: 'Singtel 5G Mobile & Broadband',
     amount: 89.90,
     type: 'expense',
@@ -127,7 +133,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-12',
-    date: '2026-09-15',
+    date: daysAgo(28),
     title: 'Stripe Tech Partners - Bi-weekly Salary',
     amount: 8450.00,
     type: 'income',
@@ -138,7 +144,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-13',
-    date: '2026-09-14',
+    date: daysAgo(31),
     title: 'Condo Rental Monthly Giro',
     amount: 2500.00,
     type: 'expense',
@@ -149,7 +155,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-14',
-    date: '2026-09-10',
+    date: daysAgo(35),
     title: 'Cold Storage Organic Groceries',
     amount: 135.00,
     type: 'expense',
@@ -160,7 +166,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-15',
-    date: '2026-09-08',
+    date: daysAgo(37),
     title: 'Shell Fuel Station V-Power',
     amount: 85.00,
     type: 'expense',
@@ -171,7 +177,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-16',
-    date: '2026-09-01',
+    date: daysAgo(42),
     title: 'Stripe Tech Partners - Bi-weekly Salary',
     amount: 8450.00,
     type: 'income',
@@ -181,10 +187,10 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     source: 'DBS Multi-Currency •• 8092'
   },
 
-  // Month -2 (August)
+  // 1.5 - 2 Months Ago
   {
     id: 'tx-17',
-    date: '2026-08-25',
+    date: daysAgo(48),
     title: 'Uniqlo Essentials & Apparel',
     amount: 110.00,
     type: 'expense',
@@ -195,7 +201,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-18',
-    date: '2026-08-15',
+    date: daysAgo(56),
     title: 'Stripe Tech Partners - Bi-weekly Salary',
     amount: 8450.00,
     type: 'income',
@@ -206,7 +212,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-19',
-    date: '2026-08-14',
+    date: daysAgo(61),
     title: 'Condo Rental Monthly Giro',
     amount: 2500.00,
     type: 'expense',
@@ -217,7 +223,7 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   },
   {
     id: 'tx-20',
-    date: '2026-08-10',
+    date: daysAgo(65),
     title: 'Din Tai Fung Family Dinner',
     amount: 145.00,
     type: 'expense',
@@ -228,4 +234,4 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
   }
 ];
 
-export const INITIAL_BASELINE_BALANCE = 0; // The total income minus expenses on mock data produces exact SGD $24,850.20
+export const INITIAL_BASELINE_BALANCE = 0;

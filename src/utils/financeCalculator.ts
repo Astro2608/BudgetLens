@@ -115,10 +115,9 @@ export function generateChartBuckets(
   );
 
   const MS_PER_DAY = 1000 * 60 * 60 * 24;
-  const latestTxDate = new Date(sortedTxs[sortedTxs.length - 1].date);
-  // Anchor to end of latest day
-  latestTxDate.setHours(23, 59, 59, 999);
-  const maxTime = latestTxDate.getTime();
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+  const maxTime = now.getTime();
 
   let buckets: ChartBucket[] = [];
 
@@ -212,9 +211,9 @@ export function generateChartBuckets(
       }
     });
   } else if (timeframe === '1Y') {
-    // 12 calendar months
-    const curYear = latestTxDate.getFullYear();
-    const curMonth = latestTxDate.getMonth();
+    // 12 calendar months ending in current month
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
 
     for (let i = 11; i >= 0; i--) {
       const mDate = new Date(curYear, curMonth - i, 1);
@@ -259,7 +258,7 @@ export function generateChartBuckets(
   } else {
     // ALL - yearly bins
     const earliestYear = new Date(sortedTxs[0].date).getFullYear();
-    const latestYear = latestTxDate.getFullYear();
+    const latestYear = now.getFullYear();
     const minYear = Math.min(earliestYear, latestYear - 1); // guarantee at least 2 bars
 
     for (let y = minYear; y <= latestYear; y++) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MOCK_TRANSACTIONS, INITIAL_BASELINE_BALANCE } from './mock/mockTransactions';
-import { calculateFinanceSummary } from './utils/financeCalculator';
+import { calculateFinanceSummary, formatSGD } from './utils/financeCalculator';
 import { Transaction, CategoryKey, CategoryConfig } from './types/finance';
 import { DEFAULT_CATEGORY_CONFIGS } from './config/categoryConfig';
 
@@ -22,11 +22,19 @@ const STORAGE_KEY_BALANCE = 'lumina_initial_balance';
 const STORAGE_KEY_TXS = 'lumina_transactions';
 
 export const App: React.FC = () => {
-  // 1. Transactions state with local persistence
+  // 1. Transactions state with local persistence and current-date synchronization
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_TXS);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed: Transaction[] = JSON.parse(saved);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const hasFutureDates = parsed.some((t) => t.date > todayStr);
+        if (hasFutureDates) {
+          return MOCK_TRANSACTIONS;
+        }
+        return parsed;
+      }
     } catch (e) {
       console.error('Failed to load transactions from localStorage', e);
     }
@@ -58,6 +66,27 @@ export const App: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  // Subtle visual feedback toast notification state
+  const [toast, setToast] = useState<{
+    id: string;
+    title: string;
+    amount: number;
+    type: 'income' | 'expense' | 'savings';
+    category: string;
+  } | null>(null);
+
+  const showToast = (title: string, amount: number, type: 'income' | 'expense' | 'savings', category: string) => {
+    setToast({ id: `${Date.now()}`, title, amount, type, category });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 2600);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   // Sync to local storage
   useEffect(() => {
     try {
@@ -86,10 +115,13 @@ export const App: React.FC = () => {
       id: `tx-${Date.now()}`
     };
     setTransactions((prev) => [tx, ...prev]);
+    showToast(tx.title, tx.amount, tx.type, String(tx.category));
   };
 
   const handleImportTransactions = (importedTxs: Transaction[]) => {
     setTransactions((prev) => [...importedTxs, ...prev]);
+    const totalAmt = importedTxs.reduce((s, t) => s + t.amount, 0);
+    showToast(`Imported ${importedTxs.length} Transactions`, totalAmt, 'income', 'e-Statement Batch');
   };
 
   const handleQuickAdd = (title: string, amount: number, category: CategoryKey) => {
@@ -105,6 +137,7 @@ export const App: React.FC = () => {
       source: 'Quick Outflow'
     };
     setTransactions((prev) => [tx, ...prev]);
+    showToast(title, amount, 'expense', String(category));
   };
 
   const handleScrollToImport = () => {
@@ -225,6 +258,65 @@ export const App: React.FC = () => {
         onSaveInitialBalance={setInitialBalance}
         onResetDefaults={handleResetDefaults}
       />
+
+      {/* Subtle Visual Feedback Toast Notification */}
+      {toast && (
+        <div
+          key={toast.id}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 16px',
+            backgroundColor: '#ffffff',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1)',
+            border: '1px solid var(--border-subtle)',
+            animation: 'toastSlideUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            pointerEvents: 'none'
+          }}
+        >
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              backgroundColor: toast.type === 'income' ? '#d1fae5' : '#fee2e2',
+              color: toast.type === 'income' ? '#047857' : '#ef4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              {toast.type === 'income' ? 'arrow_downward' : 'check'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
+              {toast.title}
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              Logged to <strong>{toast.category}</strong>
+            </span>
+          </div>
+          <span
+            style={{
+              fontSize: '13px',
+              fontWeight: 800,
+              color: toast.type === 'income' ? '#10b981' : '#ef4444',
+              marginLeft: '8px'
+            }}
+          >
+            {toast.type === 'income' ? '+' : '-'}{formatSGD(toast.amount)}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
