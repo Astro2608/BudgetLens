@@ -1,7 +1,6 @@
 {
-  "name": "BudgetLens — Cash Flow in Focus",
-  "short_name": "BudgetLens",
-  "description": "A personal finance dashboard to visualize your income, expenses, and cash runway.",
+  "name": "BudgetLens",
+  "description": "A personal finance dashboard to visualize your income, expenses, and cash runway — local, private, no account needed.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
