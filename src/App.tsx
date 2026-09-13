@@ -200,18 +200,18 @@ export const App: React.FC = () => {
 
           {/* 4. 2-Column Responsive Layout for Ledger, CSV, and Widgets */}
           <div className="dashboard-grid">
-            {/* Left 8-Column Area: CSV Import Zone, Transaction Ledger */}
+            {/* Left 8-Column Area: Transaction Ledger, File Import Engine */}
             <div className="col-span-8">
-              {/* Universal Bank Statement & Ledger Import Zone */}
-              <CSVImportZone
-                onImportTransactions={handleImportTransactions}
-                existingTransactions={transactions}
-              />
-
               {/* Transaction Activity Ledger */}
               <TransactionLedger
                 transactions={transactions}
                 categoryConfigs={categoryConfigs}
+              />
+
+              {/* Universal Bank Statement & Ledger Import Zone */}
+              <CSVImportZone
+                onImportTransactions={handleImportTransactions}
+                existingTransactions={transactions}
               />
             </div>
 
