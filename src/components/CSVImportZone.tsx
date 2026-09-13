@@ -2,21 +2,27 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Transaction, CategoryKey } from '../types/finance';
 import { parseBankCSV, CSVParseResult, generateSampleCSV } from '../utils/csvParser';
 import { parseBankPDF } from '../utils/pdfParser';
+import { parseMarkdownTable, generateSampleMarkdown } from '../utils/mdParser';
 import { formatSGD } from '../utils/financeCalculator';
 import { CATEGORY_LIST } from '../config/categoryConfig';
 
 interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
+  existingTransactions?: Transaction[];
 }
 
-export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactions }) => {
+export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
+  onImportTransactions,
+  existingTransactions = []
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<CSVParseResult | null>(null);
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'duplicate'>('all');
+  const [confirmDuplicatesModal, setConfirmDuplicatesModal] = useState(false);
   const [lastBatch, setLastBatch] = useState<{ fileName: string; count: number; accuracy: number; format: string } | null>({
     fileName: 'DBS_Oct_Statement.pdf',
     count: 42,
@@ -39,9 +45,10 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
   const handleProcessFile = async (file: File) => {
     const isPDF = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
     const isCSV = file.name.toLowerCase().endsWith('.csv') || file.type.includes('csv');
+    const isMD = file.name.toLowerCase().endsWith('.md') || file.name.toLowerCase().endsWith('.markdown') || file.type.includes('markdown');
 
-    if (!isPDF && !isCSV) {
-      setErrorMsg('Please upload a valid .PDF or .CSV bank statement.');
+    if (!isPDF && !isCSV && !isMD) {
+      setErrorMsg('Please upload a valid .PDF, .CSV, or .MD (Markdown table) bank/expenditure file.');
       return;
     }
 
@@ -52,14 +59,17 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
       let result: CSVParseResult;
       if (isPDF) {
         result = await parseBankPDF(file);
+      } else if (isMD) {
+        result = await parseMarkdownTable(file);
       } else {
         result = await parseBankCSV(file);
       }
       setParseResult(result);
       setModalTransactions(result.transactions);
       setFilterType('all');
+      setConfirmDuplicatesModal(false);
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to parse the bank statement file. Please verify it is an official digital statement.');
+      setErrorMsg(err?.message || 'Failed to parse file. Please verify it is a valid PDF, CSV, or Markdown table.');
     } finally {
       setIsParsing(false);
     }
@@ -70,7 +80,6 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
     if (file) {
       handleProcessFile(file);
     }
-    // Reset file input so same file can be chosen again if needed
     e.target.value = '';
   };
 
@@ -120,7 +129,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
     setModalTransactions((prev) => prev.filter((tx) => tx.id !== id));
   };
 
-  // Invert all transaction types (useful if statement was opposite)
+  // Invert all transaction types
   const handleFlipAllTypes = () => {
     setModalTransactions((prev) =>
       prev.map((tx) => {
@@ -133,6 +142,28 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
         };
       })
     );
+  };
+
+  // Detect duplicate transactions matching existing ledger
+  const duplicateIds = new Set<string>();
+  modalTransactions.forEach((tx) => {
+    const isDup = existingTransactions.some(
+      (ext) =>
+        ext.date === tx.date &&
+        Math.abs(Number(ext.amount) - Number(tx.amount)) < 0.01 &&
+        ext.type === tx.type
+    );
+    if (isDup) {
+      duplicateIds.add(tx.id);
+    }
+  });
+
+  const duplicateCount = duplicateIds.size;
+
+  // 1-Click Exclude all duplicates
+  const handleExcludeAllDuplicates = () => {
+    setModalTransactions((prev) => prev.filter((tx) => !duplicateIds.has(tx.id)));
+    setConfirmDuplicatesModal(false);
   };
 
   const computedTotalIncome = modalTransactions
@@ -151,17 +182,26 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
   const filteredModalTransactions = modalTransactions.filter((t) => {
     if (filterType === 'income') return t.type === 'income';
     if (filterType === 'expense') return t.type === 'expense';
+    if (filterType === 'duplicate') return duplicateIds.has(t.id);
     return true;
   });
 
   const handleConfirmImport = () => {
+    if (duplicateCount > 0 && !confirmDuplicatesModal) {
+      setConfirmDuplicatesModal(true);
+      return;
+    }
+
     if (parseResult && modalTransactions.length > 0) {
       onImportTransactions(modalTransactions);
 
       const totalCount = modalTransactions.length;
       const recognized = modalTransactions.filter((t) => t.category !== 'General').length;
       const accuracy = totalCount > 0 ? Math.round((recognized / totalCount) * 100) : 100;
-      const format = parseResult.fileName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'CSV';
+      
+      let format = 'CSV';
+      if (parseResult.fileName.toLowerCase().endsWith('.pdf')) format = 'PDF';
+      else if (parseResult.fileName.toLowerCase().endsWith('.md')) format = 'Markdown';
 
       setLastBatch({
         fileName: parseResult.fileName,
@@ -172,29 +212,50 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
 
       setParseResult(null);
       setModalTransactions([]);
+      setConfirmDuplicatesModal(false);
     }
   };
 
-  const handleDownloadSample = () => {
-    const csvContent = generateSampleCSV();
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const handleDownloadSample = (type: 'csv' | 'md') => {
+    let content = '';
+    let fileName = '';
+    let mimeType = '';
+
+    if (type === 'md') {
+      content = generateSampleMarkdown();
+      fileName = 'sample_personal_finance.md';
+      mimeType = 'text/markdown;charset=utf-8;';
+    } else {
+      content = generateSampleCSV();
+      fileName = 'sample_bank_statement.csv';
+      mimeType = 'text/csv;charset=utf-8;';
+    }
+
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'sample_bank_statement.csv';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
+  const getFormatBadge = (name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.endsWith('.pdf')) return { label: 'PDF', bg: '#fee2e2', color: '#ef4444', border: '#fecdd3' };
+    if (lower.endsWith('.md') || lower.endsWith('.markdown')) return { label: 'MD Table', bg: '#f3e8ff', color: '#9333ea', border: '#e9d5ff' };
+    return { label: 'CSV', bg: '#ecfdf5', color: '#10b981', border: '#a7f3d0' };
+  };
+
   return (
     <div className="lumina-card" id="import-section" style={{ gap: '1rem' }}>
-      {/* Hidden File Input for PDF and CSV */}
+      {/* Hidden File Input for PDF, CSV, and MD */}
       <input
         type="file"
         ref={fileInputRef}
-        accept=".pdf,.csv,application/pdf,text/csv"
+        accept=".pdf,.csv,.md,.markdown,application/pdf,text/csv,text/markdown,text/plain"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
@@ -230,7 +291,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Bank e-Statement Import Engine
+                Universal Statement & Ledger Import Engine
               </h3>
               <span
                 style={{
@@ -258,34 +319,70 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               >
                 CSV
               </span>
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: 800,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  backgroundColor: '#f3e8ff',
+                  color: '#9333ea',
+                  border: '1px solid #e9d5ff'
+                }}
+              >
+                MD Table
+              </span>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              100% Offline client-side PDF & CSV statement parsing with automatic deposit & withdrawal recognition
+              100% Offline client-side parsing for PDF statements, CSV exports & Obsidian Markdown tables with duplicate protection
             </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleDownloadSample}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '4px 10px',
-            borderRadius: '8px',
-            backgroundColor: 'var(--bg-canvas-subtle)',
-            border: '1px solid var(--border-subtle)',
-            fontSize: '11px',
-            fontWeight: 700,
-            color: 'var(--color-primary)',
-            cursor: 'pointer'
-          }}
-          title="Download a pre-formatted sample statement to test"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>download</span>
-          <span>Download Sample Statement</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => handleDownloadSample('csv')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-canvas-subtle)',
+              border: '1px solid var(--border-subtle)',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: 'var(--color-primary)',
+              cursor: 'pointer'
+            }}
+            title="Download a sample CSV statement"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>download</span>
+            <span>Sample CSV</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDownloadSample('md')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-canvas-subtle)',
+              border: '1px solid var(--border-subtle)',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#9333ea',
+              cursor: 'pointer'
+            }}
+            title="Download a sample Markdown (.md) Obsidian finance table"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>table_chart</span>
+            <span>Sample MD Table</span>
+          </button>
+        </div>
       </div>
 
       {/* Drag and Drop Zone */}
@@ -330,16 +427,16 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
             {isParsing ? (
-              'Extracting transactions from e-statement (100% Offline)...'
+              'Extracting transactions from file (100% Offline)...'
             ) : (
               <>
-                Drop your official bank <strong>PDF or CSV statement</strong> here, or{' '}
+                Drop your bank <strong>PDF, CSV statement, or Obsidian Markdown (.md) table</strong> here, or{' '}
                 <span style={{ color: 'var(--color-primary-hover)', textDecoration: 'underline' }}>browse files</span>
               </>
             )}
           </span>
           <span style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '3px' }}>
-            Supports: DBS, POSB, OCBC, UOB, HSBC, Standard Chartered, Citibank, Revolut e-Statements
+            Supports: DBS, POSB, OCBC, UOB, HSBC, Citibank e-Statements & Markdown Budget Tables
           </span>
         </div>
       </div>
@@ -387,7 +484,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 Auto-categorized {lastBatch.count} transactions from {lastBatch.fileName} ({lastBatch.format})
               </span>
               <span style={{ fontSize: '11px', color: '#047857', fontWeight: 600 }}>
-                {lastBatch.accuracy}% accuracy with rule-based merchant mapping
+                {lastBatch.accuracy}% accuracy with rule-based merchant mapping & duplicate filters
               </span>
             </div>
           </div>
@@ -398,12 +495,12 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
             onClick={() => fileInputRef.current?.click()}
             style={{ padding: '0.35rem 0.75rem', fontSize: '12px' }}
           >
-            Import Another Statement
+            Import Another File
           </button>
         </div>
       )}
 
-      {/* Privacy Notice */}
+      {/* Privacy & Engine Notice */}
       <div
         style={{
           padding: '0.875rem 1rem',
@@ -419,7 +516,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
           shield_with_heart
         </span>
         <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.45, margin: 0 }}>
-          <strong style={{ color: '#0f172a' }}>100% Offline & Universal:</strong> Statements are parsed locally in your browser (Chrome, Edge, Safari, Brave, etc.) via PDF.js & PapaParse regex rules. Zero financial data is ever sent over the network.
+          <strong style={{ color: '#0f172a' }}>100% Offline & Universal:</strong> Statements & Markdown tables are parsed locally in your browser. All duplicate amounts on identical dates are cross-checked against your ledger to safeguard your balance.
         </p>
       </div>
 
@@ -429,18 +526,20 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
             backdropFilter: 'blur(4px)',
             zIndex: 140,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1rem'
+            padding: '1.25rem',
+            overflow: 'hidden'
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setParseResult(null);
               setModalTransactions([]);
+              setConfirmDuplicatesModal(false);
             }
           }}
         >
@@ -491,21 +590,26 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                      Review & Reclassify Extracted e-Statement
+                      Review & Reclassify Extracted Records
                     </h3>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        backgroundColor: parseResult.fileName.toLowerCase().endsWith('.pdf') ? '#fee2e2' : '#ecfdf5',
-                        color: parseResult.fileName.toLowerCase().endsWith('.pdf') ? '#ef4444' : '#10b981',
-                        border: parseResult.fileName.toLowerCase().endsWith('.pdf') ? '1px solid #fecdd3' : '1px solid #a7f3d0'
-                      }}
-                    >
-                      {parseResult.fileName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'CSV'}
-                    </span>
+                    {(() => {
+                      const badge = getFormatBadge(parseResult.fileName);
+                      return (
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            backgroundColor: badge.bg,
+                            color: badge.color,
+                            border: `1px solid ${badge.border}`
+                          }}
+                        >
+                          {badge.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     File: <strong>{parseResult.fileName}</strong> ({modalTransactions.length} transactions ready)
@@ -541,6 +645,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                   onClick={() => {
                     setParseResult(null);
                     setModalTransactions([]);
+                    setConfirmDuplicatesModal(false);
                   }}
                   style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                 >
@@ -548,6 +653,76 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 </button>
               </div>
             </div>
+
+            {/* DUPLICATE WARNING HIGHLIGHT BANNER */}
+            {duplicateCount > 0 && (
+              <div
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: '#fffbeb',
+                  borderBottom: '1px solid #fde68a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  flexShrink: 0
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '20px' }}>
+                    warning
+                  </span>
+                  <div>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#92400e' }}>
+                      Duplicate Match Warning: {duplicateCount} item(s) already exist in your ledger!
+                    </span>
+                    <p style={{ fontSize: '11px', color: '#b45309', margin: '2px 0 0 0' }}>
+                      Identical dates & amounts matched existing ledger transactions. Exclude them to prevent inflated expenses.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFilterType('duplicate')}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: '#fef3c7',
+                      border: '1px solid #fcd34d',
+                      color: '#b45309',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    View Duplicates ({duplicateCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExcludeAllDuplicates}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      backgroundColor: '#ef4444',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete_sweep</span>
+                    <span>Exclude All {duplicateCount} Duplicates</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Summary Ribbon */}
             <div
@@ -653,6 +828,25 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 >
                   Expenses / Outflows ({expenseCount})
                 </button>
+                {duplicateCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterType('duplicate')}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      border: '1px solid',
+                      cursor: 'pointer',
+                      backgroundColor: filterType === 'duplicate' ? '#d97706' : '#fef3c7',
+                      color: filterType === 'duplicate' ? '#ffffff' : '#b45309',
+                      borderColor: filterType === 'duplicate' ? '#d97706' : '#fde68a'
+                    }}
+                  >
+                    Duplicates ({duplicateCount})
+                  </button>
+                )}
               </div>
 
               <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -705,11 +899,12 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                   <tbody>
                     {filteredModalTransactions.map((tx, idx) => {
                       const isIncome = tx.type === 'income';
+                      const isDuplicate = duplicateIds.has(tx.id);
                       return (
                         <tr
                           key={tx.id || idx}
                           style={{
-                            backgroundColor: idx % 2 === 0 ? '#ffffff' : '#fafbfc',
+                            backgroundColor: isDuplicate ? '#fffbeb' : idx % 2 === 0 ? '#ffffff' : '#fafbfc',
                             borderBottom: '1px solid #f1f5f9'
                           }}
                         >
@@ -717,7 +912,26 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                             {tx.date}
                           </td>
                           <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--text-main)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {tx.title}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span>{tx.title}</span>
+                              {isDuplicate && (
+                                <span
+                                  style={{
+                                    fontSize: '9px',
+                                    fontWeight: 800,
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#fef3c7',
+                                    color: '#b45309',
+                                    border: '1px solid #fde68a',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title="Matches date and amount with an existing transaction in ledger"
+                                >
+                                  ⚠️ Duplicate
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                             <button
@@ -804,38 +1018,94 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               </div>
             </div>
 
-            {/* Modal Actions */}
+            {/* Modal Actions & Confirmation Warning */}
             <div
               style={{
-                padding: '1.25rem 1.5rem',
+                padding: '1rem 1.5rem',
                 borderTop: '1px solid var(--border-subtle)',
                 backgroundColor: '#ffffff',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                flexDirection: 'column',
+                gap: '0.5rem',
                 flexShrink: 0
               }}
             >
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  setParseResult(null);
-                  setModalTransactions([]);
-                }}
-              >
-                Cancel
-              </button>
+              {confirmDuplicatesModal && duplicateCount > 0 && (
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#fffbeb',
+                    border: '1px solid #fcd34d',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '12px'
+                  }}
+                >
+                  <span style={{ color: '#92400e', fontWeight: 700 }}>
+                    ⚠️ {duplicateCount} duplicate transaction(s) detected. Are you sure you want to add them?
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={handleExcludeAllDuplicates}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        backgroundColor: '#fef3c7',
+                        border: '1px solid #f59e0b',
+                        color: '#92400e',
+                        fontWeight: 700,
+                        fontSize: '11px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Exclude Duplicates
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmImport}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        backgroundColor: '#d97706',
+                        color: '#ffffff',
+                        border: 'none',
+                        fontWeight: 800,
+                        fontSize: '11px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Yes, Import Anyway
+                    </button>
+                  </div>
+                </div>
+              )}
 
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleConfirmImport}
-                disabled={modalTransactions.length === 0}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_task</span>
-                <span>Import {modalTransactions.length} Transactions into Ledger</span>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setParseResult(null);
+                    setModalTransactions([]);
+                    setConfirmDuplicatesModal(false);
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleConfirmImport}
+                  disabled={modalTransactions.length === 0}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_task</span>
+                  <span>Import {modalTransactions.length} Transactions into Ledger</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -843,4 +1113,3 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
     </div>
   );
 };
-

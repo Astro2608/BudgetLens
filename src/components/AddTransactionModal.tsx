@@ -77,18 +77,29 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 width: '36px',
                 height: '36px',
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--color-primary-light)',
-                color: 'var(--color-primary)',
+                backgroundColor: type === 'expense' ? '#fee2e2' : '#d1fae5',
+                color: type === 'expense' ? '#ef4444' : '#059669',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                transition: 'all 180ms ease'
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add_circle</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                {type === 'expense' ? 'arrow_downward' : 'arrow_upward'}
+              </span>
             </div>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)' }}>Record Transaction</h3>
+            <div>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                {type === 'expense' ? 'Record Outflow' : 'Record Inflow'}
+              </h3>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                {type === 'expense' ? 'Add a new expense to your ledger' : 'Add an income / deposit to your ledger'}
+              </span>
+            </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             style={{ background: 'transparent', border: 'none', color: 'var(--text-subtle)', cursor: 'pointer' }}
           >
@@ -97,41 +108,52 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Income vs Expense Toggle */}
-          <div style={{ display: 'flex', backgroundColor: 'var(--bg-canvas-subtle)', padding: '4px', borderRadius: '10px', gap: '4px' }}>
+          {/* 1-Click Instant Toggle */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'var(--bg-canvas-subtle)',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-subtle)'
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Transaction Nature</span>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: type === 'expense' ? '#ef4444' : '#10b981' }}>
+                {type === 'expense' ? '💸 Expense (Money Out)' : '💰 Income (Money In)'}
+              </span>
+            </div>
+
             <button
               type="button"
-              onClick={() => { setType('expense'); setCategory('Food'); }}
-              style={{
-                flex: 1,
-                padding: '8px',
-                borderRadius: '8px',
-                border: 'none',
-                fontWeight: 700,
-                fontSize: '12px',
-                cursor: 'pointer',
-                backgroundColor: type === 'expense' ? '#fee2e2' : 'transparent',
-                color: type === 'expense' ? '#ef4444' : 'var(--text-muted)'
+              onClick={() => {
+                const nextType = type === 'expense' ? 'income' : 'expense';
+                setType(nextType);
+                setCategory(nextType === 'income' ? 'Salary' : 'Food');
               }}
-            >
-              Expense (-)
-            </button>
-            <button
-              type="button"
-              onClick={() => { setType('income'); setCategory('Salary'); }}
               style={{
-                flex: 1,
-                padding: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
                 borderRadius: '8px',
-                border: 'none',
-                fontWeight: 700,
+                border: '1px solid',
                 fontSize: '12px',
+                fontWeight: 800,
                 cursor: 'pointer',
-                backgroundColor: type === 'income' ? '#ecfdf5' : 'transparent',
-                color: type === 'income' ? '#10b981' : 'var(--text-muted)'
+                backgroundColor: type === 'expense' ? '#fee2e2' : '#ecfdf5',
+                color: type === 'expense' ? '#dc2626' : '#059669',
+                borderColor: type === 'expense' ? '#fca5a5' : '#6ee7b7',
+                boxShadow: 'var(--shadow-xs)',
+                transition: 'all 150ms ease'
               }}
+              title="Click to toggle between Expense and Income"
             >
-              Income (+)
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>swap_horiz</span>
+              <span>Switch to {type === 'expense' ? 'Income (+)' : 'Expense (-)'}</span>
             </button>
           </div>
 

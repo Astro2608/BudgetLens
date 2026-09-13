@@ -166,8 +166,11 @@ export const App: React.FC = () => {
           <div className="dashboard-grid">
             {/* Left 8-Column Area: CSV Import Zone, Transaction Ledger */}
             <div className="col-span-8">
-              {/* Bank e-Statement CSV Import Zone */}
-              <CSVImportZone onImportTransactions={handleImportTransactions} />
+              {/* Universal Bank Statement & Ledger Import Zone */}
+              <CSVImportZone
+                onImportTransactions={handleImportTransactions}
+                existingTransactions={transactions}
+              />
 
               {/* Transaction Activity Ledger */}
               <TransactionLedger
