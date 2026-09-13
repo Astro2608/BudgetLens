@@ -1,4 +1,4 @@
-import { Transaction, FinanceSummary, CategoryRunway, CategoryKey, TimeframeFilter, ChartBucket, CategoryAmount, CategoryConfig } from '../types/finance';
+import { Transaction, FinanceSummary, CategoryRunway, CategoryKey, TimeframeFilter, ChartBucket, CategoryConfig } from '../types/finance';
 import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
 
 export function calculateFinanceSummary(

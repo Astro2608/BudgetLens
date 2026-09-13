@@ -97,7 +97,7 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
             const dateVal = row[mapping.date || ''] || new Date().toISOString().split('T')[0];
             const date = normalizeDate(String(dateVal));
 
-            const rawTitle = (row[mapping.description || ''] || row[mapping.merchant || ''] || `CSV Tx #${index + 1}`);
+            const rawTitle = (row[mapping.description || ''] || `CSV Tx #${index + 1}`);
             const title = String(rawTitle).trim();
 
             let amt = 0;

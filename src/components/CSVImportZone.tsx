@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Transaction } from '../types/finance';
+import { Transaction, CategoryKey } from '../types/finance';
 import { parseBankCSV, CSVParseResult, generateSampleCSV } from '../utils/csvParser';
 import { parseBankPDF } from '../utils/pdfParser';
 import { formatSGD } from '../utils/financeCalculator';
+import { CATEGORY_LIST } from '../config/categoryConfig';
 
 interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
@@ -14,6 +15,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
   const [isParsing, setIsParsing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<CSVParseResult | null>(null);
+  const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
   const [lastBatch, setLastBatch] = useState<{ fileName: string; count: number; accuracy: number; format: string } | null>({
     fileName: 'DBS_Oct_Statement.pdf',
     count: 42,
@@ -41,6 +44,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
         result = await parseBankCSV(file);
       }
       setParseResult(result);
+      setModalTransactions(result.transactions);
+      setFilterType('all');
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to parse the bank statement file. Please verify it is an official digital statement.');
     } finally {
@@ -75,12 +80,74 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
     }
   };
 
-  const handleConfirmImport = () => {
-    if (parseResult && parseResult.transactions.length > 0) {
-      onImportTransactions(parseResult.transactions);
+  // Toggle single transaction type
+  const handleToggleType = (id: string) => {
+    setModalTransactions((prev) =>
+      prev.map((tx) => {
+        if (tx.id !== id) return tx;
+        const newType = tx.type === 'income' ? 'expense' : 'income';
+        const newCat: CategoryKey = newType === 'income' ? 'Salary' : tx.category === 'Salary' ? 'General' : tx.category;
+        return {
+          ...tx,
+          type: newType,
+          category: newCat
+        };
+      })
+    );
+  };
 
-      const totalCount = parseResult.transactions.length;
-      const recognized = totalCount - parseResult.unrecognizedCount;
+  // Change category of a row
+  const handleChangeCategory = (id: string, newCat: CategoryKey) => {
+    setModalTransactions((prev) =>
+      prev.map((tx) => (tx.id === id ? { ...tx, category: newCat } : tx))
+    );
+  };
+
+  // Remove a row
+  const handleDeleteRow = (id: string) => {
+    setModalTransactions((prev) => prev.filter((tx) => tx.id !== id));
+  };
+
+  // Invert all transaction types (useful if statement was opposite)
+  const handleFlipAllTypes = () => {
+    setModalTransactions((prev) =>
+      prev.map((tx) => {
+        const newType = tx.type === 'income' ? 'expense' : 'income';
+        const newCat: CategoryKey = newType === 'income' ? 'Salary' : tx.category === 'Salary' ? 'General' : tx.category;
+        return {
+          ...tx,
+          type: newType,
+          category: newCat
+        };
+      })
+    );
+  };
+
+  const computedTotalIncome = modalTransactions
+    .filter((t) => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const computedTotalExpense = modalTransactions
+    .filter((t) => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const netCashflow = computedTotalIncome - computedTotalExpense;
+
+  const incomeCount = modalTransactions.filter((t) => t.type === 'income').length;
+  const expenseCount = modalTransactions.filter((t) => t.type === 'expense').length;
+
+  const filteredModalTransactions = modalTransactions.filter((t) => {
+    if (filterType === 'income') return t.type === 'income';
+    if (filterType === 'expense') return t.type === 'expense';
+    return true;
+  });
+
+  const handleConfirmImport = () => {
+    if (parseResult && modalTransactions.length > 0) {
+      onImportTransactions(modalTransactions);
+
+      const totalCount = modalTransactions.length;
+      const recognized = modalTransactions.filter((t) => t.category !== 'General').length;
       const accuracy = totalCount > 0 ? Math.round((recognized / totalCount) * 100) : 100;
       const format = parseResult.fileName.toLowerCase().endsWith('.pdf') ? 'PDF' : 'CSV';
 
@@ -92,6 +159,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
       });
 
       setParseResult(null);
+      setModalTransactions([]);
     }
   };
 
@@ -180,7 +248,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               </span>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              100% Offline client-side PDF & CSV statement parsing with automatic category matching
+              100% Offline client-side PDF & CSV statement parsing with automatic deposit & withdrawal recognition
             </p>
           </div>
         </div>
@@ -358,7 +426,10 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
             padding: '1rem'
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setParseResult(null);
+            if (e.target === e.currentTarget) {
+              setParseResult(null);
+              setModalTransactions([]);
+            }
           }}
         >
           <div
@@ -366,8 +437,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               backgroundColor: '#ffffff',
               borderRadius: 'var(--radius-2xl)',
               width: '100%',
-              maxWidth: '680px',
-              maxHeight: '85vh',
+              maxWidth: '820px',
+              maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: 'var(--shadow-xl)',
@@ -403,7 +474,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                      Review Extracted e-Statement
+                      Review & Reclassify Extracted e-Statement
                     </h3>
                     <span
                       style={{
@@ -420,18 +491,45 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                     </span>
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    File: <strong>{parseResult.fileName}</strong> ({parseResult.transactions.length} transactions extracted)
+                    File: <strong>{parseResult.fileName}</strong> ({modalTransactions.length} transactions ready)
                   </span>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setParseResult(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleFlipAllTypes}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#334155',
+                    cursor: 'pointer'
+                  }}
+                  title="Invert all items if deposits & withdrawals were swapped"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>swap_horiz</span>
+                  <span>Flip All Types</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setParseResult(null);
+                    setModalTransactions([]);
+                  }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
             </div>
 
             {/* Summary Ribbon */}
@@ -441,64 +539,222 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 backgroundColor: 'var(--bg-canvas-subtle)',
                 borderBottom: '1px solid var(--border-subtle)',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns: 'repeat(4, 1fr)',
                 gap: '0.75rem'
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Extracted Rows</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Items</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
-                  {parseResult.transactions.length} Items
+                  {modalTransactions.length} Records
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Inflows (+)</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#10b981' }}>
-                  +{formatSGD(parseResult.totalIncome)}
+                  +{formatSGD(computedTotalIncome)}
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Outflows (-)</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#ef4444' }}>
-                  -{formatSGD(parseResult.totalExpense)}
+                  -{formatSGD(computedTotalExpense)}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Net Position</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: netCashflow >= 0 ? '#10b981' : '#ef4444' }}>
+                  {netCashflow >= 0 ? `+${formatSGD(netCashflow)} (Surplus)` : `-${formatSGD(Math.abs(netCashflow))} (Deficit)`}
                 </span>
               </div>
             </div>
 
-            {/* Preview Table */}
-            <div style={{ padding: '1rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-                Extracted Sample (First 8 Rows):
+            {/* Sub-header Filter bar & Hint */}
+            <div
+              style={{
+                padding: '0.625rem 1.5rem',
+                backgroundColor: '#ffffff',
+                borderBottom: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setFilterType('all')}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    cursor: 'pointer',
+                    backgroundColor: filterType === 'all' ? 'var(--color-primary)' : '#f8fafc',
+                    color: filterType === 'all' ? '#ffffff' : '#64748b',
+                    borderColor: filterType === 'all' ? 'var(--color-primary)' : '#e2e8f0'
+                  }}
+                >
+                  All ({modalTransactions.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterType('income')}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    cursor: 'pointer',
+                    backgroundColor: filterType === 'income' ? '#10b981' : '#ecfdf5',
+                    color: filterType === 'income' ? '#ffffff' : '#047857',
+                    borderColor: filterType === 'income' ? '#10b981' : '#a7f3d0'
+                  }}
+                >
+                  Deposits / Inflows ({incomeCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterType('expense')}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    cursor: 'pointer',
+                    backgroundColor: filterType === 'expense' ? '#ef4444' : '#fff1f2',
+                    color: filterType === 'expense' ? '#ffffff' : '#be123c',
+                    borderColor: filterType === 'expense' ? '#ef4444' : '#fecdd3'
+                  }}
+                >
+                  Expenses / Outflows ({expenseCount})
+                </button>
+              </div>
+
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#0284c7' }}>info</span>
+                Click the <strong>[+ Income]</strong> or <strong>[- Expense]</strong> badge on any row to instantly toggle type.
               </span>
+            </div>
 
+            {/* Preview Table */}
+            <div style={{ padding: '0.75rem 1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                {parseResult.transactions.slice(0, 8).map((tx, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      backgroundColor: idx % 2 === 0 ? '#ffffff' : '#fafbfc',
-                      borderBottom: idx < 7 ? '1px solid #f1f5f9' : 'none',
-                      fontSize: '12px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
-                      <span style={{ fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {tx.title}
-                      </span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                        {tx.date} • Category: <strong>{tx.category}</strong>
-                      </span>
-                    </div>
-
-                    <span style={{ fontWeight: 800, color: tx.type === 'income' ? '#10b981' : '#ef4444', flexShrink: 0, marginLeft: '1rem' }}>
-                      {tx.type === 'income' ? '+' : '-'}{formatSGD(tx.amount)}
-                    </span>
-                  </div>
-                ))}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '90px' }}>Date</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700 }}>Description</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '130px', textAlign: 'center' }}>Type Toggle</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '140px' }}>Category</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '110px', textAlign: 'right' }}>Amount</th>
+                      <th style={{ padding: '8px 12px', fontWeight: 700, width: '40px', textAlign: 'center' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredModalTransactions.map((tx, idx) => {
+                      const isIncome = tx.type === 'income';
+                      return (
+                        <tr
+                          key={tx.id || idx}
+                          style={{
+                            backgroundColor: idx % 2 === 0 ? '#ffffff' : '#fafbfc',
+                            borderBottom: '1px solid #f1f5f9'
+                          }}
+                        >
+                          <td style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                            {tx.date}
+                          </td>
+                          <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--text-main)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {tx.title}
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleType(tx.id)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                border: '1px solid',
+                                cursor: 'pointer',
+                                backgroundColor: isIncome ? '#dcfce7' : '#ffe4e6',
+                                color: isIncome ? '#15803d' : '#be123c',
+                                borderColor: isIncome ? '#86efac' : '#fda4af',
+                                transition: 'all 120ms ease'
+                              }}
+                              title="Click to toggle between Income and Expense"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>
+                                {isIncome ? 'arrow_downward' : 'arrow_upward'}
+                              </span>
+                              <span>{isIncome ? 'Income (+)' : 'Expense (-)'}</span>
+                            </button>
+                          </td>
+                          <td style={{ padding: '8px 12px' }}>
+                            <select
+                              value={tx.category}
+                              onChange={(e) => handleChangeCategory(tx.id, e.target.value as CategoryKey)}
+                              style={{
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-subtle)',
+                                fontSize: '11px',
+                                color: 'var(--text-main)',
+                                backgroundColor: '#ffffff',
+                                outline: 'none'
+                              }}
+                            >
+                              {CATEGORY_LIST.map((c) => (
+                                <option key={c.key} value={c.key}>
+                                  {c.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td
+                            style={{
+                              padding: '8px 12px',
+                              textAlign: 'right',
+                              fontWeight: 800,
+                              color: isIncome ? '#10b981' : '#ef4444',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {isIncome ? '+' : '-'}{formatSGD(tx.amount)}
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRow(tx.id)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                padding: '2px',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                              title="Exclude this line from import"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -516,7 +772,10 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={() => setParseResult(null)}
+                onClick={() => {
+                  setParseResult(null);
+                  setModalTransactions([]);
+                }}
               >
                 Cancel
               </button>
@@ -525,9 +784,10 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
                 type="button"
                 className="btn-primary"
                 onClick={handleConfirmImport}
+                disabled={modalTransactions.length === 0}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_task</span>
-                <span>Import {parseResult.transactions.length} Transactions into Ledger</span>
+                <span>Import {modalTransactions.length} Transactions into Ledger</span>
               </button>
             </div>
           </div>
@@ -536,3 +796,4 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({ onImportTransactio
     </div>
   );
 };
+
