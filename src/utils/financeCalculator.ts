@@ -115,8 +115,6 @@ export function generateChartBuckets(
   timeframe: TimeframeFilter,
   configs: Record<CategoryKey, CategoryConfig> = DEFAULT_CATEGORY_CONFIGS
 ): ChartBucket[] {
-  if (transactions.length === 0) return [];
-
   const sortedTxs = [...transactions].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
@@ -268,7 +266,7 @@ export function generateChartBuckets(
     });
   } else {
     // ALL - yearly bins
-    const earliestYear = new Date(sortedTxs[0].date).getFullYear();
+    const earliestYear = sortedTxs.length > 0 ? new Date(sortedTxs[0].date).getFullYear() : now.getFullYear() - 1;
     const latestYear = now.getFullYear();
     const minYear = Math.min(earliestYear, latestYear - 1); // guarantee at least 2 bars
 

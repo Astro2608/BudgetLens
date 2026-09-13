@@ -16,7 +16,9 @@ import { QuickAddOutflows } from './components/QuickAddOutflows';
 import { PredictiveRunwayWidget } from './components/PredictiveRunwayWidget';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { SettingsModal } from './components/SettingsModal';
+import { ResetConfirmModal } from './components/ResetConfirmModal';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
+import { exportToMarkdown } from './utils/exportUtils';
 
 const STORAGE_KEY_CONFIGS = 'budgetlens_category_configs';
 const STORAGE_KEY_BALANCE = 'budgetlens_initial_balance';
@@ -35,6 +37,7 @@ export const App: React.FC = () => {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   // File System state (optional background sync)
   const [rawFileHandle, setRawFileHandle] = useState<FileSystemFileHandle | null>(null);
@@ -70,7 +73,12 @@ export const App: React.FC = () => {
 
           setTransactions(hasFutureDates ? MOCK_TRANSACTIONS : healedTxs);
         } else {
-          setTransactions(MOCK_TRANSACTIONS);
+          // Default start with mock data only if never set
+          if (savedTxs === undefined) {
+            setTransactions(MOCK_TRANSACTIONS);
+          } else {
+            setTransactions([]);
+          }
         }
 
         let savedBal = await getAppData(STORAGE_KEY_BALANCE);
@@ -223,6 +231,26 @@ export const App: React.FC = () => {
     } catch (e) {}
   };
 
+  // Safe Archival & Reset Workspace to $0.00
+  const handleArchiveAndReset = (downloadBackup: boolean) => {
+    if (downloadBackup && transactions.length > 0) {
+      exportToMarkdown(transactions);
+    }
+
+    // Reset state to clean 0
+    setTransactions([]);
+    setInitialBalance(0);
+    setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
+
+    // Persist clean 0 state into storage
+    saveAppData(STORAGE_KEY_TXS, []).catch(e => console.error(e));
+    saveAppData(STORAGE_KEY_BALANCE, 0).catch(e => console.error(e));
+    saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS).catch(e => console.error(e));
+
+    setIsResetModalOpen(false);
+    showToast('Fresh Session Initialized', 0, 'income', 'Reset to $0.00');
+  };
+
   return (
     <div className="app-layout">
       {/* Sidebar */}
@@ -234,8 +262,8 @@ export const App: React.FC = () => {
 
       {/* Main Wrapper */}
       <div className="main-wrapper">
-        {/* Top Header */}
-        <Header />
+        {/* Top Header with Reset Button */}
+        <Header onResetWorkspace={() => setIsResetModalOpen(true)} />
 
         {/* Workspace Content */}
         <main className="workspace-content">
@@ -325,6 +353,15 @@ export const App: React.FC = () => {
         onResetDefaults={handleResetDefaults}
       />
 
+      {/* Reset Confirmation Modal with Automated Safety Archival */}
+      <ResetConfirmModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirmReset={handleArchiveAndReset}
+        transactionsCount={transactions.length}
+        totalBalance={summary.totalBalance}
+      />
+
       {/* Subtle Visual Feedback Toast Notification */}
       {toast && (
         <div
@@ -368,7 +405,7 @@ export const App: React.FC = () => {
               {toast.title}
             </span>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Logged to <strong>{toast.category}</strong>
+              {toast.category}
             </span>
           </div>
           <span
@@ -379,7 +416,7 @@ export const App: React.FC = () => {
               marginLeft: '8px'
             }}
           >
-            {toast.type === 'income' ? '+' : '-'}{formatSGD(toast.amount)}
+            {formatSGD(toast.amount)}
           </span>
         </div>
       )}

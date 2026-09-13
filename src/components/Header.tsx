@@ -1,6 +1,10 @@
 import React from 'react';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onResetWorkspace?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onResetWorkspace }) => {
   return (
     <header className="top-header" style={{ justifyContent: 'space-between', padding: '0.875rem 2rem' }}>
       {/* Left breadcrumb / page title */}
@@ -19,6 +23,42 @@ export const Header: React.FC = () => {
         </span>
       </div>
 
+      {/* Right Action: Reset Button */}
+      {onResetWorkspace && (
+        <button
+          type="button"
+          onClick={onResetWorkspace}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '0.4rem 0.85rem',
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: '#ffffff',
+            color: '#dc2626',
+            border: '1.5px solid #fecdd3',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#fff1f2';
+            e.currentTarget.style.borderColor = '#fda4af';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#ffffff';
+            e.currentTarget.style.borderColor = '#fecdd3';
+          }}
+          title="Reset all balances to $0.00 and archive current data into an offline backup file"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#dc2626' }}>
+            restart_alt
+          </span>
+          <span>Reset & Start Fresh ($0)</span>
+        </button>
+      )}
     </header>
   );
 };
