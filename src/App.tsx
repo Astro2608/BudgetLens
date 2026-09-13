@@ -178,7 +178,12 @@ export const App: React.FC = () => {
               <QuickAddOutflows onQuickAdd={handleQuickAdd} />
 
               {/* Predictive Runway Simulation Widget */}
-              <PredictiveRunwayWidget />
+              <PredictiveRunwayWidget
+                overallMonthlyBurn={summary.overallMonthlyBurn}
+                totalBalance={summary.totalBalance}
+                overallRunwayMonths={summary.overallRunwayMonths}
+                categoryRunways={summary.categoryRunways}
+              />
             </div>
           </div>
 
