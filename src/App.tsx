@@ -88,6 +88,10 @@ export const App: React.FC = () => {
     setTransactions((prev) => [tx, ...prev]);
   };
 
+  const handleImportTransactions = (importedTxs: Transaction[]) => {
+    setTransactions((prev) => [...importedTxs, ...prev]);
+  };
+
   const handleQuickAdd = (title: string, amount: number, category: CategoryKey) => {
     const tx: Transaction = {
       id: `tx-${Date.now()}`,
@@ -163,7 +167,7 @@ export const App: React.FC = () => {
             {/* Left 8-Column Area: CSV Import Zone, Transaction Ledger */}
             <div className="col-span-8">
               {/* Bank e-Statement CSV Import Zone */}
-              <CSVImportZone />
+              <CSVImportZone onImportTransactions={handleImportTransactions} />
 
               {/* Transaction Activity Ledger */}
               <TransactionLedger
