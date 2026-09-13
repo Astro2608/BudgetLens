@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 import { Transaction, CategoryKey, TransactionType } from '../types/finance';
-import { detectCategoryFromTitle } from '../config/categoryConfig';
+import { detectCategoryFromTitle, matchCategory } from '../config/categoryConfig';
 
 export interface CSVParseResult {
   fileName: string;
@@ -18,6 +18,9 @@ interface ColumnMapping {
   credit: string | null;
   category: string | null;
   type: string | null;
+  source: string | null;
+  note: string | null;
+  recurring: string | null;
 }
 
 function cleanNumeric(val: any): number {
@@ -55,12 +58,15 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
   };
 
   const date = findMatch(['transaction date', 'txn date', 'posting date', 'value date', 'date', 'time']);
-  const description = findMatch(['transaction description', 'narrative', 'description', 'particulars', 'remarks', 'details', 'payee', 'merchant']);
-  const amount = findMatch(['transaction amount', 'amount', 'net amount', 'total', 'amt']);
+  const description = findMatch(['transaction description', 'narrative', 'description', 'particulars', 'remarks', 'details', 'payee', 'merchant', 'title']);
+  const amount = findMatch(['transaction amount', 'amount', 'net amount', 'total', 'amt', 'price', 'sgd']);
   const debit = findMatch(['debit amount', 'withdrawal', 'debit', 'outflow', 'dr']);
   const credit = findMatch(['credit amount', 'deposit', 'credit', 'inflow', 'cr']);
   const category = findMatch(['category', 'expense category', 'tag']);
   const type = findMatch(['type', 'txn type', 'transaction type', 'cr/dr']);
+  const source = findMatch(['source', 'account', 'bank', 'card']);
+  const note = findMatch(['note', 'notes', 'memo']);
+  const recurring = findMatch(['recurring', 'isrecurring', 'subscription']);
 
   return {
     date: date || fields[0],
@@ -69,7 +75,10 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
     debit,
     credit,
     category,
-    type
+    type,
+    source,
+    note,
+    recurring
   };
 }
 
@@ -116,10 +125,12 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
               }
             } else if (mapping.amount) {
               const rawAmt = cleanNumeric(row[mapping.amount || '']);
-              if (mapping.type) {
-                const typeStr = String(row[mapping.type || '']).toLowerCase();
-                if (typeStr.includes('cr') || typeStr.includes('income') || typeStr.includes('deposit')) {
+              if (mapping.type && row[mapping.type]) {
+                const typeStr = String(row[mapping.type]).toLowerCase().trim();
+                if (typeStr.includes('income') || typeStr.includes('cr') || typeStr.includes('deposit') || typeStr.includes('inflow') || typeStr.includes('salary')) {
                   txType = 'income';
+                } else if (typeStr.includes('saving') || typeStr.includes('vault') || typeStr.includes('invest')) {
+                  txType = 'savings';
                 } else {
                   txType = 'expense';
                 }
@@ -127,7 +138,12 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
               } else {
                 if (rawAmt > 0) {
                   amt = rawAmt;
-                  txType = 'income';
+                  // If raw amount is positive but title indicates expense vs income:
+                  if (title.toLowerCase().includes('salary') || title.toLowerCase().includes('payroll') || title.toLowerCase().includes('freelance')) {
+                    txType = 'income';
+                  } else {
+                    txType = 'expense';
+                  }
                 } else {
                   amt = Math.abs(rawAmt);
                   txType = 'expense';
@@ -137,9 +153,13 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
 
             if (amt <= 0) return;
 
-            // Auto-detect category
+            // Resolve Category: prioritize explicitly mapped category column
             let category: CategoryKey = 'General';
-            if (txType === 'income') {
+            const rawCategory = mapping.category ? row[mapping.category] : null;
+
+            if (rawCategory && String(rawCategory).trim()) {
+              category = matchCategory(String(rawCategory));
+            } else if (txType === 'income') {
               category = 'Salary';
             } else {
               category = detectCategoryFromTitle(title);
@@ -151,6 +171,13 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
             if (txType === 'income') totalIncome += amt;
             else totalExpense += amt;
 
+            const isRecurring = mapping.recurring
+              ? ['yes', 'true', '1', 'recurring'].includes(String(row[mapping.recurring]).toLowerCase().trim())
+              : false;
+
+            const source = mapping.source && row[mapping.source] ? String(row[mapping.source]).trim() : file.name;
+            const note = mapping.note && row[mapping.note] ? String(row[mapping.note]).trim() : `e-Statement (${file.name})`;
+
             parsedList.push({
               id: `csv-${Date.now()}-${index}`,
               date,
@@ -158,9 +185,9 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
               amount: amt,
               type: txType,
               category,
-              isRecurring: false,
-              note: `e-Statement (${file.name})`,
-              source: file.name
+              isRecurring,
+              note,
+              source
             });
           });
 
@@ -183,18 +210,18 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
 }
 
 export function generateSampleCSV(): string {
-  return `Date,Description,Debit,Credit,Category
-2026-09-12,DBS Direct Salary Tech Corp,,6200.00,Salary & Income
-2026-09-10,Monthly Rental Transfer Landlord,1850.00,,Rent & Housing
-2026-09-09,FairPrice Supermarket Orchard,164.20,,Food & Dining
-2026-09-08,Grab Car Trip to Marina Bay,26.50,,Transport
-2026-09-07,SP Services Electricity Bill,178.40,,Bills & Utilities
-2026-09-06,Din Tai Fung Restaurant Dinner,98.50,,Food & Dining
-2026-09-05,SimplyGo MRT Transport,18.00,,Transport
-2026-09-04,Uniqlo Ion Orchard,89.00,,General / Others
-2026-09-03,Starbucks Coffee Ion Mall,8.50,,Food & Dining
-2026-09-02,Singtel Mobile & Fibre Broadband,62.00,,Bills & Utilities
-2026-09-01,Shell Petrol Station Ang Mo Kio,75.00,,Transport
-2026-08-28,Freelance Web Consultation,,950.00,Salary & Income
-2026-08-25,Watsons Pharmacy Healthcare,45.00,,General / Others`;
+  return `Date,Title,Amount,Type,Category,Source,Note,Recurring
+2026-09-12,DBS Direct Salary Tech Corp,6200.00,income,Salary,DBS Multi-Currency,Bi-weekly Salary,Yes
+2026-09-10,Monthly Rental Transfer Landlord,1850.00,expense,Rent,UOB Auto Giro,Monthly Fixed,Yes
+2026-09-09,FairPrice Supermarket Orchard,164.20,expense,Food,DBS Debit Card,Weekly Grocery Haul,No
+2026-09-08,Grab Car Trip to Marina Bay,26.50,expense,Transport,GrabPay,Commute,No
+2026-09-07,SP Services Electricity Bill,178.40,expense,Bills,SP Services,Utilities,Yes
+2026-09-06,Din Tai Fung Restaurant Dinner,98.50,expense,Food,DBS PayLah!,Family Dinner,No
+2026-09-05,SimplyGo MRT Transport,18.00,expense,Transport,SimplyGo Transit,Daily MRT,No
+2026-09-04,Uniqlo Ion Orchard,89.00,expense,General,Visa Debit,Apparel,No
+2026-09-03,Starbucks Coffee Ion Mall,8.50,expense,Food,Contactless Chip,Morning Coffee,No
+2026-09-02,Singtel Mobile & Fibre Broadband,62.00,expense,Bills,GIRO,Broadband,Yes
+2026-09-01,Shell Petrol Station Ang Mo Kio,75.00,expense,Transport,Shell Card,Fuel Top-up,No
+2026-08-28,Freelance Web Consultation,950.00,income,Salary,PayNow,Client Consultation,No
+2026-08-25,Watsons Pharmacy Healthcare,45.00,expense,General,Visa Debit,Health & Personal,No`;
 }

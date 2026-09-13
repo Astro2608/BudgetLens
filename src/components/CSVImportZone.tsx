@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Transaction, CategoryKey } from '../types/finance';
-import { parseBankCSV, CSVParseResult, generateSampleCSV } from '../utils/csvParser';
+import { parseBankCSV, CSVParseResult } from '../utils/csvParser';
 import { parseBankPDF } from '../utils/pdfParser';
-import { parseMarkdownTable, generateSampleMarkdown } from '../utils/mdParser';
+import { parseMarkdownTable } from '../utils/mdParser';
 import { formatSGD } from '../utils/financeCalculator';
 import { CATEGORY_LIST } from '../config/categoryConfig';
 
@@ -23,12 +23,6 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'duplicate'>('all');
   const [confirmDuplicatesModal, setConfirmDuplicatesModal] = useState(false);
-  const [lastBatch, setLastBatch] = useState<{ fileName: string; count: number; accuracy: number; format: string } | null>({
-    fileName: 'DBS_Oct_Statement.pdf',
-    count: 42,
-    accuracy: 94,
-    format: 'PDF'
-  });
 
   // Lock background body scroll when review modal is open
   useEffect(() => {
@@ -194,52 +188,11 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
 
     if (parseResult && modalTransactions.length > 0) {
       onImportTransactions(modalTransactions);
-
-      const totalCount = modalTransactions.length;
-      const recognized = modalTransactions.filter((t) => t.category !== 'General').length;
-      const accuracy = totalCount > 0 ? Math.round((recognized / totalCount) * 100) : 100;
       
-      let format = 'CSV';
-      if (parseResult.fileName.toLowerCase().endsWith('.pdf')) format = 'PDF';
-      else if (parseResult.fileName.toLowerCase().endsWith('.md')) format = 'Markdown';
-
-      setLastBatch({
-        fileName: parseResult.fileName,
-        count: totalCount,
-        accuracy: Math.max(75, accuracy),
-        format
-      });
-
       setParseResult(null);
       setModalTransactions([]);
       setConfirmDuplicatesModal(false);
     }
-  };
-
-  const handleDownloadSample = (type: 'csv' | 'md') => {
-    let content = '';
-    let fileName = '';
-    let mimeType = '';
-
-    if (type === 'md') {
-      content = generateSampleMarkdown();
-      fileName = 'sample_personal_finance.md';
-      mimeType = 'text/markdown;charset=utf-8;';
-    } else {
-      content = generateSampleCSV();
-      fileName = 'sample_bank_statement.csv';
-      mimeType = 'text/csv;charset=utf-8;';
-    }
-
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const getFormatBadge = (name: string) => {
@@ -339,50 +292,6 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button
-            type="button"
-            onClick={() => handleDownloadSample('csv')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '4px 8px',
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-canvas-subtle)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--color-primary)',
-              cursor: 'pointer'
-            }}
-            title="Download a sample CSV statement"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>download</span>
-            <span>Sample CSV</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDownloadSample('md')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '4px 8px',
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-canvas-subtle)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#9333ea',
-              cursor: 'pointer'
-            }}
-            title="Download a sample Markdown (.md) Obsidian finance table"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>table_chart</span>
-            <span>Sample MD Table</span>
-          </button>
-        </div>
       </div>
 
       {/* Drag and Drop Zone */}
@@ -444,59 +353,6 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
       {errorMsg && (
         <div style={{ padding: '0.75rem', borderRadius: '8px', backgroundColor: '#fff1f2', border: '1px solid #fecdd3', color: '#be123c', fontSize: '12px', fontWeight: 600 }}>
           ⚠️ {errorMsg}
-        </div>
-      )}
-
-      {/* Auto-categorized Preview Strip */}
-      {lastBatch && (
-        <div
-          style={{
-            backgroundColor: 'var(--bg-canvas-subtle)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '0.875rem 1rem',
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.75rem'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: '#d1fae5',
-                color: '#047857',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>verified</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Auto-categorized {lastBatch.count} transactions from {lastBatch.fileName} ({lastBatch.format})
-              </span>
-              <span style={{ fontSize: '11px', color: '#047857', fontWeight: 600 }}>
-                {lastBatch.accuracy}% accuracy with rule-based merchant mapping & duplicate filters
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => fileInputRef.current?.click()}
-            style={{ padding: '0.35rem 0.75rem', fontSize: '12px' }}
-          >
-            Import Another File
-          </button>
         </div>
       )}
 

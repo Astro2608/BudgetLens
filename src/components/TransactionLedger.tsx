@@ -8,12 +8,14 @@ interface TransactionLedgerProps {
   transactions: Transaction[];
   categoryConfigs?: Record<CategoryKey, CategoryConfig>;
   onDeleteTransaction?: (id: string) => void;
+  onExport?: () => void;
 }
 
 export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
   transactions,
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS,
-  onDeleteTransaction
+  onDeleteTransaction,
+  onExport
 }) => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'income' | 'expense' | 'recurring'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -237,7 +239,10 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
             <div style={{ display: 'flex', gap: '0.375rem' }}>
               <button
                 type="button"
-                onClick={() => exportToCSV(transactions)}
+                onClick={() => {
+                  exportToCSV(transactions);
+                  onExport?.();
+                }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -259,7 +264,10 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => exportToMarkdown(transactions)}
+                onClick={() => {
+                  exportToMarkdown(transactions);
+                  onExport?.();
+                }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -523,7 +531,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
 
         {/* Pagination when Archive is open */}
         {isArchiveOpen && totalPages > 1 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               disabled={currentPage === 1}
@@ -546,26 +554,61 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
               <span>Prev</span>
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setCurrentPage(p)}
-                style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '6px',
-                  border: currentPage === p ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-                  backgroundColor: currentPage === p ? 'var(--color-primary)' : 'var(--bg-canvas-subtle)',
-                  color: currentPage === p ? 'white' : 'var(--text-muted)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                {p}
-              </button>
-            ))}
+            {(() => {
+              const pages: (number | string)[] = [];
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+              } else {
+                if (currentPage <= 4) {
+                  pages.push(1, 2, 3, 4, 5, '...', totalPages);
+                } else if (currentPage >= totalPages - 3) {
+                  pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+                } else {
+                  pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                }
+              }
+
+              return pages.map((item, idx) => {
+                if (typeof item === 'string') {
+                  return (
+                    <span
+                      key={`ellipsis-${idx}`}
+                      style={{
+                        padding: '0 4px',
+                        color: 'var(--text-muted)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        userSelect: 'none'
+                      }}
+                    >
+                      ...
+                    </span>
+                  );
+                }
+
+                const p = item as number;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setCurrentPage(p)}
+                    style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '6px',
+                      border: currentPage === p ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                      backgroundColor: currentPage === p ? 'var(--color-primary)' : 'var(--bg-canvas-subtle)',
+                      color: currentPage === p ? 'white' : 'var(--text-muted)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {p}
+                  </button>
+                );
+              });
+            })()}
 
             <button
               type="button"

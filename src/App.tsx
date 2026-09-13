@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MOCK_TRANSACTIONS, INITIAL_BASELINE_BALANCE } from './mock/mockTransactions';
 import { calculateFinanceSummary, formatSGD } from './utils/financeCalculator';
 import { Transaction, CategoryKey, CategoryConfig } from './types/finance';
-import { DEFAULT_CATEGORY_CONFIGS, ensureUniqueCategoryColors } from './config/categoryConfig';
+import { DEFAULT_CATEGORY_CONFIGS, ensureUniqueCategoryColors, detectCategoryFromTitle } from './config/categoryConfig';
 
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -16,149 +16,96 @@ import { QuickAddOutflows } from './components/QuickAddOutflows';
 import { PredictiveRunwayWidget } from './components/PredictiveRunwayWidget';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { SettingsModal } from './components/SettingsModal';
-import { PinLock } from './components/PinLock';
-import { FileSelectionModal } from './components/FileSelectionModal';
-import { getFileHandle, saveFileHandle, verifyPermission, writeToFile, readFile } from './utils/fileSystem';
-import { parseMarkdownTable } from './utils/mdParser';
+import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
 
-const STORAGE_KEY_CONFIGS = 'lumina_category_configs';
-const STORAGE_KEY_BALANCE = 'lumina_initial_balance';
-const STORAGE_KEY_TXS = 'lumina_transactions';
+const STORAGE_KEY_CONFIGS = 'budgetlens_category_configs';
+const STORAGE_KEY_BALANCE = 'budgetlens_initial_balance';
+const STORAGE_KEY_TXS = 'budgetlens_transactions';
+
+// Legacy keys for automatic migration
+const LEGACY_STORAGE_KEY_CONFIGS = 'lumina_category_configs';
+const LEGACY_STORAGE_KEY_BALANCE = 'lumina_initial_balance';
+const LEGACY_STORAGE_KEY_TXS = 'lumina_transactions';
 
 export const App: React.FC = () => {
-  // 1. Transactions state with local persistence and current-date synchronization
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_TXS);
-      if (saved) {
-        const parsed: Transaction[] = JSON.parse(saved);
-        const todayStr = new Date().toISOString().split('T')[0];
-        const hasFutureDates = parsed.some((t) => t.date > todayStr);
-        if (hasFutureDates) {
-          return MOCK_TRANSACTIONS;
-        }
-        return parsed;
-      }
-    } catch (e) {
-      console.error('Failed to load transactions from localStorage', e);
-    }
-    return MOCK_TRANSACTIONS;
-  });
-
-  // 2. Initial baseline balance with local persistence
-  const [initialBalance, setInitialBalance] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_BALANCE);
-      if (saved) return Number(saved);
-    } catch (e) {
-      console.error('Failed to load initial balance', e);
-    }
-    return INITIAL_BASELINE_BALANCE;
-  });
-
-  // 3. Category configurations with local persistence
-  const [categoryConfigs, setCategoryConfigs] = useState<Record<CategoryKey, CategoryConfig>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_CONFIGS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return ensureUniqueCategoryColors(parsed);
-      }
-    } catch (e) {
-      console.error('Failed to load category configs', e);
-    }
-    return DEFAULT_CATEGORY_CONFIGS;
-  });
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [initialBalance, setInitialBalance] = useState<number>(INITIAL_BASELINE_BALANCE);
+  const [categoryConfigs, setCategoryConfigs] = useState<Record<CategoryKey, CategoryConfig>>(DEFAULT_CATEGORY_CONFIGS);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
-  // Auth state
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
-    return sessionStorage.getItem('lumina_unlocked') === 'true';
-  });
 
-  const handleUnlock = () => {
-    sessionStorage.setItem('lumina_unlocked', 'true');
-    setIsUnlocked(true);
-  };
-
-  // File System state
+  // File System state (optional background sync)
   const [rawFileHandle, setRawFileHandle] = useState<FileSystemFileHandle | null>(null);
-  const [isRawFileReady, setIsRawFileReady] = useState(false);
-  const [isCheckingFile, setIsCheckingFile] = useState(true);
 
+  // 1. Load from IndexedDB on mount with automatic healing & migration
   useEffect(() => {
-    const checkFile = async () => {
+    const loadData = async () => {
       try {
-        const handle = await getFileHandle();
-        if (handle) {
-          const hasPerm = await verifyPermission(handle, false); // verify read
-          if (hasPerm) {
-            setRawFileHandle(handle);
-            setIsRawFileReady(true);
-            
-            // Read and parse
-            const content = await readFile(handle);
-            if (content.trim()) {
-              const file = new File([content], handle.name, { type: 'text/markdown' });
-              try {
-                const res = await parseMarkdownTable(file);
-                setTransactions(res.transactions);
-              } catch (e) {
-                console.error("Failed to parse raw MD file:", e);
+        let savedTxs = await getAppData(STORAGE_KEY_TXS);
+        if (!savedTxs) {
+          savedTxs = await getAppData(LEGACY_STORAGE_KEY_TXS);
+        }
+
+        if (savedTxs && savedTxs.length > 0) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const hasFutureDates = savedTxs.some((t: Transaction) => t.date > todayStr);
+          
+          // Auto-heal any transactions if they were corrupted to all General expenses
+          const healedTxs = savedTxs.map((t: Transaction) => {
+            let category = t.category;
+            let type = t.type;
+            if (t.title.toLowerCase().includes('salary') || t.title.toLowerCase().includes('freelance') || t.title.toLowerCase().includes('payout')) {
+              type = 'income';
+              if (category === 'General') category = 'Salary';
+            } else if (category === 'General') {
+              const detected = detectCategoryFromTitle(t.title);
+              if (detected !== 'General') {
+                category = detected;
               }
             }
+            return { ...t, category, type };
+          });
+
+          setTransactions(hasFutureDates ? MOCK_TRANSACTIONS : healedTxs);
+        } else {
+          setTransactions(MOCK_TRANSACTIONS);
+        }
+
+        let savedBal = await getAppData(STORAGE_KEY_BALANCE);
+        if (savedBal === undefined || savedBal === null) {
+          savedBal = await getAppData(LEGACY_STORAGE_KEY_BALANCE);
+        }
+        if (savedBal !== undefined && savedBal !== null) {
+          setInitialBalance(Number(savedBal));
+        }
+
+        let savedConf = await getAppData(STORAGE_KEY_CONFIGS);
+        if (!savedConf) {
+          savedConf = await getAppData(LEGACY_STORAGE_KEY_CONFIGS);
+        }
+        if (savedConf) {
+          setCategoryConfigs(ensureUniqueCategoryColors(savedConf));
+        }
+
+        // Check if user previously connected a raw file handle for background sync
+        const handle = await getFileHandle();
+        if (handle) {
+          const hasPerm = await verifyPermission(handle, false);
+          if (hasPerm) {
+            setRawFileHandle(handle);
           }
         }
       } catch (e) {
-        console.error("Failed to check file handle:", e);
+        console.error('Failed to load from IndexedDB', e);
+        setTransactions(MOCK_TRANSACTIONS);
+      } finally {
+        setIsDataLoaded(true);
       }
-      setIsCheckingFile(false);
     };
-    checkFile();
+    loadData();
   }, []);
-
-  const handleSelectRawFile = async () => {
-    try {
-      const [handle] = await (window as any).showOpenFilePicker({
-        types: [{ description: 'Data Files', accept: { 'text/*': ['.md', '.txt', '.csv'] } }]
-      });
-      await saveFileHandle(handle);
-      setRawFileHandle(handle);
-      setIsRawFileReady(true);
-      
-      const content = await readFile(handle);
-      if (content.trim()) {
-        const file = new File([content], handle.name, { type: 'text/markdown' });
-        try {
-          const res = await parseMarkdownTable(file);
-          setTransactions(res.transactions);
-        } catch (e) {
-          console.error("Failed to parse", e);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleCreateRawFile = async () => {
-    try {
-      const handle = await (window as any).showSaveFilePicker({
-        suggestedName: 'lumina_budget.md',
-        types: [{ description: 'Markdown File', accept: { 'text/markdown': ['.md'] } }]
-      });
-      await saveFileHandle(handle);
-      setRawFileHandle(handle);
-      setIsRawFileReady(true);
-      
-      // Auto save current transactions to the new file
-      // will be handled by the next useEffect
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   // Subtle visual feedback toast notification state
   const [toast, setToast] = useState<{
@@ -181,41 +128,39 @@ export const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Sync to local storage & raw file
+  // Sync to IndexedDB & raw file automatically
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_TXS, JSON.stringify(transactions));
-    } catch (e) {}
+    if (!isDataLoaded) return;
     
-    // Auto save to raw MD file if available
+    saveAppData(STORAGE_KEY_TXS, transactions).catch(e => console.error(e));
+    
+    // Auto save to raw MD file if user connected one
     const saveToRaw = async () => {
-      if (rawFileHandle && isRawFileReady) {
+      if (rawFileHandle) {
         try {
           const headers = ['| Date | Title | Amount | Type | Category | Source | Note | Recurring |', '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |'];
           const rows = transactions.map(t => 
-            `| ${t.date} | ${t.title} | ${formatSGD(t.amount)} | ${t.type} | ${t.category} | ${t.source || ''} | ${t.note || ''} | ${t.isRecurring ? 'Yes' : 'No'} |`
+            `| ${t.date} | ${t.title.replace(/\|/g, '-')} | ${formatSGD(t.amount)} | ${t.type} | ${t.category} | ${(t.source || '').replace(/\|/g, '-')} | ${(t.note || '').replace(/\|/g, '-')} | ${t.isRecurring ? 'Yes' : 'No'} |`
           );
-          const mdContent = `# Lumina Finance Export\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}`;
+          const mdContent = `# BudgetLens Export\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}\n`;
           await writeToFile(rawFileHandle, mdContent);
         } catch (e) {
-          console.error("Failed to auto-save to raw file", e);
+          console.warn("Auto-save to raw file skipped:", e);
         }
       }
     };
     saveToRaw();
-  }, [transactions, rawFileHandle, isRawFileReady]);
+  }, [transactions, rawFileHandle, isDataLoaded]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_BALANCE, initialBalance.toString());
-    } catch (e) {}
-  }, [initialBalance]);
+    if (!isDataLoaded) return;
+    saveAppData(STORAGE_KEY_BALANCE, initialBalance).catch(e => console.error(e));
+  }, [initialBalance, isDataLoaded]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_CONFIGS, JSON.stringify(categoryConfigs));
-    } catch (e) {}
-  }, [categoryConfigs]);
+    if (!isDataLoaded) return;
+    saveAppData(STORAGE_KEY_CONFIGS, categoryConfigs).catch(e => console.error(e));
+  }, [categoryConfigs, isDataLoaded]);
 
   // Compute live financial summary using dynamic baseline & category configs
   const summary = calculateFinanceSummary(transactions, initialBalance, categoryConfigs);
@@ -272,16 +217,11 @@ export const App: React.FC = () => {
       localStorage.removeItem(STORAGE_KEY_CONFIGS);
       localStorage.removeItem(STORAGE_KEY_BALANCE);
       localStorage.removeItem(STORAGE_KEY_TXS);
+      saveAppData(STORAGE_KEY_TXS, MOCK_TRANSACTIONS);
+      saveAppData(STORAGE_KEY_BALANCE, INITIAL_BASELINE_BALANCE);
+      saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS);
     } catch (e) {}
   };
-
-  if (!isUnlocked) {
-    return <PinLock onUnlock={handleUnlock} />;
-  }
-
-  if (!isRawFileReady && !isCheckingFile) {
-    return <FileSelectionModal onSelectFile={handleSelectRawFile} onCreateFile={handleCreateRawFile} />;
-  }
 
   return (
     <div className="app-layout">

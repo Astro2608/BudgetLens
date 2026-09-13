@@ -70,9 +70,16 @@ export function calculateFinanceSummary(
 
   // Total monthly expense burn
   const overallMonthlyBurn = categoryRunways.reduce((sum, c) => sum + c.monthlyBurn, 0);
-  const overallRunwayMonths = overallMonthlyBurn > 0 && totalBalance > 0 
-    ? Number((totalBalance / overallMonthlyBurn).toFixed(1)) 
-    : 0;
+  let overallRunwayMonths = 0;
+  if (totalBalance > 0) {
+    if (overallMonthlyBurn > 0) {
+      overallRunwayMonths = Number((totalBalance / overallMonthlyBurn).toFixed(1));
+    } else {
+      overallRunwayMonths = 999;
+    }
+  } else {
+    overallRunwayMonths = 0;
+  }
 
   const safeWeeklySpend = overallMonthlyBurn > 0 
     ? Math.round(overallMonthlyBurn / 4.33) 

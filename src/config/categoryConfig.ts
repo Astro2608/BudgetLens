@@ -156,3 +156,44 @@ export function detectCategoryFromTitle(
   }
   return 'General';
 }
+
+export function matchCategory(
+  raw: string | undefined | null,
+  configs: Record<CategoryKey, CategoryConfig> = DEFAULT_CATEGORY_CONFIGS
+): CategoryKey {
+  if (!raw) return 'General';
+  const clean = raw.trim().toLowerCase();
+
+  // Direct key match
+  for (const key of Object.keys(configs)) {
+    if (key.toLowerCase() === clean) {
+      return key as CategoryKey;
+    }
+  }
+
+  // Label match
+  for (const config of Object.values(configs)) {
+    if (config.label.toLowerCase() === clean) {
+      return config.key;
+    }
+  }
+
+  // Common synonyms / prefixes
+  if (clean.includes('sal') || clean.includes('income') || clean.includes('wage') || clean.includes('deposit')) return 'Salary';
+  if (clean.includes('food') || clean.includes('dine') || clean.includes('dining') || clean.includes('grocer') || clean.includes('restaurant') || clean.includes('meal')) return 'Food';
+  if (clean.includes('trans') || clean.includes('travel') || clean.includes('mrt') || clean.includes('grab') || clean.includes('petrol') || clean.includes('fuel')) return 'Transport';
+  if (clean.includes('bill') || clean.includes('util') || clean.includes('telco') || clean.includes('electric') || clean.includes('subscri') || clean.includes('wifi') || clean.includes('broadband')) return 'Bills';
+  if (clean.includes('rent') || clean.includes('house') || clean.includes('housing') || clean.includes('condo') || clean.includes('mortgage')) return 'Rent';
+  if (clean.includes('sav') || clean.includes('vault') || clean.includes('invest') || clean.includes('stash') || clean.includes('cpf')) return 'Savings';
+  if (clean.includes('gen') || clean.includes('other') || clean.includes('misc') || clean.includes('shop')) return 'General';
+
+  // Keyword match
+  for (const config of Object.values(configs)) {
+    if (config.keywords && config.keywords.some((kw) => clean.includes(kw.toLowerCase()))) {
+      return config.key;
+    }
+  }
+
+  return 'General';
+}
+
