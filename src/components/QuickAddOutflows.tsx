@@ -78,10 +78,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.625rem',
-          maxHeight: '380px',
-          overflowY: 'auto',
-          paddingRight: '2px'
+          gap: '0.625rem'
         }}
       >
         {categories.map((cat) => {
