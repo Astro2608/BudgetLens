@@ -133,12 +133,12 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
     };
   }, [transactions, categoryConfigs, timeframe, currentMonthStr, currentYearStr]);
 
-  // Double-Donut Concentric Geometry
-  const center = 140;
+  // Double-Donut Concentric Geometry (Scaled up & 2x thicker)
+  const center = 170;
 
-  // Outer Ring: Outflows
-  const radiusOuter = 110;
-  const strokeOuter = 16;
+  // Outer Ring: Outflows (Twice as thick: 30px)
+  const radiusOuter = 138;
+  const strokeOuter = 30;
   const circumferenceOuter = 2 * Math.PI * radiusOuter;
 
   let cumulativePercentOuter = 0;
@@ -153,9 +153,9 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
     };
   });
 
-  // Inner Ring: Inflows
-  const radiusInner = 88;
-  const strokeInner = 14;
+  // Inner Ring: Inflows (Twice as thick: 26px)
+  const radiusInner = 104;
+  const strokeInner = 26;
   const circumferenceInner = 2 * Math.PI * radiusInner;
 
   let cumulativePercentInner = 0;
@@ -352,10 +352,10 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
         }}
       >
         {/* Left Side: Double Donut Chart & Center Stats */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem', alignSelf: 'start' }}>
-          <div style={{ position: 'relative', width: '280px', height: '280px', maxWidth: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '0.875rem', alignSelf: 'start' }}>
+          <div style={{ position: 'relative', width: '330px', height: '330px', maxWidth: '100%' }}>
             <svg
-              viewBox="0 0 280 280"
+              viewBox="0 0 340 340"
               style={{
                 width: '100%',
                 height: '100%',
@@ -492,7 +492,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                     <>
                       <span
                         style={{
-                          fontSize: '9.5px',
+                          fontSize: '10px',
                           fontWeight: 800,
                           textTransform: 'uppercase',
                           letterSpacing: '0.06em',
@@ -503,7 +503,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                       </span>
                       <span
                         style={{
-                          fontSize: '1.2rem',
+                          fontSize: '1.35rem',
                           fontWeight: 800,
                           color: 'var(--text-main)',
                           letterSpacing: '-0.02em',
@@ -516,7 +516,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                       </span>
                       <span
                         style={{
-                          fontSize: '11px',
+                          fontSize: '11.5px',
                           fontWeight: 700,
                           color: item.color,
                           marginTop: '2px'
@@ -532,7 +532,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                 <>
                   <span
                     style={{
-                      fontSize: '9.5px',
+                      fontSize: '10px',
                       fontWeight: 800,
                       textTransform: 'uppercase',
                       letterSpacing: '0.06em',
@@ -543,7 +543,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                   </span>
                   <span
                     style={{
-                      fontSize: '1.25rem',
+                      fontSize: '1.35rem',
                       fontWeight: 800,
                       color: 'var(--text-main)',
                       letterSpacing: '-0.02em',
@@ -556,7 +556,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                   </span>
                   <span
                     style={{
-                      fontSize: '10.5px',
+                      fontSize: '11px',
                       fontWeight: 700,
                       color: netSurplus >= 0 ? '#10b981' : '#ef4444',
                       marginTop: '2px'
@@ -583,7 +583,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
         </div>
 
         {/* Right Side: Category Breakdown with Inflow / Outflow Toggle Tabs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', alignSelf: 'start', minHeight: '280px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', alignSelf: 'start', minHeight: '330px' }}>
           {/* Tab Pill Selector */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
             <div style={{ display: 'inline-flex', gap: '4px', backgroundColor: 'var(--bg-canvas-subtle)', padding: '3px', borderRadius: '8px' }}>
