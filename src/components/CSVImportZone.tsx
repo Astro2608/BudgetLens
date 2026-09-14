@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Transaction, CategoryKey } from '../types/finance';
 import { parseBankCSV, CSVParseResult } from '../utils/csvParser';
 import { parseBankPDF } from '../utils/pdfParser';
 import { parseMarkdownTable } from '../utils/mdParser';
-import { parseFreeformText } from '../utils/freeformParser';
+import { parseFreeformText, parseFreeformSync } from '../utils/freeformParser';
 import { CATEGORY_LIST } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
 import { SectionInfoButton } from './SectionInfoButton';
@@ -27,6 +27,15 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'duplicate'>('all');
   const [confirmDuplicatesModal, setConfirmDuplicatesModal] = useState(false);
   const [freeformText, setFreeformText] = useState('');
+
+  const liveDetectedTransactions = useMemo(() => {
+    if (!freeformText.trim()) return [];
+    return parseFreeformSync(freeformText);
+  }, [freeformText]);
+
+  const liveTotalAmount = useMemo(() => {
+    return liveDetectedTransactions.reduce((acc, t) => acc + t.amount, 0);
+  }, [liveDetectedTransactions]);
 
   // Lock background body scroll when review modal is open
   useEffect(() => {
@@ -389,46 +398,203 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
       </div>
 
       {/* Freeform Notes Input */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-        <label style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>edit_note</span>
-          Or Paste Freeform Notes & Ledgers:
-        </label>
-        <textarea
-          value={freeformText}
-          onChange={(e) => setFreeformText(e.target.value)}
-          placeholder="e.g. North trip - 68200&#10;17th march- 10000-5000=5000"
-          style={{
-            width: '100%',
-            height: '110px',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-main)',
-            padding: '0.75rem',
-            fontSize: '13px',
-            resize: 'vertical',
-            fontFamily: 'monospace',
-            backgroundColor: '#fafafa'
-          }}
-        />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginTop: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <label style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>edit_note</span>
+            Paste Freeform Notes, Casual Entries & Ledgers:
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Try samples:</span>
+            <button
+              type="button"
+              onClick={() => setFreeformText("June 12 2025 - 300 , transport\ndecember 20 2025 - 600, bills\n25 Oct - $45.50, Food")}
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#fff',
+                cursor: 'pointer',
+                color: 'var(--text-main)'
+              }}
+            >
+              📅 Date & Category
+            </button>
+            <button
+              type="button"
+              onClick={() => setFreeformText("17th march- 10000-5000=5000\n28th march- 10000+5000=15000\n01st may - 11000+7000=18000")}
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#fff',
+                cursor: 'pointer',
+                color: 'var(--text-main)'
+              }}
+            >
+              🧮 Ledger Math (+/-)
+            </button>
+            <button
+              type="button"
+              onClick={() => setFreeformText("North trip- 68200\n(Flight- 42880\nTransport- 18360\nStay- 6960)")}
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#fff',
+                cursor: 'pointer',
+                color: 'var(--text-main)'
+              }}
+            >
+              ✈️ Trip Budget
+            </button>
+          </div>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <textarea
+            value={freeformText}
+            onChange={(e) => {
+              setFreeformText(e.target.value);
+              if (errorMsg) setErrorMsg(null);
+            }}
+            placeholder="Paste any format here, for example:&#10;June 12 2025 - 300 , transport&#10;december 20 2025 - 600, bills&#10;17th march- 10000-5000=5000"
+            style={{
+              width: '100%',
+              height: '110px',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-main)',
+              padding: '0.75rem',
+              fontSize: '13px',
+              resize: 'vertical',
+              fontFamily: 'monospace',
+              backgroundColor: '#fafafa',
+              boxSizing: 'border-box'
+            }}
+          />
+          {freeformText && (
+            <button
+              type="button"
+              onClick={() => setFreeformText('')}
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                background: 'rgba(0,0,0,0.06)',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '11px',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                color: 'var(--text-muted)'
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Live Detected Preview Pill / Chips */}
+        {freeformText.trim() && (
+          <div
+            style={{
+              padding: '0.625rem 0.875rem',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: liveDetectedTransactions.length > 0 ? '#f0fdf4' : '#fffbeb',
+              border: `1px solid ${liveDetectedTransactions.length > 0 ? '#bbf7d0' : '#fef08a'}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: liveDetectedTransactions.length > 0 ? '#15803d' : '#b45309',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                  {liveDetectedTransactions.length > 0 ? 'check_circle' : 'help'}
+                </span>
+                {liveDetectedTransactions.length > 0
+                  ? `Live Ready: ${liveDetectedTransactions.length} transaction${liveDetectedTransactions.length === 1 ? '' : 's'} detected (${formatCurrency(liveTotalAmount)})`
+                  : 'No numeric amount detected yet'}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                Universal Order-Agnostic Engine
+              </span>
+            </div>
+
+            {liveDetectedTransactions.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '72px', overflowY: 'auto' }}>
+                {liveDetectedTransactions.map((tx, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      borderRadius: '9999px',
+                      backgroundColor: '#fff',
+                      border: '1px solid #dcfce7',
+                      color: tx.type === 'income' ? '#16a34a' : '#334155',
+                      fontWeight: 600
+                    }}
+                  >
+                    <span>{tx.date}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>•</span>
+                    <span>{tx.title}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>•</span>
+                    <span style={{ fontWeight: 800 }}>
+                      {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <button
           type="button"
           onClick={handleParseFreeform}
-          disabled={isParsing || !freeformText.trim()}
+          disabled={isParsing || liveDetectedTransactions.length === 0}
           style={{
             alignSelf: 'flex-start',
-            padding: '0.5rem 1.25rem',
-            backgroundColor: 'var(--text-main)',
+            padding: '0.6rem 1.5rem',
+            backgroundColor: liveDetectedTransactions.length > 0 ? 'var(--color-primary)' : 'var(--text-main)',
             color: '#fff',
             border: 'none',
             borderRadius: 'var(--radius-md)',
             fontWeight: 700,
-            fontSize: '12px',
-            cursor: freeformText.trim() ? 'pointer' : 'not-allowed',
-            opacity: freeformText.trim() ? 1 : 0.5,
-            transition: 'all 150ms ease'
+            fontSize: '13px',
+            cursor: liveDetectedTransactions.length > 0 ? 'pointer' : 'not-allowed',
+            opacity: liveDetectedTransactions.length > 0 ? 1 : 0.5,
+            transition: 'all 150ms ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: liveDetectedTransactions.length > 0 ? '0 2px 6px rgba(16, 185, 129, 0.3)' : 'none'
           }}
         >
-          {isParsing ? 'Parsing Notes...' : 'Parse Notes'}
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+            {isParsing ? 'sync' : 'table_view'}
+          </span>
+          {isParsing
+            ? 'Parsing Notes...'
+            : liveDetectedTransactions.length > 0
+            ? `Review & Import ${liveDetectedTransactions.length} Items`
+            : 'Parse Notes'}
         </button>
       </div>
 
