@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatSGD } from '../utils/financeCalculator';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface HeroSectionProps {
   totalBalance: number;
@@ -16,6 +16,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onOpenAddModal,
   onScrollToImport
 }) => {
+  const { formatCurrency, currencyInfo } = useCurrency();
   const isNegative = totalBalance < 0;
   const isZero = totalBalance === 0;
 
@@ -25,7 +26,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const balanceBadge = isNegative
     ? { text: 'Deficit / Negative Balance', bg: '#fee2e2', color: '#dc2626', border: '#fecdd3' }
     : isZero
-    ? { text: 'Current Bank Balance ($0.00)', bg: 'var(--bg-canvas-subtle)', color: 'var(--text-muted)', border: 'var(--border-subtle)' }
+    ? { text: `Current Bank Balance (${currencyInfo.prefix}0.00)`, bg: 'var(--bg-canvas-subtle)', color: 'var(--text-muted)', border: 'var(--border-subtle)' }
     : { text: 'Current Bank Balance (Surplus)', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
 
   return (
@@ -78,7 +79,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
 
           <p style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Here is what you have with you
+            Here is what you have with you ({currencyInfo.code})
           </p>
 
           <div
@@ -95,7 +96,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 transition: 'color 0.2s ease'
               }}
             >
-              {formatSGD(totalBalance)}
+              {formatCurrency(totalBalance)}
             </h1>
             <span
               style={{
@@ -149,7 +150,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               Keyed Cash In (Income)
               <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#94a3b8' }}>info</span>
             </span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>{formatSGD(totalIncome, true)}</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>{formatCurrency(totalIncome, true)}</span>
           </div>
           <div
             style={{
@@ -187,7 +188,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               Keyed Outflows (Expenses)
               <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#94a3b8' }}>info</span>
             </span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>{formatSGD(-totalExpenses, false)}</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>{formatCurrency(-totalExpenses, false)}</span>
           </div>
           <div
             style={{
@@ -226,7 +227,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <span className="material-symbols-outlined" style={{ fontSize: '14px', color: isNegative ? '#e11d48' : '#0d9488' }}>info</span>
             </span>
             <span style={{ fontSize: '1.25rem', fontWeight: 800, color: isNegative ? '#ef4444' : '#0f766e' }}>
-              {formatSGD(totalBalance)}
+              {formatCurrency(totalBalance)}
             </span>
           </div>
           <div

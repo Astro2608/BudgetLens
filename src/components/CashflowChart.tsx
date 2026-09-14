@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Transaction, TimeframeFilter, ChartBucket, CategoryKey, CategoryConfig } from '../types/finance';
-import { generateChartBuckets, formatSGD } from '../utils/financeCalculator';
+import { generateChartBuckets } from '../utils/financeCalculator';
 import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface CashflowChartProps {
   transactions: Transaction[];
@@ -12,6 +13,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
   transactions,
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS
 }) => {
+  const { formatCurrency } = useCurrency();
   const [timeframe, setTimeframe] = useState<TimeframeFilter>('1M');
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
 
@@ -133,7 +135,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
             </span>
           </div>
           <span style={{ color: cumulativeSpread >= 0 ? '#10b981' : '#f43f5e', fontWeight: 800 }}>
-            Cumulative Period Spread: {cumulativeSpread >= 0 ? '+' : '-'}{formatSGD(Math.abs(cumulativeSpread))}
+            Cumulative Period Spread: {cumulativeSpread >= 0 ? '+' : '-'}{formatCurrency(Math.abs(cumulativeSpread))}
           </span>
         </div>
 
@@ -362,7 +364,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
                   + Total Inflow
                 </span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#15803d' }}>
-                  +{formatSGD(activeBucket.totalInflow)}
+                  +{formatCurrency(activeBucket.totalInflow)}
                 </span>
               </div>
 
@@ -375,7 +377,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
                         {cat.category}
                       </span>
                       <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>
-                        +{formatSGD(cat.amount)}
+                        +{formatCurrency(cat.amount)}
                       </span>
                     </div>
                   ))}
@@ -394,7 +396,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
                   - Total Outflow
                 </span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#be123c' }}>
-                  -{formatSGD(activeBucket.totalOutflow)}
+                  -{formatCurrency(activeBucket.totalOutflow)}
                 </span>
               </div>
 
@@ -407,7 +409,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
                         {cat.category}
                       </span>
                       <span style={{ fontSize: '12px', fontWeight: 700, color: '#e11d48' }}>
-                        -{formatSGD(cat.amount)}
+                        -{formatCurrency(cat.amount)}
                       </span>
                     </div>
                   ))}

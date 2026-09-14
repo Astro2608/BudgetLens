@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Transaction, CategoryConfig, CategoryKey } from '../types/finance';
 import { getCategoryConfig, DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
-import { formatSGD } from '../utils/financeCalculator';
 import { exportToCSV, exportToMarkdown } from '../utils/exportUtils';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface TransactionLedgerProps {
   transactions: Transaction[];
@@ -17,6 +17,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
   onDeleteTransaction,
   onExport
 }) => {
+  const { formatCurrency, currencyCode } = useCurrency();
   const [activeFilter, setActiveFilter] = useState<'all' | 'income' | 'expense' | 'recurring'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
@@ -265,7 +266,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  exportToMarkdown(transactions);
+                  exportToMarkdown(transactions, currencyCode);
                   onExport?.();
                 }}
                 style={{
@@ -451,7 +452,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                         color: isIncome ? '#10b981' : '#ef4444'
                       }}
                     >
-                      {isIncome ? `+${formatSGD(tx.amount)}` : `-${formatSGD(tx.amount)}`}
+                      {isIncome ? `+${formatCurrency(tx.amount)}` : `-${formatCurrency(tx.amount)}`}
                     </span>
                     <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-subtle)' }}>
                       {isIncome ? 'Income' : 'Debit'}
@@ -709,7 +710,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Amount</span>
                 <span style={{ fontWeight: 800, color: selectedReceiptTx.type === 'income' ? '#10b981' : '#ef4444' }}>
-                  {selectedReceiptTx.type === 'income' ? '+' : '-'}{formatSGD(selectedReceiptTx.amount)}
+                  {selectedReceiptTx.type === 'income' ? '+' : '-'}{formatCurrency(selectedReceiptTx.amount)}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>

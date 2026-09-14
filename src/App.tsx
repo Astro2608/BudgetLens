@@ -21,6 +21,7 @@ import { OnboardingWizard } from './components/OnboardingWizard';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
 import { exportToMarkdown } from './utils/exportUtils';
+import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
 
 const ONBOARDING_KEY = 'budgetlens_onboarding_done';
 const WELCOME_KEY = 'budgetlens_welcome_done';
@@ -34,7 +35,8 @@ const LEGACY_STORAGE_KEY_CONFIGS = 'lumina_category_configs';
 const LEGACY_STORAGE_KEY_BALANCE = 'lumina_initial_balance';
 const LEGACY_STORAGE_KEY_TXS = 'lumina_transactions';
 
-export const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { formatCurrency, autoDetectCurrency } = useCurrency();
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [initialBalance, setInitialBalance] = useState<number>(INITIAL_BASELINE_BALANCE);
@@ -222,17 +224,23 @@ export const App: React.FC = () => {
       ...newTx,
       id: `tx-${Date.now()}`
     };
+    autoDetectCurrency(`${tx.title} ${tx.note || ''}`);
     setTransactions((prev) => [tx, ...prev]);
     showToast(tx.title, tx.amount, tx.type, String(tx.category));
   };
 
   const handleImportTransactions = (importedTxs: Transaction[]) => {
+    if (importedTxs.length > 0) {
+      const sampleText = importedTxs.map((t) => `${t.title} ${t.source || ''} ${t.note || ''}`).join(' ');
+      autoDetectCurrency(sampleText);
+    }
     setTransactions((prev) => [...importedTxs, ...prev]);
     const totalAmt = importedTxs.reduce((s, t) => s + t.amount, 0);
     showToast(`Imported ${importedTxs.length} Transactions`, totalAmt, 'income', 'e-Statement Batch');
   };
 
   const handleQuickAdd = (title: string, amount: number, category: CategoryKey) => {
+    autoDetectCurrency(title);
     const config = categoryConfigs[category];
     const type = config?.type || 'expense';
     const tx: Transaction = {
@@ -465,12 +473,18 @@ export const App: React.FC = () => {
               marginLeft: '8px'
             }}
           >
-            {formatSGD(toast.amount)}
+            {formatCurrency(toast.amount)}
           </span>
         </div>
       )}
     </div>
   );
 };
+
+export const App: React.FC = () => (
+  <CurrencyProvider>
+    <AppContent />
+  </CurrencyProvider>
+);
 
 export default App;

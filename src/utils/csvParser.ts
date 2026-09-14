@@ -59,7 +59,7 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
 
   const date = findMatch(['transaction date', 'txn date', 'posting date', 'value date', 'date', 'time']);
   const description = findMatch(['transaction description', 'narrative', 'description', 'particulars', 'remarks', 'details', 'payee', 'merchant', 'title']);
-  const amount = findMatch(['transaction amount', 'amount', 'net amount', 'total', 'amt', 'price', 'sgd']);
+  const amount = findMatch(['transaction amount', 'amount', 'net amount', 'total', 'amt', 'price', 'sgd', 'usd', 'inr', 'eur', 'gbp', 'jpy', 'aud', 'cad', 'myr', 'cny', 'val']);
   const debit = findMatch(['debit amount', 'withdrawal', 'debit', 'outflow', 'dr']);
   const credit = findMatch(['credit amount', 'deposit', 'credit', 'inflow', 'cr']);
   const category = findMatch(['category', 'expense category', 'tag']);

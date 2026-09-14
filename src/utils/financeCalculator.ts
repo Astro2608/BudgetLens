@@ -98,16 +98,10 @@ export function calculateFinanceSummary(
   };
 }
 
-export function formatSGD(amount: number, forceSign: boolean = false): string {
-  const absVal = Math.abs(amount).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+import { formatCurrency as formatCurrencyUtil, DEFAULT_CURRENCY_CODE } from '../config/currencyConfig';
 
-  if (forceSign) {
-    return amount >= 0 ? `+SGD $${absVal}` : `-SGD $${absVal}`;
-  }
-  return amount < 0 ? `-SGD $${absVal}` : `SGD $${absVal}`;
+export function formatSGD(amount: number, forceSign: boolean = false, currencyCode: string = DEFAULT_CURRENCY_CODE): string {
+  return formatCurrencyUtil(amount, currencyCode, forceSign);
 }
 
 export function generateChartBuckets(

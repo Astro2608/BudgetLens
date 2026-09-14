@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TransactionType, CategoryKey, Transaction, CategoryConfig } from '../types/finance';
 import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   onAddTransaction,
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS
 }) => {
+  const { currencyCode, autoDetectCurrency } = useCurrency();
   const [type, setType] = useState<TransactionType>('expense');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -169,7 +171,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               required
               placeholder="e.g. FairPrice, Grab, Monthly Salary"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setTitle(val);
+                autoDetectCurrency(val);
+              }}
               style={{
                 padding: '10px 12px',
                 borderRadius: '10px',
@@ -185,7 +191,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           {/* Amount and Category */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>Amount (SGD)</label>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>Amount ({currencyCode})</label>
               <input
                 type="number"
                 step="0.01"

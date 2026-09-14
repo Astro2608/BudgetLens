@@ -3,8 +3,8 @@ import { Transaction, CategoryKey } from '../types/finance';
 import { parseBankCSV, CSVParseResult } from '../utils/csvParser';
 import { parseBankPDF } from '../utils/pdfParser';
 import { parseMarkdownTable } from '../utils/mdParser';
-import { formatSGD } from '../utils/financeCalculator';
 import { CATEGORY_LIST } from '../config/categoryConfig';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
@@ -15,6 +15,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   onImportTransactions,
   existingTransactions = []
 }) => {
+  const { formatCurrency, autoDetectCurrency } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
@@ -62,6 +63,11 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
       setModalTransactions(result.transactions);
       setFilterType('all');
       setConfirmDuplicatesModal(false);
+
+      if (result.transactions && result.transactions.length > 0) {
+        const sampleText = result.transactions.map((t) => `${t.title} ${t.source || ''} ${t.note || ''}`).join(' ');
+        autoDetectCurrency(sampleText);
+      }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to parse file. Please verify it is a valid PDF, CSV, or Markdown table.');
     } finally {
@@ -601,19 +607,19 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Inflows (+)</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#10b981' }}>
-                  +{formatSGD(computedTotalIncome)}
+                  +{formatCurrency(computedTotalIncome)}
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Total Outflows (-)</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#ef4444' }}>
-                  -{formatSGD(computedTotalExpense)}
+                  -{formatCurrency(computedTotalExpense)}
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Net Position</span>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: netCashflow >= 0 ? '#10b981' : '#ef4444' }}>
-                  {netCashflow >= 0 ? `+${formatSGD(netCashflow)} (Surplus)` : `-${formatSGD(Math.abs(netCashflow))} (Deficit)`}
+                  {netCashflow >= 0 ? `+${formatCurrency(netCashflow)} (Surplus)` : `-${formatCurrency(Math.abs(netCashflow))} (Deficit)`}
                 </span>
               </div>
             </div>
@@ -846,7 +852,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            {isIncome ? '+' : '-'}{formatSGD(tx.amount)}
+                            {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
                           </td>
                           <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                             <button

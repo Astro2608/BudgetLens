@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CategoryKey, CategoryConfig } from '../types/finance';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface QuickAddOutflowsProps {
   onQuickAdd: (title: string, amount: number, category: CategoryKey) => void;
@@ -10,6 +11,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
   onQuickAdd,
   categoryConfigs
 }) => {
+  const { currencyInfo } = useCurrency();
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [justAddedKey, setJustAddedKey] = useState<string | null>(null);
 
@@ -211,7 +213,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
                     transition: 'all 150ms ease',
                     minWidth: '52px'
                   }}
-                  title={hasVal ? `Log SGD $${currentVal} to ${cat.label}` : 'Enter an amount to log'}
+                  title={hasVal ? `Log ${currencyInfo.prefix}${currentVal} to ${cat.label}` : 'Enter an amount to log'}
                 >
                   {isSuccess ? (
                     <>

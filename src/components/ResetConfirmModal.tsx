@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatSGD } from '../utils/financeCalculator';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface ResetConfirmModalProps {
   isOpen: boolean;
@@ -16,7 +16,8 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
   transactionsCount,
   totalBalance
 }) => {
-  const [downloadBackup, setDownloadBackup] = useState(true);
+  const { formatCurrency } = useCurrency();
+  const [downloadBackup, setDownloadBackup] = useState<boolean>(true);
 
   if (!isOpen) return null;
 
@@ -127,7 +128,7 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
               <strong style={{ color: '#78350f', display: 'block', marginBottom: '2px' }}>
                 Automated Safety Archival
               </strong>
-              Your current <strong>{transactionsCount} recorded transactions</strong> (Total Balance: {formatSGD(totalBalance)}) will be automatically archived into a timestamped file before clearing so you never lose historical records.
+              Your current <strong>{transactionsCount} recorded transactions</strong> (Total Balance: {formatCurrency(totalBalance)}) will be automatically archived into a timestamped file before clearing so you never lose historical records.
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { CategoryRunway } from '../types/finance';
-import { formatSGD } from '../utils/financeCalculator';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface RunwaySectionProps {
   totalBalance: number;
@@ -15,6 +15,8 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
   overallMonthlyBurn,
   categoryRunways
 }) => {
+  const { formatCurrency, currencyInfo } = useCurrency();
+
   return (
     <section className="lumina-card" id="runway-section" style={{ gap: '1.25rem' }}>
       {/* Header */}
@@ -30,43 +32,27 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
           borderBottom: '1px solid var(--border-subtle)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           <div
             style={{
-              width: '40px',
-              height: '40px',
+              width: '36px',
+              height: '36px',
               borderRadius: 'var(--radius-md)',
               backgroundColor: 'var(--color-primary-light)',
               color: 'var(--color-primary)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid var(--color-primary-border)'
+              justifyContent: 'center'
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>hourglass_top</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>timer</span>
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Runway & Longevity Projection
-              </h2>
-              <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  backgroundColor: '#fffbeb',
-                  color: '#b45309',
-                  border: '1px solid #fef3c7'
-                }}
-              >
-                Longevity Calculator
-              </span>
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              How long your money will last under regular recurring outlays
+            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+              Category Runway Breakdown
+            </h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              Detailed longevity projection for each essential category
             </p>
           </div>
         </div>
@@ -83,7 +69,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
               borderRadius: '8px'
             }}
           >
-            SGD ${overallMonthlyBurn.toLocaleString()} / mo avg
+            {currencyInfo.prefix}{overallMonthlyBurn.toLocaleString()} / mo avg
           </span>
         </div>
       </div>
@@ -105,7 +91,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
         </span>
         <div>
           <p style={{ fontSize: '14px', color: 'var(--text-main)', lineHeight: 1.4 }}>
-            You have <strong style={{ color: 'var(--color-primary-hover)', fontWeight: 800 }}>{formatSGD(totalBalance)} left</strong> — this will last <strong style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-primary)', fontWeight: 800 }}>approx. {overallRunwayMonths} months</strong> based on current monthly expense trends (avg SGD ${overallMonthlyBurn.toLocaleString()}/mo).
+            You have <strong style={{ color: 'var(--color-primary-hover)', fontWeight: 800 }}>{formatCurrency(totalBalance)} left</strong> — this will last <strong style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-primary)', fontWeight: 800 }}>approx. {overallRunwayMonths} months</strong> based on current monthly expense trends (avg {currencyInfo.prefix}{overallMonthlyBurn.toLocaleString()}/mo).
           </p>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Without future income injections, your liquidity reserve safely sustains essential living costs until mid-March next year.
@@ -116,9 +102,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
       {/* 5 Category Runway Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
         {categoryRunways.map((cat) => {
-          let customPhrase = `Your current balance covers ${cat.remainingMonths} months of ${cat.label} ($${cat.monthlyBurn.toLocaleString()}/mo avg)`;
-
-          const progressPct = Math.min(100, Math.max(15, Math.round(cat.percentageOfSpend * 2.2)));
+          let customPhrase = `Your current balance covers ${cat.remainingMonths} months of ${cat.label} (${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()}/mo avg)`;
 
           return (
             <div
@@ -127,18 +111,32 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
                 backgroundColor: 'var(--bg-canvas-subtle)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-lg)',
-                padding: '0.875rem',
+                padding: '1rem',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: '0.625rem',
-                transition: 'background-color 150ms ease'
+                gap: '0.75rem',
+                transition: 'border-color 0.2s ease',
+                cursor: 'help'
               }}
+              title={customPhrase}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: cat.color, flexShrink: 0 }}></span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-main)' }}>{cat.label}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '6px',
+                      backgroundColor: `${cat.color}15`,
+                      color: cat.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{cat.icon}</span>
+                  </div>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>{cat.label}</span>
                 </div>
                 <span
                   style={{
@@ -146,20 +144,21 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
                     fontWeight: 700,
                     padding: '2px 6px',
                     borderRadius: '4px',
-                    backgroundColor: `${cat.color}18`,
-                    color: cat.color
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-muted)'
                   }}
                 >
-                  ${cat.monthlyBurn}/mo
+                  {cat.percentageOfSpend}% spend
                 </span>
               </div>
 
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.35 }}>
-                {customPhrase}
-              </p>
-
-              <div style={{ width: '100%', height: '6px', backgroundColor: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
-                <div style={{ width: `${progressPct}%`, height: '100%', backgroundColor: cat.color, borderRadius: '9999px' }}></div>
+              <div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: cat.color }}>
+                  {cat.remainingMonths} <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>months</span>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '2px' }}>
+                  {currencyInfo.prefix}{cat.monthlyBurn.toLocaleString()} / mo avg
+                </div>
               </div>
             </div>
           );

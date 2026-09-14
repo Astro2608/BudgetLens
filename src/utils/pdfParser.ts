@@ -79,7 +79,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
 
   // Regex patterns to detect transaction lines
   const dateRegex = /\b(\d{1,2}[\s/-][a-zA-Z]{3}(?:[\s/-]\d{2,4})?|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b/i;
-  const amountRegex = /(?:SGD|\$)?\s*([+-]?[0-9]{1,3}(?:,[0-9]{3})*\.[0-9]{2})\s*(CR|DR|\+|-)?/gi;
+  const amountRegex = /(?:SGD|USD|INR|EUR|GBP|JPY|AUD|CAD|MYR|CNY|₹|€|£|¥|\$|RM)?\s*([+-]?[0-9]{1,3}(?:,[0-9]{3})*\.[0-9]{2})\s*(CR|DR|\+|-)?/gi;
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
@@ -224,7 +224,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
       });
 
       description = description
-        .replace(/SGD|\$|CR|DR|Balance|Transfer/gi, '')
+        .replace(/SGD|USD|INR|EUR|GBP|JPY|AUD|CAD|MYR|CNY|₹|€|£|¥|\$|RM|CR|DR|Balance|Transfer/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
 

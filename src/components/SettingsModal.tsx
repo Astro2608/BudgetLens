@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CategoryConfig, CategoryKey, TransactionType } from '../types/finance';
 import { DEFAULT_CATEGORY_CONFIGS, getNextUniqueColor } from '../config/categoryConfig';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSaveInitialBalance,
   onResetDefaults
 }) => {
+  const { currencyCode, currencyInfo } = useCurrency();
   const [localConfigs, setLocalConfigs] = useState<Record<CategoryKey, CategoryConfig>>(categoryConfigs);
   const [localBalance, setLocalBalance] = useState<string>(initialBalance.toString());
   const [activeTab, setActiveTab] = useState<'categories' | 'balance'>('categories');
@@ -601,14 +603,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    Initial Baseline Opening Balance (SGD)
+                    Initial Baseline Opening Balance ({currencyCode})
                   </label>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
                     This represents your liquid starting capital before recorded transactions. The total balance and runway longevity automatically calculate from this baseline.
                   </p>
                   <div style={{ position: 'relative', maxWidth: '320px' }}>
                     <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-muted)', fontSize: '14px' }}>
-                      SGD $
+                      {currencyInfo.prefix}
                     </span>
                     <input
                       type="number"

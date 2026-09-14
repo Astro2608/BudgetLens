@@ -2,11 +2,11 @@ import { Transaction, CategoryKey, TransactionType } from '../types/finance';
 import { detectCategoryFromTitle, matchCategory } from '../config/categoryConfig';
 import { CSVParseResult } from './csvParser';
 
-// Evaluate simple math expressions like "$10 + 60.5+ 15" or "$4.7" or "SGD 800.00"
+// Evaluate simple math expressions like "$10 + 60.5+ 15" or "$4.7" or "SGD 800.00" or "INR ₹500"
 function evaluateMathExpression(raw: string): number {
   if (!raw) return 0;
-  // Clean all characters except digits, dots, plus signs, minus signs, and commas
-  const cleaned = raw.replace(/[$,SGDsgd\s]/g, '').trim();
+  // Clean currency symbols, letters, commas, and whitespace leaving math expression
+  const cleaned = raw.replace(/[$€£₹¥RM|A\$|C\$|[a-zA-Z,]/g, '').trim();
   if (!cleaned) return 0;
 
   // Split by plus signs and sum

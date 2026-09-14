@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatSGD } from '../utils/financeCalculator';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface SidebarProps {
   totalBalance: number;
@@ -12,11 +12,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   overallRunwayMonths,
   onOpenSettings
 }) => {
-  // Intelligent Runway & Health Status Calculation:
-  // If balance > 0 and runway is infinite or >= 12 mo: Healthy/Thriving (100%, Green)
-  // If runway >= 6 mo: Stable (75%, Teal)
-  // If runway >= 3 mo: Moderate (45%, Amber)
-  // If runway < 3 mo or balance <= 0: Critical (Red)
+  const { formatCurrency } = useCurrency();
+
   let healthPercent = 100;
   let healthStatus = 'Healthy';
   let healthColor = '#10b981'; // Green
@@ -40,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   } else if (overallRunwayMonths >= 6) {
     healthPercent = Math.round((overallRunwayMonths / 12) * 80);
     healthStatus = 'Stable';
-    healthColor = '#0d9488'; // Vibrant teal
+    healthColor = '#0d9488'; // Teal
     runwayDisplay = `${overallRunwayMonths} Mo`;
   } else if (overallRunwayMonths >= 3) {
     healthPercent = Math.round((overallRunwayMonths / 6) * 60);
@@ -103,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Available Cash Health Card */}
       <div
         className="sidebar-cash-card"
-        title={`Available Cash: ${formatSGD(totalBalance)}. Runway projection: ${runwayDisplay} (${healthStatus}).`}
+        title={`Available Cash: ${formatCurrency(totalBalance)}. Runway projection: ${runwayDisplay} (${healthStatus}).`}
         style={{ cursor: 'default' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -140,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', paddingTop: '2px' }}>
           <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }}>
-            {formatSGD(totalBalance)}
+            {formatCurrency(totalBalance)}
           </span>
           <span style={{ fontSize: '11px', color: healthColor, fontWeight: 700 }}>
             Health: {healthStatus}

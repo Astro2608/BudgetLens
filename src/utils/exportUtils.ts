@@ -22,7 +22,7 @@ export const exportToCSV = (transactions: Transaction[]) => {
   downloadBlob(blob, filename);
 };
 
-export function exportToMarkdown(transactions: Transaction[]) {
+export function exportToMarkdown(transactions: Transaction[], currencyCode?: string) {
   if (transactions.length === 0) return;
 
   const headers = [
@@ -30,7 +30,7 @@ export function exportToMarkdown(transactions: Transaction[]) {
     '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |'
   ];
   const rows = transactions.map(t => 
-    `| ${t.date} | ${(t.title || '').replace(/\|/g, '-')} | ${formatSGD(t.amount)} | ${t.type} | ${t.category} | ${(t.source || '').replace(/\|/g, '-')} | ${(t.note || '').replace(/\|/g, '-')} | ${t.isRecurring ? 'Yes' : 'No'} |`
+    `| ${t.date} | ${(t.title || '').replace(/\|/g, '-')} | ${formatSGD(t.amount, false, currencyCode)} | ${t.type} | ${t.category} | ${(t.source || '').replace(/\|/g, '-')} | ${(t.note || '').replace(/\|/g, '-')} | ${t.isRecurring ? 'Yes' : 'No'} |`
   );
 
   const mdContent = `# BudgetLens Export\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}\n`;
