@@ -18,14 +18,12 @@ import { PredictiveRunwayWidget } from './components/PredictiveRunwayWidget';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ResetConfirmModal } from './components/ResetConfirmModal';
-import { OnboardingWizard } from './components/OnboardingWizard';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { DashboardTour } from './components/DashboardTour';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
 import { exportToMarkdown } from './utils/exportUtils';
 import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
 
-const ONBOARDING_KEY = 'budgetlens_onboarding_done';
 const WELCOME_KEY = 'budgetlens_welcome_done';
 
 const STORAGE_KEY_CONFIGS = 'budgetlens_category_configs';
@@ -50,38 +48,20 @@ const AppContent: React.FC = () => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  // First-run onboarding & welcome — persisted in localStorage so they only show once
-  const [showOnboarding, setShowOnboarding] = useState<boolean>(
-    () => localStorage.getItem(ONBOARDING_KEY) !== 'true'
+  // First-run welcome modal — persisted in localStorage so it only shows once
+  const [showWelcome, setShowWelcome] = useState<boolean>(
+    () => localStorage.getItem(WELCOME_KEY) !== 'true'
   );
-  const [showWelcome, setShowWelcome] = useState<boolean>(false);
-
-  const handleOnboardingComplete = async () => {
-    localStorage.setItem(ONBOARDING_KEY, 'true');
-    setShowOnboarding(false);
-
-    // 🔑 Always start fresh on first install — wipe any browser-session data
-    // so the installed PWA opens at $0 with no transactions.
-    try {
-      await saveAppData(STORAGE_KEY_TXS, []);
-      await saveAppData(STORAGE_KEY_BALANCE, 0);
-      await saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS);
-    } catch (e) {
-      console.warn('Fresh-start reset failed:', e);
-    }
-    setTransactions([]);
-    setInitialBalance(0);
-    setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
-
-    // Show welcome only if this is also the first data session
-    if (localStorage.getItem(WELCOME_KEY) !== 'true') {
-      setShowWelcome(true);
-    }
-  };
 
   const handleWelcomeDismiss = () => {
     localStorage.setItem(WELCOME_KEY, 'true');
     setShowWelcome(false);
+  };
+
+  const handleWelcomeStartTour = () => {
+    localStorage.setItem(WELCOME_KEY, 'true');
+    setShowWelcome(false);
+    setManualTour(true);
   };
 
 
@@ -304,19 +284,19 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="app-layout">
-      {/* First-run onboarding wizard — shown once ever */}
-      {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} />}
-
-      {/* Post-onboarding welcome screen — shown once after wizard */}
-      {!showOnboarding && showWelcome && <WelcomeScreen onDismiss={handleWelcomeDismiss} />}
-      
-      {/* Interactive Tour (Spotlight & Mask) */}
-      {!showOnboarding && (
-        <DashboardTour
-          manualRun={manualTour}
-          onTourEnd={() => setManualTour(false)}
+      {/* First-run welcome screen — shown once on fresh install */}
+      {showWelcome && (
+        <WelcomeScreen
+          onDismiss={handleWelcomeDismiss}
+          onStartTour={handleWelcomeStartTour}
         />
       )}
+      
+      {/* Interactive Tour (Spotlight & Mask) */}
+      <DashboardTour
+        manualRun={manualTour}
+        onTourEnd={() => setManualTour(false)}
+      />
       
       {/* Sidebar */}
       <Sidebar
@@ -346,10 +326,12 @@ const AppContent: React.FC = () => {
           </div>
 
           {/* Quick 1-Liner Direct Entry Bar */}
-          <QuickEntryBar
-            onAddTransaction={handleAddTransaction}
-            categoryConfigs={categoryConfigs}
-          />
+          <div className="tour-quick-entry">
+            <QuickEntryBar
+              onAddTransaction={handleAddTransaction}
+              categoryConfigs={categoryConfigs}
+            />
+          </div>
 
           {/* 2. Inline Category Color Key */}
           <CategoryLegend
@@ -370,10 +352,12 @@ const AppContent: React.FC = () => {
             {/* Left 8-Column Area: Expenditure Composition Donut, Transaction Ledger & Runway Breakdown */}
             <div className="col-span-8">
               {/* Outflow Composition Analysis & Donut Breakdown */}
-              <CategoryExpenditureDonut
-                transactions={transactions}
-                categoryConfigs={categoryConfigs}
-              />
+              <div className="tour-donut">
+                <CategoryExpenditureDonut
+                  transactions={transactions}
+                  categoryConfigs={categoryConfigs}
+                />
+              </div>
 
               {/* Transaction Activity Ledger */}
               <div className="tour-ledger">

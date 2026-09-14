@@ -2,35 +2,156 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 const TOUR_DONE_KEY = 'budgetlens_tour_done';
 
+interface TourPoint {
+  icon: string;
+  title: string;
+  text: string;
+}
+
 interface TourStep {
   targetSelector: string;
-  title: string;
   badge: string;
+  title: string;
   description: string;
-  position: 'bottom' | 'top';
+  keyPoints: TourPoint[];
+  position: 'bottom' | 'top' | 'center';
 }
 
 const TOUR_STEPS: TourStep[] = [
   {
     targetSelector: '.tour-hero',
-    badge: 'Step 1 of 3 • Money Summary',
-    title: '💰 Your Bank Balance & Totals',
-    description: 'Here you see your Total Balance, Money In (Income), and Money Out (Expenses). Click the "+ Add Transaction" button here anytime to record new spending or income.',
+    badge: 'Step 1 of 5 • Money Summary',
+    title: '💰 Bank Balance & Live Cash Status',
+    description: 'This gives you a clear, live overview of where your real money stands right now.',
+    keyPoints: [
+      {
+        icon: 'account_balance_wallet',
+        title: 'Safe-to-Spend Balance',
+        text: 'The true amount of cash you have available in your pocket right now.'
+      },
+      {
+        icon: 'verified',
+        title: 'Surplus vs Deficit Badge',
+        text: 'A green badge means you are safe with money to spare; red warns you if spending went over.'
+      },
+      {
+        icon: 'payments',
+        title: 'Total Money In & Out',
+        text: 'Two simple summary cards showing all income received vs all expenses paid.'
+      }
+    ],
+    position: 'bottom'
+  },
+  {
+    targetSelector: '.tour-quick-entry',
+    badge: 'Step 2 of 5 • Fast Data Entry',
+    title: '⚡ 1-Liner Quick Log Bar',
+    description: 'Log your daily expenses in just 3 seconds without leaving the keyboard.',
+    keyPoints: [
+      {
+        icon: 'dialpad',
+        title: 'Natural 4-Step Flow',
+        text: 'Type the Price ➔ add a Remark (like Lunch) ➔ pick Category ➔ pick Date.'
+      },
+      {
+        icon: 'palette',
+        title: 'Dynamic Color Tint',
+        text: 'The box changes color to match your category (Green for Income, Red for Bills, Teal for General).'
+      },
+      {
+        icon: 'event',
+        title: 'Scroll Wheel Date Picker',
+        text: 'Click the date chip to spin the 3D scroll wheel, or tap Today or Yesterday.'
+      },
+      {
+        icon: 'keyboard_return',
+        title: 'Press Enter Anywhere',
+        text: 'Hit Enter on your keyboard to instantly record the transaction into your ledger.'
+      }
+    ],
     position: 'bottom'
   },
   {
     targetSelector: '.tour-chart',
-    badge: 'Step 2 of 3 • Visual Graph',
-    title: '📊 Income vs Spending Chart',
-    description: 'This chart shows where your money goes over time. Green is income, and colored bars show your spending by category. Move your mouse over any bar to see the details.',
+    badge: 'Step 3 of 5 • Visual Trends',
+    title: '📊 How to Read Your Cash Flow Chart',
+    description: 'A visual picture of how your money moves over days and months.',
+    keyPoints: [
+      {
+        icon: 'arrow_upward',
+        title: 'Bars on Top (+)',
+        text: 'Green bars going up show money received (salary, freelance, deposits).'
+      },
+      {
+        icon: 'arrow_downward',
+        title: 'Bars on Bottom (-)',
+        text: 'Red bars dipping down show money spent on bills, food, or shopping.'
+      },
+      {
+        icon: 'savings',
+        title: 'Net Savings Line',
+        text: 'Shows how much real money you kept in your pocket during that time.'
+      },
+      {
+        icon: 'date_range',
+        title: 'Time Buttons',
+        text: 'Easily switch views between 1 Month, 3 Months, or 1 Year.'
+      }
+    ],
     position: 'bottom'
   },
   {
-    targetSelector: '.tour-ledger',
-    badge: 'Step 3 of 3 • Transaction List',
-    title: '📝 Your Activity List',
-    description: 'All your past transactions are stored here. You can search by name, filter by income or expenses, and edit or delete any item with one click.',
+    targetSelector: '.tour-donut',
+    badge: 'Step 4 of 5 • Spending Slices',
+    title: '🍩 Where Your Money Goes (Pie Chart)',
+    description: 'A colorful breakdown showing which categories take up the biggest chunk of your money.',
+    keyPoints: [
+      {
+        icon: 'pie_chart',
+        title: 'Spending Slices',
+        text: 'See the percentage of your spending divided across Bills, Food, Transport, and Savings.'
+      },
+      {
+        icon: 'donut_large',
+        title: 'Double Ring View',
+        text: 'Outer ring shows every category; inner ring groups essentials vs extras.'
+      },
+      {
+        icon: 'touch_app',
+        title: 'Hover to See Details',
+        text: 'Hover or tap any slice to see the exact dollar amount and percentage.'
+      }
+    ],
     position: 'top'
+  },
+  {
+    targetSelector: 'center',
+    badge: 'Step 5 of 5 • Extra Features',
+    title: '🌟 Bonus Features & Helpful Tips',
+    description: 'BudgetLens includes extra smart tools to make managing money simple and private.',
+    keyPoints: [
+      {
+        icon: 'upload_file',
+        title: 'Attach e-Statement',
+        text: 'Drop bank PDFs (DBS, OCBC, UOB) or CSVs anytime to auto-import transactions.'
+      },
+      {
+        icon: 'hourglass_bottom',
+        title: 'Category Lifespan',
+        text: 'Tells you how many months your savings will last under current spending habits.'
+      },
+      {
+        icon: 'info',
+        title: 'Helpful Info Icons (ℹ️)',
+        text: 'Every single card on this dashboard has an info button explaining how it works.'
+      },
+      {
+        icon: 'currency_exchange',
+        title: 'Currency Switcher',
+        text: 'Change your currency at the top right anytime (SGD, USD, EUR, and more).'
+      }
+    ],
+    position: 'center'
   }
 ];
 
@@ -44,32 +165,29 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
-  // Check whether to auto-run on first install/session
+  // Trigger tour when manualRun changes to true
   useEffect(() => {
     if (manualRun) {
       setCurrentStepIdx(0);
       setIsOpen(true);
-      return;
-    }
-    const isDone = localStorage.getItem(TOUR_DONE_KEY);
-    if (!isDone) {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 700);
-      return () => clearTimeout(timer);
     }
   }, [manualRun]);
 
   const updateRect = useCallback(() => {
     if (!isOpen) return;
     const step = TOUR_STEPS[currentStepIdx];
-    if (!step) return;
+    if (!step || step.position === 'center' || step.targetSelector === 'center') {
+      setTargetRect(null);
+      return;
+    }
 
     const el = document.querySelector(step.targetSelector);
     if (el) {
       const rect = el.getBoundingClientRect();
       setTargetRect(rect);
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      setTargetRect(null);
     }
   }, [isOpen, currentStepIdx]);
 
@@ -78,7 +196,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
     const handleResize = () => updateRect();
     const handleScroll = () => {
       const step = TOUR_STEPS[currentStepIdx];
-      if (step) {
+      if (step && step.targetSelector !== 'center') {
         const el = document.querySelector(step.targetSelector);
         if (el) setTargetRect(el.getBoundingClientRect());
       }
@@ -115,31 +233,31 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
   if (!isOpen) return null;
 
   const currentStep = TOUR_STEPS[currentStepIdx];
-
-  // Calculate tooltip position relative to viewport
-  const padding = 12;
+  const isCenter = currentStep.position === 'center' || !targetRect;
   const isTop = currentStep.position === 'top';
-  
+
   let tooltipStyle: React.CSSProperties = {
     position: 'fixed',
     zIndex: 99999,
-    width: '360px',
+    width: '420px',
     maxWidth: 'calc(100vw - 32px)',
     backgroundColor: '#ffffff',
-    borderRadius: '16px',
-    padding: '22px 24px',
-    boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(226, 232, 240, 0.8)',
-    animation: 'tourFadeScale 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-    transition: 'top 0.3s ease, left 0.3s ease'
+    borderRadius: '18px',
+    padding: '20px 22px',
+    boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.38), 0 0 0 1px rgba(226, 232, 240, 0.9)',
+    animation: 'tourFadeScale 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+    transition: 'top 0.25s ease, left 0.25s ease',
+    maxHeight: '90vh',
+    overflowY: 'auto'
   };
 
-  if (targetRect) {
-    const left = Math.max(16, Math.min(window.innerWidth - 380, targetRect.left + (targetRect.width / 2) - 180));
+  if (targetRect && !isCenter) {
+    const left = Math.max(16, Math.min(window.innerWidth - 440, targetRect.left + (targetRect.width / 2) - 210));
     if (isTop) {
-      tooltipStyle.top = `${Math.max(16, targetRect.top - 210)}px`;
+      tooltipStyle.top = `${Math.max(16, targetRect.top - 280)}px`;
       tooltipStyle.left = `${left}px`;
     } else {
-      tooltipStyle.top = `${Math.min(window.innerHeight - 230, targetRect.bottom + padding)}px`;
+      tooltipStyle.top = `${Math.min(window.innerHeight - 320, targetRect.bottom + 12)}px`;
       tooltipStyle.left = `${left}px`;
     }
   } else {
@@ -152,16 +270,16 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
     <>
       <style>{`
         @keyframes tourFadeScale {
-          from { opacity: 0; transform: scale(0.95) translateY(4px); }
+          from { opacity: 0; transform: scale(0.96) translateY(4px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes tourPulseGlow {
-          0%, 100% { box-shadow: 0 0 0 3px #6366f1, 0 0 25px rgba(99, 102, 241, 0.4); }
-          50% { box-shadow: 0 0 0 4px #818cf8, 0 0 35px rgba(99, 102, 241, 0.65); }
+          0%, 100% { box-shadow: 0 0 0 3px #10b981, 0 0 25px rgba(16, 185, 129, 0.4); }
+          50% { box-shadow: 0 0 0 4px #059669, 0 0 35px rgba(16, 185, 129, 0.65); }
         }
       `}</style>
 
-      {/* Dark Backdrop Mask with Spotlight Cutout */}
+      {/* Dark Backdrop Mask */}
       <div
         style={{
           position: 'fixed',
@@ -169,135 +287,168 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: 'rgba(15, 23, 42, 0.68)',
-          backdropFilter: 'blur(2px)',
+          backgroundColor: 'rgba(15, 23, 42, 0.72)',
+          backdropFilter: 'blur(3px)',
           zIndex: 99990,
-          pointerEvents: 'auto',
-          transition: 'all 0.3s ease'
+          pointerEvents: 'auto'
         }}
         onClick={handleComplete}
       />
 
-      {/* Spotlight cutout around the target element */}
-      {targetRect && (
+      {/* Spotlight cutout border over the active element */}
+      {targetRect && !isCenter && (
         <div
           style={{
             position: 'fixed',
-            top: targetRect.top - 6,
-            left: targetRect.left - 6,
-            width: targetRect.width + 12,
-            height: targetRect.height + 12,
+            top: `${targetRect.top - 6}px`,
+            left: `${targetRect.left - 6}px`,
+            width: `${targetRect.width + 12}px`,
+            height: `${targetRect.height + 12}px`,
             borderRadius: '16px',
-            pointerEvents: 'none',
+            border: '2px solid #10b981',
             zIndex: 99995,
-            border: '2px solid #6366f1',
-            animation: 'tourPulseGlow 2s infinite ease-in-out',
-            boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.65)',
-            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            pointerEvents: 'none',
+            animation: 'tourPulseGlow 2.5s infinite ease-in-out'
           }}
         />
       )}
 
-      {/* Interactive Tooltip Card */}
-      <div style={tooltipStyle}>
+      {/* Tour Step Popover Card */}
+      <div style={tooltipStyle} onClick={(e) => e.stopPropagation()}>
         {/* Step Badge & Close */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <span style={{
-            fontSize: '11px',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            padding: '3px 8px',
-            borderRadius: '6px',
-            backgroundColor: '#e0e7ff',
-            color: '#4338ca'
-          }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: '#047857',
+              backgroundColor: '#ecfdf5',
+              padding: '3px 9px',
+              borderRadius: '6px',
+              border: '1px solid #a7f3d0'
+            }}
+          >
             {currentStep.badge}
           </span>
           <button
             onClick={handleComplete}
             style={{
-              background: 'transparent',
+              background: 'none',
               border: 'none',
-              cursor: 'pointer',
               color: '#94a3b8',
+              cursor: 'pointer',
               padding: '2px',
               display: 'flex',
               alignItems: 'center'
             }}
-            title="Close Tutorial"
+            title="Skip Tour"
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
           </button>
         </div>
 
-        {/* Title & Description */}
-        <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
+        {/* Title */}
+        <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
           {currentStep.title}
         </h3>
-        <p style={{ margin: '0 0 18px 0', fontSize: '13px', color: '#475569', lineHeight: 1.55 }}>
+
+        {/* Description */}
+        <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#475569', lineHeight: 1.45 }}>
           {currentStep.description}
         </p>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            onClick={handleComplete}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#64748b',
-              cursor: 'pointer',
-              padding: '4px 8px'
-            }}
-          >
-            Skip Tutorial
-          </button>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {currentStepIdx > 0 && (
-              <button
-                onClick={handlePrev}
+        {/* Detailed Element Breakdown (Simple & Friendly) */}
+        {currentStep.keyPoints && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+            {currentStep.keyPoints.map((point) => (
+              <div
+                key={point.title}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  color: '#334155',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '8px 10px'
                 }}
               >
-                Back
-              </button>
-            )}
-
-            <button
-              onClick={handleNext}
-              style={{
-                padding: '6px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: '#4f46e5',
-                color: '#ffffff',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                boxShadow: '0 2px 6px rgba(79, 70, 229, 0.35)'
-              }}
-            >
-              <span>{currentStepIdx === TOUR_STEPS.length - 1 ? 'Get Started' : 'Next'}</span>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                {currentStepIdx === TOUR_STEPS.length - 1 ? 'check' : 'arrow_forward'}
-              </span>
-            </button>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '18px', color: '#10b981', marginTop: '1px', flexShrink: 0 }}
+                >
+                  {point.icon}
+                </span>
+                <div style={{ fontSize: '12px', lineHeight: 1.4 }}>
+                  <strong style={{ color: '#0f172a' }}>{point.title}: </strong>
+                  <span style={{ color: '#475569' }}>{point.text}</span>
+                </div>
+              </div>
+            ))}
           </div>
+        )}
+
+        {/* Footer Navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+          <button
+            onClick={handlePrev}
+            disabled={currentStepIdx === 0}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: currentStepIdx === 0 ? '#cbd5e1' : '#475569',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              cursor: currentStepIdx === 0 ? 'default' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_back</span>
+            <span>Back</span>
+          </button>
+
+          {/* Dots Indicator */}
+          <div style={{ display: 'flex', gap: '5px' }}>
+            {TOUR_STEPS.map((_, i) => (
+              <span
+                key={i}
+                style={{
+                  width: i === currentStepIdx ? '16px' : '6px',
+                  height: '6px',
+                  borderRadius: '3px',
+                  backgroundColor: i === currentStepIdx ? '#10b981' : '#cbd5e1',
+                  transition: 'all 0.2s ease'
+                }}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={handleNext}
+            style={{
+              backgroundColor: '#10b981',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+            }}
+          >
+            <span>{currentStepIdx === TOUR_STEPS.length - 1 ? 'Finish' : 'Next'}</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+              {currentStepIdx === TOUR_STEPS.length - 1 ? 'done' : 'arrow_forward'}
+            </span>
+          </button>
         </div>
       </div>
     </>
