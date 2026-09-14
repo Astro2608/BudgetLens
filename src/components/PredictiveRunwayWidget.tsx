@@ -109,7 +109,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Predictive Runway Simulator
+                Runway & Longevity
               </h2>
               <SectionInfoButton
                 title="Predictive Runway"
@@ -268,12 +268,18 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
             </span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
               <span style={{ fontSize: '1.25rem', fontWeight: 800, color: scenarioMeta.color }}>
-                {hasMinimumData ? `${simulatedRunwayMonths} Mo` : '-- Mo'}
+                {hasMinimumData
+                  ? simulatedRunwayMonths > 12
+                    ? '12+ Mo'
+                    : `${simulatedRunwayMonths} Mo`
+                  : '-- Mo'}
               </span>
             </div>
             <span style={{ fontSize: '10px', fontWeight: 700, color: scenarioMeta.color }}>
               {!hasMinimumData
                 ? 'Requires 30d data'
+                : simulatedRunwayMonths > 12
+                ? 'Based on initial spend trends'
                 : runwayDelta > 0
                 ? `🎉 +${runwayDelta} Mo extended!`
                 : runwayDelta < 0

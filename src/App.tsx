@@ -47,6 +47,7 @@ const AppContent: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // First-run onboarding & welcome — persisted in localStorage so they only show once
   const [showOnboarding, setShowOnboarding] = useState<boolean>(
@@ -252,13 +253,6 @@ const AppContent: React.FC = () => {
     setTransactions((prev) => prev.filter(t => t.id !== id));
   };
 
-  const handleScrollToImport = () => {
-    const importEl = document.getElementById('import-section');
-    if (importEl) {
-      importEl.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   const handleResetDefaults = () => {
     setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
     setInitialBalance(0);
@@ -333,7 +327,7 @@ const AppContent: React.FC = () => {
               totalIncome={summary.totalIncome}
               totalExpenses={summary.totalExpenses}
               onOpenAddModal={() => setIsAddModalOpen(true)}
-              onScrollToImport={handleScrollToImport}
+              onScrollToImport={() => setIsImportModalOpen(true)}
             />
           </div>
 
@@ -373,17 +367,17 @@ const AppContent: React.FC = () => {
               {/* Category Runway & Longevity Projection Matrix */}
               <RunwaySection
                 totalBalance={summary.totalBalance}
-                overallRunwayMonths={summary.overallRunwayMonths}
                 overallMonthlyBurn={summary.overallMonthlyBurn}
+                overallRunwayMonths={summary.overallRunwayMonths}
                 categoryRunways={summary.categoryRunways}
                 hasMinimumData={summary.hasMinimumDataForRunway}
                 daysRecorded={summary.daysRecorded}
               />
             </div>
 
-            {/* Right 4-Column Area: Quick Add, Predictive Runway, Dedicated Import Engine */}
+            {/* Right 4-Column Area: Quick Log, Predictive Runway */}
             <div className="col-span-4">
-              {/* Quick Add */}
+              {/* Quick Log */}
               <QuickAddOutflows
                 onQuickAdd={handleQuickAdd}
                 categoryConfigs={categoryConfigs}
@@ -397,12 +391,6 @@ const AppContent: React.FC = () => {
                 categoryRunways={summary.categoryRunways}
                 hasMinimumData={summary.hasMinimumDataForRunway}
                 daysRecorded={summary.daysRecorded}
-              />
-
-              {/* Universal Bank Statement & Ledger Import Zone */}
-              <CSVImportZone
-                onImportTransactions={handleImportTransactions}
-                existingTransactions={transactions}
               />
             </div>
           </div>
@@ -436,6 +424,46 @@ const AppContent: React.FC = () => {
         transactionsCount={transactions.length}
         totalBalance={summary.totalBalance}
       />
+
+      {/* On-Demand Statement & File Import Modal */}
+      {isImportModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsImportModalOpen(false);
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '860px',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              borderRadius: 'var(--radius-xl)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+          >
+            <CSVImportZone
+              onImportTransactions={(txs) => {
+                handleImportTransactions(txs);
+                setIsImportModalOpen(false);
+              }}
+              existingTransactions={transactions}
+              onClose={() => setIsImportModalOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Subtle Visual Feedback Toast Notification */}
       {toast && (

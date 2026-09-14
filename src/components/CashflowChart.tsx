@@ -143,7 +143,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-              Cash In / Out Flow Analysis
+              Cash Flow Trend
             </h2>
             <span
               style={{
@@ -159,14 +159,14 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
               Smart Stacked View
             </span>
             <SectionInfoButton
-              title="Cashflow Analysis"
-              description="Visualizes when and where money entered (+) vs where it left (-) across time bins."
+              title="Cash Flow Trend"
+              description="Visualizes when and where money entered (+) vs where it left (-) across time."
               howItWorks="Top bars represent income/inflows. Bottom bars represent living expenses & fund allocations. The background shadow indicates whether your cumulative period was in Net Profit (green) or Deficit (red)."
               example="Click on any daily bar to open the Detailed Breakdown drawer and inspect the exact dollar amounts per category on that date."
             />
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-            Where money entered (+) vs where it left (-) across timelines. Click any bar for detailed categorical breakdown.
+            Money entered (+) vs money left (-) over time. Click any bar for detailed categorical breakdown.
           </p>
         </div>
 
@@ -214,18 +214,18 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#f97316' }}></span>
-              + Inflow (Top)
+              Money In (+)
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#f43f5e' }}></span>
-              - Outflow (Bottom)
+              Money Out (-)
             </span>
             <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-              • {currentBuckets.length} Time Bins ({timeframe === '1M' ? '1 Day / Bar (30 Days)' : timeframe === '3M' ? '1 Week / Bar' : timeframe === '1Y' ? '1 Month / Bar' : '1 Year / Bar'})
+              • View: {timeframe === '1M' ? 'Daily' : timeframe === '3M' ? 'Weekly' : timeframe === '1Y' ? 'Monthly' : 'Overall'}
             </span>
           </div>
           <span style={{ color: cumulativeSpread >= 0 ? '#10b981' : '#f43f5e', fontWeight: 800 }}>
-            Cumulative Period Spread: {cumulativeSpread >= 0 ? '+' : '-'}{formatCurrency(Math.abs(cumulativeSpread))}
+            Net Savings: {cumulativeSpread >= 0 ? '+' : '-'}{formatCurrency(Math.abs(cumulativeSpread))}
           </span>
         </div>
 

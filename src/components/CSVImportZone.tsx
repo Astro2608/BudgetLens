@@ -11,11 +11,13 @@ import { SectionInfoButton } from './SectionInfoButton';
 interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
   existingTransactions?: Transaction[];
+  onClose?: () => void;
 }
 
 export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   onImportTransactions,
-  existingTransactions = []
+  existingTransactions = [],
+  onClose
 }) => {
   const { formatCurrency, autoDetectCurrency } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -285,7 +287,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Universal Statement & Ledger Import Engine
+                Import Statements & Files
               </h3>
               <SectionInfoButton
                 title="Universal Statement Import"
@@ -334,11 +336,32 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
               </span>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              100% Offline client-side parsing for PDF statements, CSV exports & Obsidian Markdown tables with duplicate protection
+              100% private, offline parsing for bank PDFs, CSVs, and Markdown tables with duplicate protection
             </p>
           </div>
         </div>
 
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)',
+              transition: 'all 0.15s ease'
+            }}
+            title="Close modal"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+          </button>
+        )}
       </div>
 
       {/* Drag and Drop Zone */}

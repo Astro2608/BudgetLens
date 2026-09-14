@@ -1,55 +1,14 @@
 import React from 'react';
-import { useCurrency } from '../context/CurrencyContext';
 
 interface SidebarProps {
-  totalBalance: number;
-  overallRunwayMonths: number;
+  totalBalance?: number;
+  overallRunwayMonths?: number;
   onOpenSettings: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  totalBalance,
-  overallRunwayMonths,
   onOpenSettings
 }) => {
-  const { formatCurrency } = useCurrency();
-
-  let healthPercent = 100;
-  let healthStatus = 'Healthy';
-  let healthColor = '#10b981'; // Green
-  let runwayDisplay = `${overallRunwayMonths} Mo`;
-
-  if (totalBalance <= 0) {
-    healthPercent = 10;
-    healthStatus = 'Critical';
-    healthColor = '#ef4444';
-    runwayDisplay = '0 Mo';
-  } else if (overallRunwayMonths >= 999 || overallRunwayMonths >= 99) {
-    healthPercent = 100;
-    healthStatus = 'Thriving';
-    healthColor = '#10b981';
-    runwayDisplay = '99+ Mo';
-  } else if (overallRunwayMonths >= 12) {
-    healthPercent = Math.min(100, Math.max(80, Math.round((overallRunwayMonths / 24) * 100)));
-    healthStatus = 'Healthy';
-    healthColor = '#10b981';
-    runwayDisplay = `${overallRunwayMonths} Mo`;
-  } else if (overallRunwayMonths >= 6) {
-    healthPercent = Math.round((overallRunwayMonths / 12) * 80);
-    healthStatus = 'Stable';
-    healthColor = '#0d9488'; // Teal
-    runwayDisplay = `${overallRunwayMonths} Mo`;
-  } else if (overallRunwayMonths >= 3) {
-    healthPercent = Math.round((overallRunwayMonths / 6) * 60);
-    healthStatus = 'Moderate';
-    healthColor = '#f59e0b'; // Amber
-    runwayDisplay = `${overallRunwayMonths} Mo`;
-  } else {
-    healthPercent = Math.max(12, Math.round((overallRunwayMonths / 3) * 35));
-    healthStatus = 'Critical';
-    healthColor = '#ef4444'; // Red
-    runwayDisplay = `${overallRunwayMonths} Mo`;
-  }
 
   return (
     <aside className="sidebar">
@@ -97,52 +56,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Available Cash Health Card */}
+      {/* Minimal Vault Status Badge */}
       <div
-        className="sidebar-cash-card"
-        title={`Available Cash: ${formatCurrency(totalBalance)}. Runway projection: ${runwayDisplay} (${healthStatus}).`}
-        style={{ cursor: 'default' }}
+        style={{
+          margin: '0 0.75rem 1rem 0.75rem',
+          padding: '0.625rem 0.875rem',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem'
+        }}
+        title="Local Vault Synced: 100% offline private storage"
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
-            Available Cash
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span
             style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              color: healthColor,
-              backgroundColor: `${healthColor}18`,
-              border: `1px solid ${healthColor}40`,
-              padding: '2px 8px',
-              borderRadius: '6px',
-              transition: 'all 0.3s ease'
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#10b981',
+              display: 'inline-block'
             }}
-          >
-            {runwayDisplay}
+          ></span>
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)' }}>
+            Vault Synced
           </span>
         </div>
-
-        <div style={{ width: '100%', height: '7px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
-          <div
-            style={{
-              width: `${healthPercent}%`,
-              height: '100%',
-              background: healthColor,
-              borderRadius: '9999px',
-              transition: 'width 0.3s ease, background-color 0.3s ease'
-            }}
-          ></div>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', paddingTop: '2px' }}>
-          <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '11.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }}>
-            {formatCurrency(totalBalance)}
-          </span>
-          <span style={{ fontSize: '11px', color: healthColor, fontWeight: 700 }}>
-            Health: {healthStatus}
-          </span>
-        </div>
+        <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-muted)' }}>
+          Offline
+        </span>
       </div>
     </aside>
   );

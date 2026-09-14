@@ -54,7 +54,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Category Runway Breakdown
+                Category Lifespan
               </h2>
               {!hasMinimumData && (
                 <span
@@ -143,9 +143,17 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
         }}
       >
         {categoryRunways.map((cat) => {
-          let customPhrase = hasMinimumData
-            ? `Your current balance covers ${cat.remainingMonths} months of ${cat.label} (${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()}/mo avg)`
-            : 'Requires at least 1 month of ledger data';
+          const hasNoSpend = cat.monthlyBurn === 0;
+          const isCapped = cat.remainingMonths > 12;
+          const displayMonths = isCapped ? '12+' : cat.remainingMonths;
+
+          let customPhrase = !hasMinimumData
+            ? 'Requires at least 1 month of ledger data'
+            : hasNoSpend
+            ? `No spend logged yet in ${cat.label}`
+            : isCapped
+            ? `Your current balance covers over 12 months of ${cat.label} (Based on initial spend trends)`
+            : `Your current balance covers ${cat.remainingMonths} months of ${cat.label} (${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()}/mo avg)`;
 
           return (
             <div
@@ -191,17 +199,31 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
                     color: 'var(--text-muted)'
                   }}
                 >
-                  {hasMinimumData ? `${cat.percentageOfSpend}% spend` : '--'}
+                  {!hasMinimumData ? '--' : hasNoSpend ? '0% spend' : `${cat.percentageOfSpend}% spend`}
                 </span>
               </div>
 
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: hasMinimumData ? cat.color : 'var(--text-muted)' }}>
-                  {hasMinimumData ? cat.remainingMonths : '--'}{' '}
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>months</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: hasMinimumData ? (hasNoSpend ? 'var(--text-muted)' : cat.color) : 'var(--text-muted)' }}>
+                  {!hasMinimumData ? (
+                    <>-- <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>months</span></>
+                  ) : hasNoSpend ? (
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)' }}>No spend logged yet</span>
+                  ) : (
+                    <>
+                      {displayMonths}{' '}
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>months</span>
+                    </>
+                  )}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                  {hasMinimumData ? `${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()} / mo avg` : 'Requires 1 mo data'}
+                  {!hasMinimumData
+                    ? 'Requires 1 mo data'
+                    : hasNoSpend
+                    ? '—'
+                    : isCapped
+                    ? 'Based on initial spend trends'
+                    : `${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()} / mo avg`}
                 </div>
               </div>
             </div>

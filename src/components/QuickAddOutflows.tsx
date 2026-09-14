@@ -53,10 +53,10 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '20px' }}>bolt</span>
           <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-            Quick Add
+            Quick Log
           </h3>
           <SectionInfoButton
-            title="Quick Add"
+            title="Quick Log"
             description="Allows instant 1-click recording of daily expenses and deposits into your ledger without opening forms."
             howItWorks="Type an amount into any category input and hit Enter or click '+ Log'. The transaction is immediately committed to local memory with today's date."
             example="Key in '14.50' under Food & Dining and hit Enter. The entry is recorded instantly and dashboard charts refresh in real-time."
@@ -78,7 +78,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
       </div>
 
       <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
-        Key in any amount below to instantly record into your ledger. Dynamic list updates automatically when categories change:
+        Key in an amount to instantly log expenses or income into your ledger:
       </p>
 
       <div

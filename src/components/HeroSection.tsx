@@ -79,7 +79,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
 
           <p style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Here is what you have with you ({currencyInfo.code})
+            Safe-to-Spend Balance ({currencyInfo.code})
           </p>
 
           <div
@@ -128,8 +128,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         </div>
       </div>
 
-      {/* Lower row: 3 Styled KPI Cards with Tooltips */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.875rem' }}>
+      {/* Lower row: 2 Clean Metric Cards (Money In & Money Out) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.875rem' }}>
         {/* Total Income */}
         <div
           style={{
@@ -147,7 +147,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Keyed Cash In (Income)
+              Total Money In
               <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#94a3b8' }}>info</span>
             </span>
             <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>{formatCurrency(totalIncome, true)}</span>
@@ -185,7 +185,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Keyed Outflows (Expenses)
+              Total Money Out
               <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#94a3b8' }}>info</span>
             </span>
             <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>{formatCurrency(-totalExpenses, false)}</span>
@@ -203,49 +203,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>trending_down</span>
-          </div>
-        </div>
-
-        {/* Net Available */}
-        <div
-          style={{
-            backgroundColor: isNegative ? '#fff1f2' : '#f0fdfa',
-            border: `1px solid ${isNegative ? '#fecdd3' : 'var(--color-primary-border)'}`,
-            borderRadius: 'var(--radius-lg)',
-            padding: '1rem 1.125rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'help',
-            transition: 'all 0.2s ease'
-          }}
-          title="Net Liquid Balance: Live capital available in accounts ready for immediate runway allocation."
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: isNegative ? '#991b1b' : '#115e59', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Net Available Balance
-              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: isNegative ? '#e11d48' : '#0d9488' }}>info</span>
-            </span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: isNegative ? '#ef4444' : '#0f766e' }}>
-              {formatCurrency(totalBalance)}
-            </span>
-          </div>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: isNegative ? '#fee2e2' : 'var(--color-primary)',
-              color: isNegative ? '#ef4444' : 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'var(--shadow-xs)'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              {isNegative ? 'warning' : 'account_balance_wallet'}
-            </span>
           </div>
         </div>
       </div>

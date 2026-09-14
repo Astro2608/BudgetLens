@@ -1,5 +1,5 @@
 // BudgetLens Service Worker — Offline-first with cache-then-network strategy
-const CACHE_NAME = 'budgetlens-v1';
+const CACHE_NAME = 'budgetlens-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
