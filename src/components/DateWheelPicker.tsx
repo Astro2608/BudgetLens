@@ -7,8 +7,8 @@ interface DateWheelPickerProps {
 }
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const YEARS = [2024, 2025, 2026, 2027];
-const ITEM_HEIGHT = 36; // px per drum wheel item
+const YEARS = [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
+const ITEM_HEIGHT = 38; // px per drum wheel item
 const VISIBLE_ITEMS = 5;
 
 export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
@@ -103,87 +103,162 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
     emitDate(y, m, day);
   };
 
-  // Wheel Column Component for Drum Roll
+  // Smooth Native Scroll Column Component
   const DrumWheel = ({
     items,
     selectedVal,
     onSelect,
-    formatItem
+    formatItem,
+    label
   }: {
     items: number[];
     selectedVal: number;
     onSelect: (val: number) => void;
     formatItem?: (val: number) => string;
+    label: string;
   }) => {
     const colRef = useRef<HTMLDivElement>(null);
+    const isScrollingProgrammatically = useRef(false);
+    const scrollTimeout = useRef<number | null>(null);
 
-    const handleWheel = (e: React.WheelEvent) => {
-      e.preventDefault();
-      const currentIndex = items.indexOf(selectedVal);
-      if (currentIndex === -1) return;
-
-      if (e.deltaY > 0 && currentIndex < items.length - 1) {
-        onSelect(items[currentIndex + 1]);
-      } else if (e.deltaY < 0 && currentIndex > 0) {
-        onSelect(items[currentIndex - 1]);
+    // Center scroll on selected value
+    const scrollToVal = (val: number, smooth = true) => {
+      const idx = items.indexOf(val);
+      if (colRef.current && idx !== -1) {
+        isScrollingProgrammatically.current = true;
+        colRef.current.scrollTo({
+          top: idx * ITEM_HEIGHT,
+          behavior: smooth ? 'smooth' : 'auto'
+        });
+        setTimeout(() => {
+          isScrollingProgrammatically.current = false;
+        }, 200);
       }
     };
 
-    // Auto center scroll on selected
+    // When selectedVal changes externally or popover opens, scroll into view
     useEffect(() => {
-      const idx = items.indexOf(selectedVal);
-      if (colRef.current && idx !== -1) {
-        colRef.current.scrollTop = idx * ITEM_HEIGHT;
+      if (!isScrollingProgrammatically.current && isOpen) {
+        const idx = items.indexOf(selectedVal);
+        if (colRef.current && idx !== -1) {
+          const targetTop = idx * ITEM_HEIGHT;
+          // Only scroll if not already at or very close to the target position
+          if (Math.abs(colRef.current.scrollTop - targetTop) > ITEM_HEIGHT / 2) {
+            colRef.current.scrollTo({
+              top: targetTop,
+              behavior: 'smooth'
+            });
+          }
+        }
       }
-    }, [selectedVal, items]);
+    }, [selectedVal, isOpen, items]);
+
+    // Handle user manual scrolling (wheel, touchpad, touch drag)
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      if (isScrollingProgrammatically.current) return;
+
+      const scrollTop = e.currentTarget.scrollTop;
+      const index = Math.round(scrollTop / ITEM_HEIGHT);
+      const clamped = Math.max(0, Math.min(items.length - 1, index));
+
+      if (items[clamped] !== undefined && items[clamped] !== selectedVal) {
+        if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+        scrollTimeout.current = window.setTimeout(() => {
+          onSelect(items[clamped]);
+        }, 80);
+      }
+    };
+
+    const handleStep = (direction: -1 | 1) => {
+      const currentIndex = items.indexOf(selectedVal);
+      if (currentIndex === -1) return;
+      const newIndex = currentIndex + direction;
+      if (newIndex >= 0 && newIndex < items.length) {
+        const nextVal = items[newIndex];
+        scrollToVal(nextVal, true);
+        onSelect(nextVal);
+      }
+    };
+
+    const handleItemClick = (item: number) => {
+      scrollToVal(item, true);
+      onSelect(item);
+    };
 
     return (
       <div
-        onWheel={handleWheel}
         style={{
-          position: 'relative',
-          height: `${ITEM_HEIGHT * VISIBLE_ITEMS}px`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
           flex: 1,
-          overflow: 'hidden',
-          cursor: 'grab'
+          position: 'relative'
         }}
       >
+        {/* Top Mini Arrow Button */}
+        <button
+          type="button"
+          onClick={() => handleStep(-1)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            padding: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '4px',
+            opacity: 0.7,
+            transition: 'opacity 0.15s ease'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+          title={`Previous ${label}`}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>expand_less</span>
+        </button>
+
+        {/* Scrollable Column */}
         <div
           ref={colRef}
+          onScroll={handleScroll}
           style={{
-            height: '100%',
+            height: `${ITEM_HEIGHT * VISIBLE_ITEMS}px`,
+            width: '100%',
             overflowY: 'auto',
             scrollSnapType: 'y mandatory',
             scrollbarWidth: 'none',
             paddingTop: `${ITEM_HEIGHT * 2}px`,
             paddingBottom: `${ITEM_HEIGHT * 2}px`,
-            boxSizing: 'content-box'
+            boxSizing: 'border-box',
+            userSelect: 'none'
           }}
         >
           {items.map((item) => {
             const isSelected = item === selectedVal;
             const diff = Math.abs(items.indexOf(item) - items.indexOf(selectedVal));
-            const opacity = isSelected ? 1 : Math.max(0.45, 0.9 - diff * 0.2);
-            const scale = isSelected ? 1.08 : Math.max(0.88, 1 - diff * 0.06);
+            const opacity = isSelected ? 1 : Math.max(0.35, 0.9 - diff * 0.22);
+            const scale = isSelected ? 1.1 : Math.max(0.85, 1 - diff * 0.08);
 
             return (
               <div
                 key={item}
-                onClick={() => onSelect(item)}
+                onClick={() => handleItemClick(item)}
                 style={{
                   height: `${ITEM_HEIGHT}px`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: isSelected ? '14px' : '13px',
-                  fontWeight: isSelected ? 800 : 600,
+                  fontSize: isSelected ? '14.5px' : '13px',
+                  fontWeight: isSelected ? 800 : 500,
                   color: isSelected ? accentColor : 'var(--text-main)',
                   transform: `scale(${scale})`,
                   opacity,
                   transition: 'all 0.15s ease',
                   cursor: 'pointer',
                   scrollSnapAlign: 'center',
-                  userSelect: 'none'
+                  padding: '0 4px'
                 }}
               >
                 {formatItem ? formatItem(item) : item}
@@ -191,6 +266,30 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
             );
           })}
         </div>
+
+        {/* Bottom Mini Arrow Button */}
+        <button
+          type="button"
+          onClick={() => handleStep(1)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            padding: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '4px',
+            opacity: 0.7,
+            transition: 'opacity 0.15s ease'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+          title={`Next ${label}`}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>expand_more</span>
+        </button>
       </div>
     );
   };
@@ -249,11 +348,11 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
             top: 'calc(100% + 6px)',
             left: 0,
             zIndex: 1050,
-            width: '260px',
+            width: '270px',
             backgroundColor: 'var(--bg-card)',
             border: `1px solid var(--border-subtle)`,
             borderRadius: 'var(--radius-lg)',
-            boxShadow: '0 12px 30px -4px rgba(0,0,0,0.2), 0 4px 10px rgba(0,0,0,0.06)',
+            boxShadow: '0 16px 36px -4px rgba(0,0,0,0.22), 0 4px 12px rgba(0,0,0,0.08)',
             padding: '0.75rem',
             display: 'flex',
             flexDirection: 'column',
@@ -272,9 +371,9 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
                 type="button"
                 onClick={() => setOffsetDays(0)}
                 style={{
-                  padding: '2px 6px',
+                  padding: '3px 7px',
                   borderRadius: '4px',
-                  fontSize: '10px',
+                  fontSize: '10.5px',
                   fontWeight: 700,
                   border: '1px solid var(--border-subtle)',
                   background: 'var(--bg-canvas-subtle)',
@@ -288,9 +387,9 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
                 type="button"
                 onClick={() => setOffsetDays(-1)}
                 style={{
-                  padding: '2px 6px',
+                  padding: '3px 7px',
                   borderRadius: '4px',
-                  fontSize: '10px',
+                  fontSize: '10.5px',
                   fontWeight: 700,
                   border: '1px solid var(--border-subtle)',
                   background: 'var(--bg-canvas-subtle)',
@@ -303,7 +402,7 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
             </div>
           </div>
 
-          {/* Drum Roll Columns (Day | Month | Year) */}
+          {/* Drum Roll Columns Area (Day | Month | Year) */}
           <div
             style={{
               position: 'relative',
@@ -312,20 +411,21 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
               backgroundColor: 'var(--bg-canvas-subtle)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-subtle)',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              padding: '4px 0'
             }}
           >
             {/* Center Active Lens Highlight */}
             <div
               style={{
                 position: 'absolute',
-                top: `${ITEM_HEIGHT * 2}px`,
+                top: `${ITEM_HEIGHT * 2 + 23}px`, // 23px accounts for top mini-arrow button
                 left: 0,
                 right: 0,
                 height: `${ITEM_HEIGHT}px`,
                 backgroundColor: `${accentColor}18`,
-                borderTop: `1px solid ${accentColor}40`,
-                borderBottom: `1px solid ${accentColor}40`,
+                borderTop: `1.5px solid ${accentColor}40`,
+                borderBottom: `1.5px solid ${accentColor}40`,
                 pointerEvents: 'none',
                 zIndex: 1
               }}
@@ -335,11 +435,11 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
             <div
               style={{
                 position: 'absolute',
-                top: 0,
+                top: '23px',
                 left: 0,
                 right: 0,
-                height: `${ITEM_HEIGHT * 1.5}px`,
-                background: 'linear-gradient(to bottom, var(--bg-canvas-subtle) 20%, transparent 100%)',
+                height: `${ITEM_HEIGHT}px`,
+                background: 'linear-gradient(to bottom, var(--bg-canvas-subtle) 30%, transparent 100%)',
                 pointerEvents: 'none',
                 zIndex: 2
               }}
@@ -347,11 +447,11 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
             <div
               style={{
                 position: 'absolute',
-                bottom: 0,
+                bottom: '23px',
                 left: 0,
                 right: 0,
-                height: `${ITEM_HEIGHT * 1.5}px`,
-                background: 'linear-gradient(to top, var(--bg-canvas-subtle) 20%, transparent 100%)',
+                height: `${ITEM_HEIGHT}px`,
+                background: 'linear-gradient(to top, var(--bg-canvas-subtle) 30%, transparent 100%)',
                 pointerEvents: 'none',
                 zIndex: 2
               }}
@@ -362,6 +462,7 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
               items={daysArray}
               selectedVal={selectedDay}
               onSelect={updateDay}
+              label="Day"
             />
 
             {/* Wheel 2: Month */}
@@ -370,6 +471,7 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
               selectedVal={selectedMonth}
               onSelect={updateMonth}
               formatItem={(m) => MONTH_NAMES[m - 1]}
+              label="Month"
             />
 
             {/* Wheel 3: Year */}
@@ -377,13 +479,14 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
               items={YEARS}
               selectedVal={selectedYear}
               onSelect={updateYear}
+              label="Year"
             />
           </div>
 
           {/* Footer Action */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '2px' }}>
             <span style={{ fontSize: '10.5px', color: 'var(--text-subtle)' }}>
-              Spin wheel or click item
+              Scroll, click, or use arrows
             </span>
             <button
               type="button"
@@ -393,7 +496,7 @@ export const DateWheelPicker: React.FC<DateWheelPickerProps> = ({
                 color: '#fff',
                 border: 'none',
                 borderRadius: '6px',
-                padding: '4px 12px',
+                padding: '5px 14px',
                 fontSize: '11.5px',
                 fontWeight: 700,
                 cursor: 'pointer'
