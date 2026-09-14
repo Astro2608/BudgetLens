@@ -1,7 +1,6 @@
 import { Transaction, TransactionType } from '../types/finance';
 import { detectCategoryFromTitle } from '../config/categoryConfig';
 import { CSVParseResult } from './csvParser';
-import { v4 as uuidv4 } from 'uuid';
 
 export async function parseFreeformText(text: string): Promise<CSVParseResult> {
   const lines = text.split('\n');
@@ -101,7 +100,7 @@ export async function parseFreeformText(text: string): Promise<CSVParseResult> {
 
     if (amount > 0) {
       transactions.push({
-        id: uuidv4(),
+        id: `ff-${Date.now()}-${transactions.length}-${Math.random().toString(36).slice(2, 7)}`,
         date: dateStr || new Date().toISOString().split('T')[0],
         title: title || 'Freeform Transaction',
         amount,
