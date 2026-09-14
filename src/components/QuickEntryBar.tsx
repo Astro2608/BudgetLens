@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Transaction, CategoryKey, CategoryConfig } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
-import { DateWheelPicker } from './DateWheelPicker';
 
 interface QuickEntryBarProps {
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
@@ -287,12 +286,27 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
           </div>
         </div>
 
-        {/* Field 4: Modern Date Wheel Picker */}
+        {/* Field 4: Standard Default Date Input */}
         <div style={{ flex: '0 0 auto' }}>
-          <DateWheelPicker
+          <input
+            type="date"
             value={date}
-            onChange={setDate}
-            accentColor={activeConfig.color}
+            onChange={(e) => setDate(e.target.value)}
+            style={{
+              height: '38px',
+              padding: '0 0.75rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)',
+              backgroundColor: 'var(--bg-canvas-subtle)',
+              color: 'var(--text-main)',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              outline: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              boxSizing: 'border-box'
+            }}
+            title="Date"
           />
         </div>
 
