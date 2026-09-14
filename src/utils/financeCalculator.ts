@@ -127,16 +127,15 @@ export function generateChartBuckets(
   let buckets: ChartBucket[] = [];
 
   if (timeframe === '1M') {
-    // 30 days divided into 15 bins of 2 days each, anchored strictly to Today
-    const totalBins = 15;
-    const binDuration = 2 * MS_PER_DAY;
+    // 30 days divided into 30 individual daily bins (1 day per bar), anchored strictly to Today
+    const totalBins = 30;
+    const binDuration = 1 * MS_PER_DAY;
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
     const startTime = todayEnd - totalBins * binDuration + 1;
 
     for (let i = 0; i < totalBins; i++) {
       const bStart = new Date(startTime + i * binDuration);
       const bEnd = new Date(startTime + (i + 1) * binDuration - 1);
-      // Label shows the end of the 2-day period so the rightmost bar is always Today (14 Sep)
       const labelDate = bEnd;
       buckets.push({
         label: `${labelDate.getDate()} ${labelDate.toLocaleString('default', { month: 'short' })}`,
@@ -306,8 +305,8 @@ export function generateChartBuckets(
       }
     });
 
-    if (buckets.length > 15) {
-      buckets = buckets.slice(-15);
+    if (buckets.length > 31) {
+      buckets = buckets.slice(-31);
     }
   }
 

@@ -195,7 +195,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
               - Outflow (Bottom)
             </span>
             <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-              • {currentBuckets.length} Time Bins ({timeframe === '1M' ? '2 Days / Bar' : timeframe === '3M' ? '1 Week / Bar' : timeframe === '1Y' ? '1 Month / Bar' : '1 Year / Bar'})
+              • {currentBuckets.length} Time Bins ({timeframe === '1M' ? '1 Day / Bar (30 Days)' : timeframe === '3M' ? '1 Week / Bar' : timeframe === '1Y' ? '1 Month / Bar' : '1 Year / Bar'})
             </span>
           </div>
           <span style={{ color: cumulativeSpread >= 0 ? '#10b981' : '#f43f5e', fontWeight: 800 }}>
@@ -416,7 +416,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
                   style={{
                     position: 'absolute',
                     bottom: '-22px',
-                    fontSize: '10px',
+                    fontSize: currentBuckets.length > 20 ? '8.5px' : '10px',
                     fontWeight: isActive ? 800 : hasActivity ? 600 : 500,
                     color: isActive ? 'var(--color-primary)' : hasActivity ? 'var(--text-main)' : 'var(--text-muted)',
                     whiteSpace: 'nowrap',
@@ -426,7 +426,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
                     textAlign: 'center'
                   }}
                 >
-                  {bucket.label}
+                  {currentBuckets.length > 20 ? bucket.label.split(' ')[0] : bucket.label}
                 </span>
               </div>
             );
