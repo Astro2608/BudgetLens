@@ -41,6 +41,70 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
     return spread;
   }, [currentBuckets]);
 
+  // Generate sharp linear background overlay data (Profit = Green, Deficit = Red)
+  const overlayData = useMemo(() => {
+    if (currentBuckets.length === 0) return null;
+    const n = currentBuckets.length;
+    const yZero = 120;
+    const maxH = 95; // Bounded vertical amplitude
+
+    const points: { x: number; y: number; netVal: number }[] = [];
+    points.push({ x: 0, y: yZero, netVal: 0 });
+
+    currentBuckets.forEach((b, i) => {
+      const x = ((i + 0.5) / n) * 1000;
+      const netVal = b.totalInflow - b.totalOutflow;
+      const ratio = Math.min(1, Math.abs(netVal) / maxValue);
+      const y = netVal >= 0 ? yZero - ratio * maxH : yZero + ratio * maxH;
+      points.push({ x, y, netVal });
+    });
+
+    points.push({ x: 1000, y: yZero, netVal: 0 });
+
+    const segments: {
+      polygonPoints: string;
+      linePoints: string;
+      isProfit: boolean;
+    }[] = [];
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = points[i];
+      const p2 = points[i + 1];
+
+      if (p1.y <= yZero && p2.y <= yZero) {
+        segments.push({
+          polygonPoints: `${p1.x},${yZero} ${p1.x},${p1.y} ${p2.x},${p2.y} ${p2.x},${yZero}`,
+          linePoints: `${p1.x},${p1.y} ${p2.x},${p2.y}`,
+          isProfit: true
+        });
+      } else if (p1.y >= yZero && p2.y >= yZero) {
+        segments.push({
+          polygonPoints: `${p1.x},${yZero} ${p1.x},${p1.y} ${p2.x},${p2.y} ${p2.x},${yZero}`,
+          linePoints: `${p1.x},${p1.y} ${p2.x},${p2.y}`,
+          isProfit: false
+        });
+      } else {
+        const t = (yZero - p1.y) / (p2.y - p1.y);
+        const xCross = p1.x + t * (p2.x - p1.x);
+
+        segments.push({
+          polygonPoints: `${p1.x},${yZero} ${p1.x},${p1.y} ${xCross},${yZero}`,
+          linePoints: `${p1.x},${p1.y} ${xCross},${yZero}`,
+          isProfit: p1.y < yZero
+        });
+
+        segments.push({
+          polygonPoints: `${xCross},${yZero} ${p2.x},${p2.y} ${p2.x},${yZero}`,
+          linePoints: `${xCross},${yZero} ${p2.x},${p2.y}`,
+          isProfit: p2.y < yZero
+        });
+      }
+    }
+
+    const dataNodes = points.slice(1, -1);
+    return { segments, dataNodes };
+  }, [currentBuckets, maxValue]);
+
   const activeBucket = activeBarIdx !== null ? currentBuckets[activeBarIdx] : null;
 
   return (
@@ -157,6 +221,69 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
           {/* Top/Bottom Reference Lines */}
           <div style={{ position: 'absolute', inset: 'auto 0', top: '15%', borderBottom: '1px dashed #e2e8f0', zIndex: 0 }}></div>
           <div style={{ position: 'absolute', inset: 'auto 0', bottom: '15%', borderBottom: '1px dashed #e2e8f0', zIndex: 0 }}></div>
+
+          {/* Background Linear Profit/Deficit Overlay Graph (30% opacity, non-interactive) */}
+          {overlayData && (
+            <svg
+              viewBox="0 0 1000 240"
+              preserveAspectRatio="none"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: 0,
+                opacity: 0.30
+              }}
+            >
+              <defs>
+                <linearGradient id="overlayProfitGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.85" />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.15" />
+                </linearGradient>
+                <linearGradient id="overlayDeficitGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ef4444" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="#ef4444" stopOpacity="0.85" />
+                </linearGradient>
+              </defs>
+
+              {/* Shaded Area Polygons */}
+              {overlayData.segments.map((seg, sIdx) => (
+                <polygon
+                  key={`poly-${sIdx}`}
+                  points={seg.polygonPoints}
+                  fill={seg.isProfit ? 'url(#overlayProfitGrad)' : 'url(#overlayDeficitGrad)'}
+                />
+              ))}
+
+              {/* Linear Sharp Trend Line */}
+              {overlayData.segments.map((seg, sIdx) => (
+                <polyline
+                  key={`line-${sIdx}`}
+                  points={seg.linePoints}
+                  fill="none"
+                  stroke={seg.isProfit ? '#10b981' : '#ef4444'}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="miter"
+                />
+              ))}
+
+              {/* Data Node Dots */}
+              {overlayData.dataNodes.map((node, nIdx) => (
+                <circle
+                  key={`node-${nIdx}`}
+                  cx={node.x}
+                  cy={node.y}
+                  r="3.5"
+                  fill={node.netVal >= 0 ? '#10b981' : '#ef4444'}
+                  stroke="#ffffff"
+                  strokeWidth="1.5"
+                />
+              ))}
+            </svg>
+          )}
 
           {currentBuckets.map((bucket, idx) => {
             const isActive = activeBarIdx === idx;
