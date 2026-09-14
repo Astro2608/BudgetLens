@@ -1,21 +1,37 @@
 import { CategoryConfig, CategoryKey } from '../types/finance';
 
 export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
-  Transport: {
-    key: 'Transport',
-    label: 'Transport',
-    color: '#10b981', // Green
-    icon: 'directions_subway',
+  General: {
+    key: 'General',
+    label: 'General Expenses',
+    color: '#0d9488', // Teal (Default category)
+    icon: 'receipt_long',
     type: 'expense',
-    keywords: ['grab', 'gojek', 'mrt', 'bus', 'simplygo', 'ezlink', 'transit', 'shell', 'fuel', 'petrol', 'taxi', 'comfortdelgro', 'flight', 'airline', 'transport']
+    keywords: ['general', 'misc', 'miscellaneous', 'other', 'shop', 'groceries', 'mart', 'supermarket', 'convenience', '7-eleven', 'fairprice', 'cold storage', 'donki', 'daiso', 'food', 'lunch', 'dinner', 'cafe', 'coffee']
   },
   Salary: {
     key: 'Salary',
     label: 'Income',
-    color: '#3b82f6', // Blue
+    color: '#10b981', // Universally Green for Income
     icon: 'payments',
     type: 'income',
     keywords: ['salary', 'payroll', 'stripe', 'bonus', 'dividend', 'deposit', 'freelance', 'consultation', 'client payout', 'income', 'paycheck']
+  },
+  Bills: {
+    key: 'Bills',
+    label: 'Bills',
+    color: '#ef4444', // Red for Bills
+    icon: 'bolt',
+    type: 'expense',
+    keywords: ['sp group', 'sp services', 'singtel', 'starhub', 'm1', 'giga', 'netflix', 'spotify', 'utilities', 'electric', 'water', 'telecom', 'telco', 'wifi', 'broadband', 'insurance', 'bill', 'bills']
+  },
+  Transport: {
+    key: 'Transport',
+    label: 'Transport',
+    color: '#0284c7', // Sky Blue
+    icon: 'directions_subway',
+    type: 'expense',
+    keywords: ['grab', 'gojek', 'mrt', 'bus', 'simplygo', 'ezlink', 'transit', 'shell', 'fuel', 'petrol', 'taxi', 'comfortdelgro', 'flight', 'airline', 'transport']
   },
   Savings: {
     key: 'Savings',
@@ -24,14 +40,6 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     icon: 'savings',
     type: 'savings',
     keywords: ['stash', 'emergency fund', 'vault', 'crypto', 'invest', 'etf', 'cpf', 'fixed deposit', 'saving', 'savings']
-  },
-  Bills: {
-    key: 'Bills',
-    label: 'Bills',
-    color: '#ef4444', // Red
-    icon: 'bolt',
-    type: 'expense',
-    keywords: ['sp group', 'sp services', 'singtel', 'starhub', 'm1', 'giga', 'netflix', 'spotify', 'utilities', 'electric', 'water', 'telecom', 'telco', 'wifi', 'broadband', 'insurance', 'bill', 'bills']
   }
 };
 

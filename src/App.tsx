@@ -6,6 +6,7 @@ import { DEFAULT_CATEGORY_CONFIGS, ensureUniqueCategoryColors, detectCategoryFro
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
+import { QuickEntryBar } from './components/QuickEntryBar';
 import { RunwaySection } from './components/RunwaySection';
 import { CategoryLegend } from './components/CategoryLegend';
 import { CashflowChart } from './components/CashflowChart';
@@ -131,7 +132,21 @@ const AppContent: React.FC = () => {
           savedConf = await getAppData(LEGACY_STORAGE_KEY_CONFIGS);
         }
         if (savedConf) {
-          setCategoryConfigs(ensureUniqueCategoryColors(savedConf));
+          // Merge with DEFAULT_CATEGORY_CONFIGS to ensure General Expenses exists
+          const mergedConf = { ...DEFAULT_CATEGORY_CONFIGS, ...savedConf };
+          // Migrate old default colors if they were untouched defaults
+          if (mergedConf.Salary && (mergedConf.Salary.color === '#3b82f6' || !mergedConf.Salary.color)) {
+            mergedConf.Salary.color = '#10b981'; // Standardized Green
+          }
+          if (mergedConf.Transport && mergedConf.Transport.color === '#10b981') {
+            mergedConf.Transport.color = '#0284c7'; // Standardized Sky Blue
+          }
+          if (mergedConf.Bills && !mergedConf.Bills.color) {
+            mergedConf.Bills.color = '#ef4444'; // Standardized Red
+          }
+          setCategoryConfigs(ensureUniqueCategoryColors(mergedConf));
+        } else {
+          setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
         }
 
         // Check if user previously connected a raw file handle for background sync
@@ -326,10 +341,15 @@ const AppContent: React.FC = () => {
               totalBalance={summary.totalBalance}
               totalIncome={summary.totalIncome}
               totalExpenses={summary.totalExpenses}
-              onOpenAddModal={() => setIsAddModalOpen(true)}
               onScrollToImport={() => setIsImportModalOpen(true)}
             />
           </div>
+
+          {/* Quick 1-Liner Direct Entry Bar */}
+          <QuickEntryBar
+            onAddTransaction={handleAddTransaction}
+            categoryConfigs={categoryConfigs}
+          />
 
           {/* 2. Inline Category Color Key */}
           <CategoryLegend

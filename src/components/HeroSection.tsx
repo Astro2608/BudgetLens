@@ -5,7 +5,7 @@ interface HeroSectionProps {
   totalBalance: number;
   totalIncome: number;
   totalExpenses: number;
-  onOpenAddModal: () => void;
+  onOpenAddModal?: () => void;
   onScrollToImport: () => void;
 }
 
@@ -13,7 +13,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   totalBalance,
   totalIncome,
   totalExpenses,
-  onOpenAddModal,
   onScrollToImport
 }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
@@ -117,10 +116,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button className="btn-primary" onClick={onOpenAddModal} title="Record a manual expense or income into the ledger">
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_circle</span>
-            <span>+ Key Expense / Income</span>
-          </button>
           <button className="btn-secondary" onClick={onScrollToImport} title="Upload a bank CSV statement to parse and categorize transactions">
             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>upload_file</span>
             <span>Attach e-Statement</span>
