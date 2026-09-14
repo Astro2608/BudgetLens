@@ -1,13 +1,23 @@
 import * as pdfjsLib from 'pdfjs-dist';
 // Vite ?url import creates a local offline URL for the worker script
 // @ts-ignore
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+// In-memory module import for guaranteed fail-safe execution (works on file://, password-protected hosts, offline)
+// @ts-ignore
+import * as pdfjsWorkerModule from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import { Transaction, CategoryKey, TransactionType } from '../types/finance';
 import { detectCategoryFromTitle } from '../config/categoryConfig';
 import { CSVParseResult } from './csvParser';
 
+// Attach to globalThis so PDF.js fake worker fallback ALWAYS succeeds without network fetch
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).pdfjsWorker = pdfjsWorkerModule;
+}
+
 // Set offline local worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+if (pdfjsLib.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
+}
 
 interface TextItem {
   str: string;
