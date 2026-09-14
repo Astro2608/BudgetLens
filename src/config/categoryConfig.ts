@@ -7,55 +7,31 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     color: '#10b981', // Green
     icon: 'directions_subway',
     type: 'expense',
-    keywords: ['grab', 'gojek', 'mrt', 'bus', 'simplygo', 'ezlink', 'transit', 'shell', 'fuel', 'petrol', 'taxi', 'comfortdelgro']
-  },
-  Food: {
-    key: 'Food',
-    label: 'Food & Dining',
-    color: '#f59e0b', // Amber / Yellow
-    icon: 'restaurant',
-    type: 'expense',
-    keywords: ['food', 'mcdonald', 'starbucks', 'osteria', 'bistro', 'supermarket', 'fairprice', 'cold storage', 'dining', 'lunch', 'dinner', 'cafe', 'kopitiam', 'hawker', 'toast']
-  },
-  Bills: {
-    key: 'Bills',
-    label: 'Bills & Utilities',
-    color: '#ef4444', // Red
-    icon: 'bolt',
-    type: 'expense',
-    keywords: ['sp group', 'sp services', 'singtel', 'starhub', 'm1', 'giga', 'netflix', 'spotify', 'utilities', 'electric', 'water', 'telecom', 'telco', 'wifi', 'broadband', 'insurance']
-  },
-  Rent: {
-    key: 'Rent',
-    label: 'Rent & Housing',
-    color: '#3b82f6', // Blue
-    icon: 'apartment',
-    type: 'expense',
-    keywords: ['rent', 'rental', 'landlord', 'condo', 'hdb', 'housing', 'mortgage', 'maintenance fee']
+    keywords: ['grab', 'gojek', 'mrt', 'bus', 'simplygo', 'ezlink', 'transit', 'shell', 'fuel', 'petrol', 'taxi', 'comfortdelgro', 'flight', 'airline', 'transport']
   },
   Salary: {
     key: 'Salary',
-    label: 'Salary & Income',
-    color: '#f97316', // Orange
+    label: 'Income',
+    color: '#3b82f6', // Blue
     icon: 'payments',
     type: 'income',
-    keywords: ['salary', 'payroll', 'stripe', 'bonus', 'dividend', 'deposit', 'freelance', 'consultation', 'client payout']
+    keywords: ['salary', 'payroll', 'stripe', 'bonus', 'dividend', 'deposit', 'freelance', 'consultation', 'client payout', 'income', 'paycheck']
   },
   Savings: {
     key: 'Savings',
-    label: 'Savings & Vault',
+    label: 'Savings',
     color: '#8b5cf6', // Lavender / Purple
     icon: 'savings',
     type: 'savings',
-    keywords: ['stash', 'emergency fund', 'vault', 'crypto', 'invest', 'etf', 'cpf', 'fixed deposit']
+    keywords: ['stash', 'emergency fund', 'vault', 'crypto', 'invest', 'etf', 'cpf', 'fixed deposit', 'saving', 'savings']
   },
-  General: {
-    key: 'General',
-    label: 'General / Others',
-    color: '#06b6d4', // Cyan
-    icon: 'category',
+  Bills: {
+    key: 'Bills',
+    label: 'Bills',
+    color: '#ef4444', // Red
+    icon: 'bolt',
     type: 'expense',
-    keywords: ['misc', 'shopping', 'watsons', 'guardian', 'kinokuniya', 'hardware', 'books', 'general']
+    keywords: ['sp group', 'sp services', 'singtel', 'starhub', 'm1', 'giga', 'netflix', 'spotify', 'utilities', 'electric', 'water', 'telecom', 'telco', 'wifi', 'broadband', 'insurance', 'bill', 'bills']
   }
 };
 
@@ -67,10 +43,20 @@ export function getCategoryConfig(
   categoryKey: CategoryKey | string,
   configs: Record<CategoryKey, CategoryConfig> = DEFAULT_CATEGORY_CONFIGS
 ): CategoryConfig {
-  if (categoryKey in configs) {
+  if (categoryKey && categoryKey in configs) {
     return configs[categoryKey as CategoryKey];
   }
-  return configs.General || DEFAULT_CATEGORY_CONFIGS.General;
+  const byLabel = Object.values(configs).find(c => c.label.toLowerCase() === (categoryKey || '').toLowerCase());
+  if (byLabel) return byLabel;
+
+  return Object.values(configs)[0] || {
+    key: 'General',
+    label: 'General',
+    color: '#64748b',
+    icon: 'category',
+    type: 'expense',
+    keywords: []
+  };
 }
 
 export const UNIQUE_PALETTE = [

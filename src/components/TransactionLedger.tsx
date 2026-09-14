@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Transaction, CategoryKey, CategoryConfig } from '../types/finance';
-import { exportLedgerToCSV, exportLedgerToMarkdown, exportReceiptToPDF } from '../utils/exportUtils';
+import { exportToCSV, exportToMarkdown } from '../utils/exportUtils';
 import { DEFAULT_CATEGORY_CONFIGS, getCategoryConfig } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
 import { SectionInfoButton } from './SectionInfoButton';

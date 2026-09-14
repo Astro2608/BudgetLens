@@ -32,3 +32,4 @@ dist-ssr
 # Antigravity artifacts / temp
 .agents/
 .gemini/
+.netlify/

@@ -1,5 +1,5 @@
 import { Transaction, FinanceSummary, CategoryRunway, CategoryKey, TimeframeFilter, ChartBucket, CategoryConfig } from '../types/finance';
-import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
+import { DEFAULT_CATEGORY_CONFIGS, getCategoryConfig } from '../config/categoryConfig';
 
 export function calculateFinanceSummary(
   transactions: Transaction[],
@@ -50,11 +50,13 @@ export function calculateFinanceSummary(
     monthsSpan = Math.max(1, spanDays / 30.4167);
   }
 
-  // 3. Category Runways & Burn Rates
-  const expenseCategories: CategoryKey[] = ['Transport', 'Food', 'Rent', 'Bills', 'General'];
+  // 3. Category Runways & Burn Rates (dynamically derived from expense categories)
+  const expenseCategories: CategoryKey[] = Object.keys(configs).filter(
+    (k) => configs[k]?.type === 'expense'
+  );
   
   const categoryRunways: CategoryRunway[] = expenseCategories.map((catKey) => {
-    const catConfig = configs[catKey] || configs.General || DEFAULT_CATEGORY_CONFIGS.General;
+    const catConfig = getCategoryConfig(catKey, configs);
     const catTxs = expenseTransactions.filter((tx) => tx.category === catKey);
     const catTotal = catTxs.reduce((sum, tx) => sum + (Math.abs(Number(tx.amount)) || 0), 0);
 
@@ -158,7 +160,7 @@ export function generateChartBuckets(
         );
         const bucket = buckets[binIndex];
         const amt = Math.abs(Number(tx.amount)) || 0;
-        const catConfig = configs[tx.category] || configs.General || DEFAULT_CATEGORY_CONFIGS.General;
+        const catConfig = getCategoryConfig(tx.category, configs);
 
         if (tx.type === 'income') {
           bucket.totalInflow += amt;
@@ -204,7 +206,7 @@ export function generateChartBuckets(
         );
         const bucket = buckets[binIndex];
         const amt = Math.abs(Number(tx.amount)) || 0;
-        const catConfig = configs[tx.category] || configs.General || DEFAULT_CATEGORY_CONFIGS.General;
+        const catConfig = getCategoryConfig(tx.category, configs);
 
         if (tx.type === 'income') {
           bucket.totalInflow += amt;
@@ -249,7 +251,7 @@ export function generateChartBuckets(
 
       if (bucket) {
         const amt = Math.abs(Number(tx.amount)) || 0;
-        const catConfig = configs[tx.category] || configs.General || DEFAULT_CATEGORY_CONFIGS.General;
+        const catConfig = getCategoryConfig(tx.category, configs);
 
         if (tx.type === 'income') {
           bucket.totalInflow += amt;
@@ -289,7 +291,7 @@ export function generateChartBuckets(
       const bucket = buckets.find((b) => b.label === `${tYear}`);
       if (bucket) {
         const amt = Math.abs(Number(tx.amount)) || 0;
-        const catConfig = configs[tx.category] || configs.General || DEFAULT_CATEGORY_CONFIGS.General;
+        const catConfig = getCategoryConfig(tx.category, configs);
 
         if (tx.type === 'income') {
           bucket.totalInflow += amt;

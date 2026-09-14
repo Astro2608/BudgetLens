@@ -17,8 +17,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
   totalBalance,
   overallRunwayMonths,
   categoryRunways,
-  hasMinimumData = true,
-  daysRecorded = 0
+  hasMinimumData = true
 }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
   const [sliderVal, setSliderVal] = useState<number>(2);

@@ -4,9 +4,10 @@ import { SUPPORTED_CURRENCIES } from '../config/currencyConfig';
 
 interface HeaderProps {
   onResetWorkspace?: () => void;
+  onStartTour?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onResetWorkspace }) => {
+export const Header: React.FC<HeaderProps> = ({ onResetWorkspace, onStartTour }) => {
   const { currencyCode, setCurrencyCode } = useCurrency();
 
   return (
@@ -27,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({ onResetWorkspace }) => {
         </span>
       </div>
 
-      {/* Right Actions: Currency Selector & Reset Button */}
+      {/* Right Actions: Currency Selector, Tour & Reset Button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         {/* Top Right Currency Dropdown */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#f8fafc', padding: '0.3rem 0.6rem', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0' }}>
@@ -62,6 +63,40 @@ export const Header: React.FC<HeaderProps> = ({ onResetWorkspace }) => {
             ))}
           </select>
         </div>
+
+        {onStartTour && (
+          <button
+            type="button"
+            onClick={onStartTour}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0.4rem 0.85rem',
+              borderRadius: 'var(--radius-lg)',
+              backgroundColor: '#f5f3ff',
+              color: '#4f46e5',
+              border: '1.5px solid #ddd6fe',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#ede9fe';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#f5f3ff';
+            }}
+            title="Start interactive visual tutorial"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#4f46e5' }}>
+              explore
+            </span>
+            <span>Tutorial Tour</span>
+          </button>
+        )}
 
         {onResetWorkspace && (
           <button

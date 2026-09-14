@@ -14,7 +14,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
   transactions,
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS
 }) => {
-  const { formatCurrency, currencyInfo } = useCurrency();
+  const { formatCurrency } = useCurrency();
   const [timeframe, setTimeframe] = useState<TimeframeFilter>('1M');
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
 

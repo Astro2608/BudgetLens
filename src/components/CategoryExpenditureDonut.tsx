@@ -16,7 +16,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
   transactions,
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS
 }) => {
-  const { formatCurrency, currencyInfo } = useCurrency();
+  const { formatCurrency } = useCurrency();
   const [timeframe, setTimeframe] = useState<TimeframeOption>('month');
   const [activeTab, setActiveTab] = useState<ViewTabOption>('outflows');
   const [hoveredCategory, setHoveredCategory] = useState<{ ring: 'outer' | 'inner'; key: string } | null>(null);

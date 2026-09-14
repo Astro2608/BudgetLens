@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { MOCK_TRANSACTIONS, INITIAL_BASELINE_BALANCE } from './mock/mockTransactions';
 import { calculateFinanceSummary, formatSGD } from './utils/financeCalculator';
 import { Transaction, CategoryKey, CategoryConfig } from './types/finance';
 import { DEFAULT_CATEGORY_CONFIGS, ensureUniqueCategoryColors, detectCategoryFromTitle } from './config/categoryConfig';
@@ -20,6 +19,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { ResetConfirmModal } from './components/ResetConfirmModal';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { WelcomeScreen } from './components/WelcomeScreen';
+import { DashboardTour } from './components/DashboardTour';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
 import { exportToMarkdown } from './utils/exportUtils';
 import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
@@ -40,8 +40,9 @@ const AppContent: React.FC = () => {
   const { formatCurrency, autoDetectCurrency } = useCurrency();
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [initialBalance, setInitialBalance] = useState<number>(INITIAL_BASELINE_BALANCE);
+  const [initialBalance, setInitialBalance] = useState<number>(0);
   const [categoryConfigs, setCategoryConfigs] = useState<Record<CategoryKey, CategoryConfig>>(DEFAULT_CATEGORY_CONFIGS);
+  const [manualTour, setManualTour] = useState<boolean>(false);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -95,9 +96,6 @@ const AppContent: React.FC = () => {
         }
 
         if (savedTxs && savedTxs.length > 0) {
-          const todayStr = new Date().toISOString().split('T')[0];
-          const hasFutureDates = savedTxs.some((t: Transaction) => t.date > todayStr);
-
           // Auto-heal any transactions if they were corrupted to all General expenses
           const healedTxs = savedTxs.map((t: Transaction) => {
             let category = t.category;
@@ -114,18 +112,9 @@ const AppContent: React.FC = () => {
             return { ...t, category, type };
           });
 
-          const onboardingAlreadyDone = localStorage.getItem(ONBOARDING_KEY) === 'true';
-          setTransactions(hasFutureDates && !onboardingAlreadyDone ? MOCK_TRANSACTIONS : healedTxs);
-
+          setTransactions(healedTxs);
         } else {
-          // Only load mock data on the very first ever session (before onboarding)
-          // Once onboarding is done, always start empty — never inject mock data
-          const onboardingDone = localStorage.getItem(ONBOARDING_KEY) === 'true';
-          if (!onboardingDone && savedTxs === undefined) {
-            setTransactions(MOCK_TRANSACTIONS);
-          } else {
-            setTransactions([]);
-          }
+          setTransactions([]);
         }
 
         let savedBal = await getAppData(STORAGE_KEY_BALANCE);
@@ -154,7 +143,7 @@ const AppContent: React.FC = () => {
         }
       } catch (e) {
         console.error('Failed to load from IndexedDB', e);
-        setTransactions(MOCK_TRANSACTIONS);
+        setTransactions([]);
       } finally {
         setIsDataLoaded(true);
       }
@@ -272,14 +261,14 @@ const AppContent: React.FC = () => {
 
   const handleResetDefaults = () => {
     setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
-    setInitialBalance(INITIAL_BASELINE_BALANCE);
-    setTransactions(MOCK_TRANSACTIONS);
+    setInitialBalance(0);
+    setTransactions([]);
     try {
       localStorage.removeItem(STORAGE_KEY_CONFIGS);
       localStorage.removeItem(STORAGE_KEY_BALANCE);
       localStorage.removeItem(STORAGE_KEY_TXS);
-      saveAppData(STORAGE_KEY_TXS, MOCK_TRANSACTIONS);
-      saveAppData(STORAGE_KEY_BALANCE, INITIAL_BASELINE_BALANCE);
+      saveAppData(STORAGE_KEY_TXS, []);
+      saveAppData(STORAGE_KEY_BALANCE, 0);
       saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS);
     } catch (e) { }
   };
@@ -311,6 +300,15 @@ const AppContent: React.FC = () => {
 
       {/* Post-onboarding welcome screen — shown once after wizard */}
       {!showOnboarding && showWelcome && <WelcomeScreen onDismiss={handleWelcomeDismiss} />}
+      
+      {/* Interactive Tour (Spotlight & Mask) */}
+      {!showOnboarding && (
+        <DashboardTour
+          manualRun={manualTour}
+          onTourEnd={() => setManualTour(false)}
+        />
+      )}
+      
       {/* Sidebar */}
       <Sidebar
         totalBalance={summary.totalBalance}
@@ -320,19 +318,24 @@ const AppContent: React.FC = () => {
 
       {/* Main Wrapper */}
       <div className="main-wrapper">
-        {/* Top Header with Reset Button */}
-        <Header onResetWorkspace={() => setIsResetModalOpen(true)} />
+        {/* Top Header with Reset & Tour Buttons */}
+        <Header
+          onResetWorkspace={() => setIsResetModalOpen(true)}
+          onStartTour={() => setManualTour(true)}
+        />
 
         {/* Workspace Content */}
         <main className="workspace-content">
           {/* 1. Hero Section: Total Bank Balance & KPIs */}
-          <HeroSection
-            totalBalance={summary.totalBalance}
-            totalIncome={summary.totalIncome}
-            totalExpenses={summary.totalExpenses}
-            onOpenAddModal={() => setIsAddModalOpen(true)}
-            onScrollToImport={handleScrollToImport}
-          />
+          <div className="tour-hero">
+            <HeroSection
+              totalBalance={summary.totalBalance}
+              totalIncome={summary.totalIncome}
+              totalExpenses={summary.totalExpenses}
+              onOpenAddModal={() => setIsAddModalOpen(true)}
+              onScrollToImport={handleScrollToImport}
+            />
+          </div>
 
           {/* 2. Inline Category Color Key */}
           <CategoryLegend
@@ -341,27 +344,31 @@ const AppContent: React.FC = () => {
           />
 
           {/* 3. Cash In / Out Flow Analysis Chart */}
-          <CashflowChart
-            transactions={transactions}
-            categoryConfigs={categoryConfigs}
-          />
+          <div className="tour-chart">
+            <CashflowChart
+              transactions={transactions}
+              categoryConfigs={categoryConfigs}
+            />
+          </div>
 
           {/* 4. 2-Column Responsive Layout for Ledger, Analytics, and Widgets */}
           <div className="dashboard-grid">
-            {/* Left 8-Column Area: Transaction Ledger, Runway Breakdown & Expenditure Composition */}
+            {/* Left 8-Column Area: Expenditure Composition Donut, Transaction Ledger & Runway Breakdown */}
             <div className="col-span-8">
-              {/* Transaction Activity Ledger */}
-              <TransactionLedger
-                transactions={transactions}
-                categoryConfigs={categoryConfigs}
-                onDeleteTransaction={handleDeleteTransaction}
-              />
-
               {/* Outflow Composition Analysis & Donut Breakdown */}
               <CategoryExpenditureDonut
                 transactions={transactions}
                 categoryConfigs={categoryConfigs}
               />
+
+              {/* Transaction Activity Ledger */}
+              <div className="tour-ledger">
+                <TransactionLedger
+                  transactions={transactions}
+                  categoryConfigs={categoryConfigs}
+                  onDeleteTransaction={handleDeleteTransaction}
+                />
+              </div>
 
               {/* Category Runway & Longevity Projection Matrix */}
               <RunwaySection

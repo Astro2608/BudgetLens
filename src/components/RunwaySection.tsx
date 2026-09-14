@@ -14,7 +14,6 @@ interface RunwaySectionProps {
 
 export const RunwaySection: React.FC<RunwaySectionProps> = ({
   totalBalance,
-  overallRunwayMonths,
   overallMonthlyBurn,
   categoryRunways,
   hasMinimumData = true,
