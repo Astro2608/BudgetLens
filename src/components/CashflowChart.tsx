@@ -13,9 +13,16 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
   transactions,
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, currencyInfo } = useCurrency();
   const [timeframe, setTimeframe] = useState<TimeframeFilter>('1M');
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
+
+  const formatCompactVal = (val: number) => {
+    const abs = Math.abs(val);
+    if (abs >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+    if (abs >= 1000) return `${(val / 1000).toFixed(abs % 1000 === 0 ? 0 : 1)}k`;
+    return `${Math.round(val)}`;
+  };
 
   // Generate dynamic buckets based on transactions, timeframe, and categoryConfigs
   const currentBuckets: ChartBucket[] = useMemo(
@@ -161,14 +168,14 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
         </div>
       </div>
 
-      {/* Chart Canvas Box */}
+      {/* Chart Canvas Box with Y-Axis and Dotted Gridlines */}
       <div
         style={{
           position: 'relative',
           backgroundColor: '#fafbfc',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          padding: '1.25rem 1rem 1.5rem 1rem',
+          padding: '1.25rem 1rem 2.25rem 1rem',
           marginTop: '1rem'
         }}
       >
@@ -203,234 +210,300 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
           </span>
         </div>
 
-        {/* Bar Container */}
-        <div
-          id="chart-canvas"
-          style={{
-            height: '240px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.375rem',
-            position: 'relative',
-            padding: '20px 0'
-          }}
-        >
-          {/* Middle Zero Line */}
-          <div style={{ position: 'absolute', inset: 'auto 0', top: '50%', borderBottom: '2px solid #cbd5e1', zIndex: 1 }}></div>
-          {/* Top/Bottom Reference Lines */}
-          <div style={{ position: 'absolute', inset: 'auto 0', top: '15%', borderBottom: '1px dashed #e2e8f0', zIndex: 0 }}></div>
-          <div style={{ position: 'absolute', inset: 'auto 0', bottom: '15%', borderBottom: '1px dashed #e2e8f0', zIndex: 0 }}></div>
+        {/* Main Chart Area (Y-Axis on Left + Bar Canvas on Right) */}
+        <div style={{ display: 'flex', height: '240px', position: 'relative' }}>
+          {/* Left Y-Axis Scale Column */}
+          <div
+            style={{
+              width: '46px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              paddingRight: '8px',
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#94a3b8',
+              userSelect: 'none',
+              zIndex: 5
+            }}
+          >
+            <span style={{ transform: 'translateY(-50%)', color: '#10b981' }}>
+              +{currencyInfo.prefix}{formatCompactVal(maxValue)}
+            </span>
+            <span style={{ transform: 'translateY(-50%)' }}>
+              +{currencyInfo.prefix}{formatCompactVal(maxValue * 0.5)}
+            </span>
+            <span style={{ transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-main)' }}>
+              {currencyInfo.prefix}0
+            </span>
+            <span style={{ transform: 'translateY(-50%)' }}>
+              -{currencyInfo.prefix}{formatCompactVal(maxValue * 0.5)}
+            </span>
+            <span style={{ transform: 'translateY(-50%)', color: '#f43f5e' }}>
+              -{currencyInfo.prefix}{formatCompactVal(maxValue)}
+            </span>
+          </div>
 
-          {/* Background Linear Profit/Deficit Overlay Graph (30% opacity, non-interactive) */}
-          {overlayData && (
-            <svg
-              viewBox="0 0 1000 240"
-              preserveAspectRatio="none"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                pointerEvents: 'none',
-                zIndex: 0,
-                opacity: 0.30
-              }}
-            >
-              <defs>
-                <linearGradient id="overlayProfitGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.85" />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.15" />
-                </linearGradient>
-                <linearGradient id="overlayDeficitGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ef4444" stopOpacity="0.15" />
-                  <stop offset="100%" stopColor="#ef4444" stopOpacity="0.85" />
-                </linearGradient>
-              </defs>
+          {/* Right Bar Canvas with Dotted Guidelines */}
+          <div
+            id="chart-canvas"
+            style={{
+              flex: 1,
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.375rem',
+              position: 'relative'
+            }}
+          >
+            {/* Horizontal Dotted Gridlines */}
+            <div style={{ position: 'absolute', inset: 'auto 0', top: '0%', borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: '25%', borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: '50%', borderBottom: '2px solid #cbd5e1', zIndex: 1 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: '75%', borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', bottom: '0%', borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
 
-              {/* Shaded Area Polygons */}
-              {overlayData.segments.map((seg, sIdx) => (
-                <polygon
-                  key={`poly-${sIdx}`}
-                  points={seg.polygonPoints}
-                  fill={seg.isProfit ? 'url(#overlayProfitGrad)' : 'url(#overlayDeficitGrad)'}
-                />
-              ))}
-
-              {/* Linear Sharp Trend Line */}
-              {overlayData.segments.map((seg, sIdx) => (
-                <polyline
-                  key={`line-${sIdx}`}
-                  points={seg.linePoints}
-                  fill="none"
-                  stroke={seg.isProfit ? '#10b981' : '#ef4444'}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="miter"
-                />
-              ))}
-
-              {/* Data Node Dots */}
-              {overlayData.dataNodes.map((node, nIdx) => (
-                <circle
-                  key={`node-${nIdx}`}
-                  cx={node.x}
-                  cy={node.y}
-                  r="3.5"
-                  fill={node.netVal >= 0 ? '#10b981' : '#ef4444'}
-                  stroke="#ffffff"
-                  strokeWidth="1.5"
-                />
-              ))}
-            </svg>
-          )}
-
-          {currentBuckets.map((bucket, idx) => {
-            const isActive = activeBarIdx === idx;
-            const inflowPxPct = (bucket.totalInflow / maxValue) * 100;
-            const outflowPxPct = (bucket.totalOutflow / maxValue) * 100;
-            const hasActivity = bucket.totalInflow > 0 || bucket.totalOutflow > 0;
-
-            return (
-              <div
-                key={bucket.label + idx}
+            {/* Background Linear Profit/Deficit Overlay Graph */}
+            {overlayData && (
+              <svg
+                viewBox="0 0 1000 240"
+                preserveAspectRatio="none"
                 style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
                   height: '100%',
-                  zIndex: isActive ? 20 : 10,
-                  position: 'relative',
-                  cursor: 'pointer',
-                  borderRadius: '6px',
-                  backgroundColor: isActive ? 'rgba(13, 148, 136, 0.08)' : 'transparent',
-                  transition: 'background-color 0.2s ease'
+                  pointerEvents: 'none',
+                  zIndex: 0,
+                  opacity: 0.30
                 }}
-                onClick={() => {
-                  setActiveBarIdx(isActive ? null : idx);
-                }}
-                title={`Click to expand breakdown for ${bucket.label} (${bucket.startDate})`}
               >
-                {/* Active Indicator Arrow */}
-                {isActive && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '-12px',
-                      color: 'var(--color-primary)',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      animation: 'bounce 1s infinite'
-                    }}
-                  >
-                    ▼
-                  </div>
-                )}
+                <defs>
+                  <linearGradient id="overlayProfitGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.15" />
+                  </linearGradient>
+                  <linearGradient id="overlayDeficitGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity="0.15" />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0.85" />
+                  </linearGradient>
+                </defs>
 
-                {/* Top Half: Inflow Stack */}
+                {/* Shaded Area Polygons */}
+                {overlayData.segments.map((seg, sIdx) => (
+                  <polygon
+                    key={`poly-${sIdx}`}
+                    points={seg.polygonPoints}
+                    fill={seg.isProfit ? 'url(#overlayProfitGrad)' : 'url(#overlayDeficitGrad)'}
+                  />
+                ))}
+
+                {/* Linear Sharp Trend Line */}
+                {overlayData.segments.map((seg, sIdx) => (
+                  <polyline
+                    key={`line-${sIdx}`}
+                    points={seg.linePoints}
+                    fill="none"
+                    stroke={seg.isProfit ? '#10b981' : '#ef4444'}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="miter"
+                  />
+                ))}
+
+                {/* Data Node Dots */}
+                {overlayData.dataNodes.map((node, nIdx) => (
+                  <circle
+                    key={`node-${nIdx}`}
+                    cx={node.x}
+                    cy={node.y}
+                    r="3.5"
+                    fill={node.netVal >= 0 ? '#10b981' : '#ef4444'}
+                    stroke="#ffffff"
+                    strokeWidth="1.5"
+                  />
+                ))}
+              </svg>
+            )}
+
+            {currentBuckets.map((bucket, idx) => {
+              const isActive = activeBarIdx === idx;
+              const inflowPxPct = (bucket.totalInflow / maxValue) * 100;
+              const outflowPxPct = (bucket.totalOutflow / maxValue) * 100;
+              const hasActivity = bucket.totalInflow > 0 || bucket.totalOutflow > 0;
+
+              // Parse stacked date (day + month)
+              const parts = bucket.label.split(' ');
+              const dayText = parts[0] || '';
+              const monthText = parts[1] || '';
+              
+              // Intelligent spacing interval for 30 daily bars
+              const showLabel = currentBuckets.length <= 15 || idx % 2 === 0 || idx === currentBuckets.length - 1 || isActive;
+
+              return (
                 <div
+                  key={bucket.label + idx}
                   style={{
-                    height: '50%',
-                    width: '100%',
+                    flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    height: '100%',
+                    zIndex: isActive ? 20 : 10,
+                    position: 'relative',
+                    cursor: 'pointer',
+                    borderRadius: '6px',
+                    backgroundColor: isActive ? 'rgba(13, 148, 136, 0.08)' : 'transparent',
+                    transition: 'background-color 0.2s ease'
                   }}
+                  onClick={() => {
+                    setActiveBarIdx(isActive ? null : idx);
+                  }}
+                  title={`Click to expand breakdown for ${bucket.label} (${bucket.startDate})`}
                 >
+                  {/* Active Indicator Arrow */}
+                  {isActive && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '-12px',
+                        color: 'var(--color-primary)',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        animation: 'bounce 1s infinite'
+                      }}
+                    >
+                      ▼
+                    </div>
+                  )}
+
+                  {/* Top Half: Inflow Stack */}
                   <div
                     style={{
-                      width: '70%',
-                      maxWidth: '32px',
-                      height: `${inflowPxPct}%`,
+                      height: '50%',
+                      width: '100%',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'flex-end',
-                      transition: 'all 200ms ease',
-                      filter: isActive ? 'brightness(1.1) drop-shadow(0 0 3px rgba(13, 148, 136, 0.4))' : 'none'
+                      alignItems: 'center'
                     }}
                   >
-                    {[...bucket.inflowCategories].reverse().map((cat, cIdx) => {
-                      const hPct = (cat.amount / bucket.totalInflow) * 100;
-                      return (
-                        <div
-                          key={cIdx}
-                          style={{
-                            width: '100%',
-                            height: `${hPct}%`,
-                            backgroundColor: cat.color,
-                            borderTopLeftRadius: cIdx === 0 ? 'var(--radius-xs)' : '0',
-                            borderTopRightRadius: cIdx === 0 ? 'var(--radius-xs)' : '0',
-                            borderTop: cIdx > 0 ? '1px solid rgba(255,255,255,0.25)' : 'none'
-                          }}
-                        ></div>
-                      );
-                    })}
+                    <div
+                      style={{
+                        width: '70%',
+                        maxWidth: '32px',
+                        height: `${inflowPxPct}%`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-end',
+                        transition: 'all 200ms ease',
+                        filter: isActive ? 'brightness(1.1) drop-shadow(0 0 3px rgba(13, 148, 136, 0.4))' : 'none'
+                      }}
+                    >
+                      {[...bucket.inflowCategories].reverse().map((cat, cIdx) => {
+                        const hPct = (cat.amount / bucket.totalInflow) * 100;
+                        return (
+                          <div
+                            key={cIdx}
+                            style={{
+                              width: '100%',
+                              height: `${hPct}%`,
+                              backgroundColor: cat.color,
+                              borderTopLeftRadius: cIdx === 0 ? 'var(--radius-xs)' : '0',
+                              borderTopRightRadius: cIdx === 0 ? 'var(--radius-xs)' : '0',
+                              borderTop: cIdx > 0 ? '1px solid rgba(255,255,255,0.25)' : 'none'
+                            }}
+                          ></div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* Bottom Half: Outflow Stack */}
-                <div
-                  style={{
-                    height: '50%',
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'flex-start',
-                    alignItems: 'center'
-                  }}
-                >
+                  {/* Bottom Half: Outflow Stack */}
                   <div
                     style={{
-                      width: '70%',
-                      maxWidth: '32px',
-                      height: `${outflowPxPct}%`,
+                      height: '50%',
+                      width: '100%',
                       display: 'flex',
                       flexDirection: 'column',
-                      transition: 'all 200ms ease',
-                      filter: isActive ? 'brightness(1.1) drop-shadow(0 0 3px rgba(13, 148, 136, 0.4))' : 'none'
+                      justifyContent: 'flex-start',
+                      alignItems: 'center'
                     }}
                   >
-                    {bucket.outflowCategories.map((cat, cIdx, arr) => {
-                      const hPct = (cat.amount / bucket.totalOutflow) * 100;
-                      return (
-                        <div
-                          key={cIdx}
-                          style={{
-                            width: '100%',
-                            height: `${hPct}%`,
-                            backgroundColor: cat.color,
-                            borderBottomLeftRadius: cIdx === arr.length - 1 ? 'var(--radius-xs)' : '0',
-                            borderBottomRightRadius: cIdx === arr.length - 1 ? 'var(--radius-xs)' : '0',
-                            borderBottom: cIdx < arr.length - 1 ? '1px solid rgba(255,255,255,0.25)' : 'none'
-                          }}
-                        ></div>
-                      );
-                    })}
+                    <div
+                      style={{
+                        width: '70%',
+                        maxWidth: '32px',
+                        height: `${outflowPxPct}%`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'all 200ms ease',
+                        filter: isActive ? 'brightness(1.1) drop-shadow(0 0 3px rgba(13, 148, 136, 0.4))' : 'none'
+                      }}
+                    >
+                      {bucket.outflowCategories.map((cat, cIdx, arr) => {
+                        const hPct = (cat.amount / bucket.totalOutflow) * 100;
+                        return (
+                          <div
+                            key={cIdx}
+                            style={{
+                              width: '100%',
+                              height: `${hPct}%`,
+                              backgroundColor: cat.color,
+                              borderBottomLeftRadius: cIdx === arr.length - 1 ? 'var(--radius-xs)' : '0',
+                              borderBottomRightRadius: cIdx === arr.length - 1 ? 'var(--radius-xs)' : '0',
+                              borderBottom: cIdx < arr.length - 1 ? '1px solid rgba(255,255,255,0.25)' : 'none'
+                            }}
+                          ></div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* X-Axis Label */}
-                <span
-                  style={{
-                    position: 'absolute',
-                    bottom: '-22px',
-                    fontSize: currentBuckets.length > 20 ? '8.5px' : '10px',
-                    fontWeight: isActive ? 800 : hasActivity ? 600 : 500,
-                    color: isActive ? 'var(--color-primary)' : hasActivity ? 'var(--text-main)' : 'var(--text-muted)',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                    overflow: 'hidden',
-                    maxWidth: '100%',
-                    textAlign: 'center'
-                  }}
-                >
-                  {currentBuckets.length > 20 ? bucket.label.split(' ')[0] : bucket.label}
-                </span>
-              </div>
-            );
-          })}
+                  {/* Stacked X-Axis Date Label (Day on top, Month below) */}
+                  {showLabel && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '-32px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        lineHeight: 1.15,
+                        pointerEvents: 'none',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: isActive ? 800 : hasActivity ? 700 : 500,
+                          color: isActive ? 'var(--color-primary)' : hasActivity ? 'var(--text-main)' : 'var(--text-muted)'
+                        }}
+                      >
+                        {dayText}
+                      </span>
+                      {monthText && (
+                        <span
+                          style={{
+                            fontSize: '8px',
+                            fontWeight: 600,
+                            color: isActive ? 'var(--color-primary)' : 'var(--text-muted)',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {monthText}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

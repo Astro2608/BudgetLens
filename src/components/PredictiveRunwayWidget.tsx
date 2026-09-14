@@ -7,13 +7,17 @@ interface PredictiveRunwayWidgetProps {
   totalBalance: number;
   overallRunwayMonths: number;
   categoryRunways: CategoryRunway[];
+  hasMinimumData?: boolean;
+  daysRecorded?: number;
 }
 
 export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
   overallMonthlyBurn,
   totalBalance,
   overallRunwayMonths,
-  categoryRunways
+  categoryRunways,
+  hasMinimumData = true,
+  daysRecorded = 0
 }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
   const [sliderVal, setSliderVal] = useState<number>(2);
@@ -58,7 +62,6 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
   }, [sliderVal]);
 
   const simulatedMonthlyBurn = Math.round(overallMonthlyBurn * multiplier);
-  const anticipatedWeeklyOutflow = Math.round(simulatedMonthlyBurn / 4.33);
 
   const simulatedRunwayMonths = useMemo(() => {
     if (totalBalance <= 0) return 0;
@@ -155,7 +158,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
             <span>Predictive Intelligence Breakdown:</span>
           </div>
           <p style={{ color: 'var(--text-muted)', lineHeight: 1.45 }}>
-            Adjust the spending slider below to simulate hypothetical spending habits. The widget re-calculates your estimated next-week outflow and projects how many extra months your remaining balance will last.
+            Adjust the spending slider below to simulate hypothetical spending habits. The widget re-calculates your estimated next-month outflow and projects how many months your remaining funds will sustain you.
           </p>
         </div>
       )}
@@ -216,7 +219,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
 
         {/* 2 Simulation KPI Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-          {/* Card A: Next 7-Day Outflow */}
+          {/* Card A: Next Month Outflow */}
           <div
             style={{
               backgroundColor: 'var(--bg-canvas-subtle)',
@@ -229,13 +232,13 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
             }}
           >
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-              Next 7-Day Outflow
+              Next Month Outflow
             </span>
             <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              ~{formatCurrency(anticipatedWeeklyOutflow)}
+              ~{formatCurrency(simulatedMonthlyBurn)}
             </span>
             <span style={{ fontSize: '10px', color: 'var(--text-subtle)' }}>
-              Cash leaving bank next week
+              Projected cash out next 30 days
             </span>
           </div>
 
@@ -257,11 +260,13 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
             </span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
               <span style={{ fontSize: '1.25rem', fontWeight: 800, color: scenarioMeta.color }}>
-                {simulatedRunwayMonths} Mo
+                {hasMinimumData ? `${simulatedRunwayMonths} Mo` : '-- Mo'}
               </span>
             </div>
             <span style={{ fontSize: '10px', fontWeight: 700, color: scenarioMeta.color }}>
-              {runwayDelta > 0
+              {!hasMinimumData
+                ? 'Requires 30d data'
+                : runwayDelta > 0
                 ? `🎉 +${runwayDelta} Mo extended!`
                 : runwayDelta < 0
                 ? `⚠️ ${runwayDelta} Mo shorter`
@@ -271,10 +276,10 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
         </div>
       </div>
 
-      {/* 5. Categorical Next Week Spend Breakdown */}
+      {/* 5. Categorical Next Month Spend Breakdown */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', paddingTop: '4px' }}>
         <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-          Estimated Next Week Spend by Category:
+          Estimated Next Month Spend by Category:
         </span>
 
         {topCategories.length === 0 ? (
@@ -283,7 +288,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
           </div>
         ) : (
           topCategories.map((cat) => {
-            const catWeeklyPace = Math.round((cat.monthlyBurn / 4.33) * multiplier);
+            const catMonthlyPace = Math.round(cat.monthlyBurn * multiplier);
             const barWidth = Math.min(100, Math.max(15, cat.percentageOfSpend));
 
             return (
@@ -294,7 +299,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
                     {cat.label}
                   </span>
                   <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                    ~{currencyInfo.prefix}{catWeeklyPace.toLocaleString()}
+                    ~{currencyInfo.prefix}{catMonthlyPace.toLocaleString()}
                   </span>
                 </div>
                 <div style={{ width: '100%', height: '5px', backgroundColor: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>

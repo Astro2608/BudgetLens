@@ -388,6 +388,8 @@ const AppContent: React.FC = () => {
                 totalBalance={summary.totalBalance}
                 overallRunwayMonths={summary.overallRunwayMonths}
                 categoryRunways={summary.categoryRunways}
+                hasMinimumData={summary.hasMinimumDataForRunway}
+                daysRecorded={summary.daysRecorded}
               />
 
               {/* Universal Bank Statement & Ledger Import Zone */}
