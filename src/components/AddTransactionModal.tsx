@@ -22,7 +22,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<CategoryKey>('Food');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [isRecurring, setIsRecurring] = useState(false);
 
   const categories = Object.values(categoryConfigs);
 
@@ -39,7 +38,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       type,
       category,
       date,
-      isRecurring,
       note: 'Manual Record',
       source: 'User Entry'
     });
@@ -233,35 +231,23 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             </div>
           </div>
 
-          {/* Date & Recurring */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-subtle)',
-                  backgroundColor: 'var(--bg-input)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '18px' }}>
-              <input
-                type="checkbox"
-                checked={isRecurring}
-                onChange={(e) => setIsRecurring(e.target.checked)}
-                style={{ accentColor: 'var(--color-primary)' }}
-              />
-              <span>Recurring monthly</span>
-            </label>
+          {/* Date */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-input)',
+                fontSize: '13px',
+                fontWeight: 600,
+                outline: 'none'
+              }}
+            />
           </div>
 
           {/* Footer */}
