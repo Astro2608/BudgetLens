@@ -159,7 +159,7 @@ export function generateChartBuckets(
           const existing = bucket.inflowCategories.find((c) => c.category === tx.category);
           if (existing) existing.amount += amt;
           else bucket.inflowCategories.push({ category: tx.category, amount: amt, color: catConfig.color });
-        } else if (tx.type === 'expense' && tx.category !== 'Savings') {
+        } else if (tx.type === 'expense' || tx.type === 'savings' || tx.category === 'Savings') {
           bucket.totalOutflow += amt;
           const existing = bucket.outflowCategories.find((c) => c.category === tx.category);
           if (existing) existing.amount += amt;
@@ -205,7 +205,7 @@ export function generateChartBuckets(
           const existing = bucket.inflowCategories.find((c) => c.category === tx.category);
           if (existing) existing.amount += amt;
           else bucket.inflowCategories.push({ category: tx.category, amount: amt, color: catConfig.color });
-        } else if (tx.type === 'expense' && tx.category !== 'Savings') {
+        } else if (tx.type === 'expense' || tx.type === 'savings' || tx.category === 'Savings') {
           bucket.totalOutflow += amt;
           const existing = bucket.outflowCategories.find((c) => c.category === tx.category);
           if (existing) existing.amount += amt;
@@ -250,7 +250,7 @@ export function generateChartBuckets(
           const existing = bucket.inflowCategories.find((c) => c.category === tx.category);
           if (existing) existing.amount += amt;
           else bucket.inflowCategories.push({ category: tx.category, amount: amt, color: catConfig.color });
-        } else if (tx.type === 'expense' && tx.category !== 'Savings') {
+        } else if (tx.type === 'expense' || tx.type === 'savings' || tx.category === 'Savings') {
           bucket.totalOutflow += amt;
           const existing = bucket.outflowCategories.find((c) => c.category === tx.category);
           if (existing) existing.amount += amt;
@@ -290,7 +290,7 @@ export function generateChartBuckets(
           const existing = bucket.inflowCategories.find((c) => c.category === tx.category);
           if (existing) existing.amount += amt;
           else bucket.inflowCategories.push({ category: tx.category, amount: amt, color: catConfig.color });
-        } else if (tx.type === 'expense' && tx.category !== 'Savings') {
+        } else if (tx.type === 'expense' || tx.type === 'savings' || tx.category === 'Savings') {
           bucket.totalOutflow += amt;
           const existing = bucket.outflowCategories.find((c) => c.category === tx.category);
           if (existing) existing.amount += amt;

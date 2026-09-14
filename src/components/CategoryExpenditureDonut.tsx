@@ -30,10 +30,10 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
   // Previous year string
   const prevYearStr = `${now.getFullYear() - 1}`;
 
-  // Filter for living expenses (excluding Savings which is retained asset)
+  // Filter for living expenses and allocations (including Savings & Vault)
   const expenseData = useMemo(() => {
     const allExpenseTxs = transactions.filter(
-      (t) => t.type === 'expense' && t.category !== 'Savings'
+      (t) => t.type === 'expense' || t.type === 'savings' || t.category === 'Savings'
     );
 
     // Filter by selected timeframe

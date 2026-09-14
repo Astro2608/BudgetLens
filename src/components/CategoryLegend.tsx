@@ -11,7 +11,7 @@ export const CategoryLegend: React.FC<CategoryLegendProps> = ({
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS,
   onOpenSettings
 }) => {
-  const displayCategories = Object.values(categoryConfigs).filter((c) => c.key !== 'Savings');
+  const displayCategories = Object.values(categoryConfigs);
 
   return (
     <div
