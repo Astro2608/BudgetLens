@@ -3,6 +3,7 @@ import { Transaction, TimeframeFilter, ChartBucket, CategoryKey, CategoryConfig 
 import { generateChartBuckets } from '../utils/financeCalculator';
 import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
+import { SectionInfoButton } from './SectionInfoButton';
 
 interface CashflowChartProps {
   transactions: Transaction[];
@@ -39,7 +40,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
     return max > 0 ? max : 1;
   }, [currentBuckets]);
 
-  // Clean rounded scale max (e.g., 2145 -> 2000 / 2k, 1100 -> 1000 / 1k)
+  // Clean rounded scale max for gridlines (e.g., 2145 -> 2000 / 2k, 1100 -> 1000 / 1k)
   const scaleMax = useMemo(() => {
     if (maxValue <= 100) return 100;
     if (maxValue <= 500) return 500;
@@ -48,6 +49,8 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
   }, [maxValue]);
 
   const scaleHalf = Math.round(scaleMax / 2);
+  // Full domain max ensures bars extend to their exact full height without clamping
+  const domainMax = Math.max(scaleMax, maxValue);
 
   // Calculate Cumulative Spread (Net Income - Expenses over the period)
   const cumulativeSpread = useMemo(() => {
@@ -71,7 +74,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
     currentBuckets.forEach((b, i) => {
       const x = ((i + 0.5) / n) * 1000;
       const netVal = b.totalInflow - b.totalOutflow;
-      const ratio = Math.min(1, Math.abs(netVal) / scaleMax);
+      const ratio = Math.min(1, Math.abs(netVal) / domainMax);
       const y = netVal >= 0 ? yZero - ratio * maxH : yZero + ratio * maxH;
       points.push({ x, y, netVal });
     });
@@ -120,7 +123,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
 
     const dataNodes = points.slice(1, -1);
     return { segments, dataNodes };
-  }, [currentBuckets, maxValue]);
+  }, [currentBuckets, domainMax]);
 
   const activeBucket = activeBarIdx !== null ? currentBuckets[activeBarIdx] : null;
 
@@ -139,7 +142,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
               Cash In / Out Flow Analysis
             </h2>
             <span
@@ -155,8 +158,14 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
             >
               Smart Stacked View
             </span>
+            <SectionInfoButton
+              title="Cashflow Analysis"
+              description="Visualizes when and where money entered (+) vs where it left (-) across time bins."
+              howItWorks="Top bars represent income/inflows. Bottom bars represent living expenses & fund allocations. The background shadow indicates whether your cumulative period was in Net Profit (green) or Deficit (red)."
+              example="Click on any daily bar to open the Detailed Breakdown drawer and inspect the exact dollar amounts per category on that date."
+            />
           </div>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
             Where money entered (+) vs where it left (-) across timelines. Click any bar for detailed categorical breakdown.
           </p>
         </div>
@@ -227,10 +236,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
             style={{
               width: '38px',
               height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              alignItems: 'flex-end',
+              position: 'relative',
               paddingRight: '8px',
               fontSize: '11px',
               fontWeight: 800,
@@ -239,19 +245,19 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
               zIndex: 5
             }}
           >
-            <span style={{ transform: 'translateY(-50%)', color: '#10b981' }}>
+            <span style={{ position: 'absolute', right: '8px', top: `${50 - (scaleMax / domainMax) * 50}%`, transform: 'translateY(-50%)', color: '#10b981' }}>
               +{formatScaleVal(scaleMax)}
             </span>
-            <span style={{ transform: 'translateY(-50%)' }}>
+            <span style={{ position: 'absolute', right: '8px', top: `${50 - (scaleHalf / domainMax) * 50}%`, transform: 'translateY(-50%)' }}>
               +{formatScaleVal(scaleHalf)}
             </span>
-            <span style={{ transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-main)' }}>
+            <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-main)' }}>
               0
             </span>
-            <span style={{ transform: 'translateY(-50%)' }}>
+            <span style={{ position: 'absolute', right: '8px', top: `${50 + (scaleHalf / domainMax) * 50}%`, transform: 'translateY(-50%)' }}>
               -{formatScaleVal(scaleHalf)}
             </span>
-            <span style={{ transform: 'translateY(-50%)', color: '#f43f5e' }}>
+            <span style={{ position: 'absolute', right: '8px', top: `${50 + (scaleMax / domainMax) * 50}%`, transform: 'translateY(-50%)', color: '#f43f5e' }}>
               -{formatScaleVal(scaleMax)}
             </span>
           </div>
@@ -269,12 +275,12 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
               position: 'relative'
             }}
           >
-            {/* Horizontal Dotted Gridlines */}
-            <div style={{ position: 'absolute', inset: 'auto 0', top: '0%', borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
-            <div style={{ position: 'absolute', inset: 'auto 0', top: '25%', borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
+            {/* Horizontal Dotted Gridlines at scale positions */}
+            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 - (scaleMax / domainMax) * 50}%`, borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 - (scaleHalf / domainMax) * 50}%`, borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
             <div style={{ position: 'absolute', inset: 'auto 0', top: '50%', borderBottom: '2px solid #cbd5e1', zIndex: 1 }}></div>
-            <div style={{ position: 'absolute', inset: 'auto 0', top: '75%', borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
-            <div style={{ position: 'absolute', inset: 'auto 0', bottom: '0%', borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 + (scaleHalf / domainMax) * 50}%`, borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 + (scaleMax / domainMax) * 50}%`, borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
 
             {/* Background Linear Profit/Deficit Overlay Graph */}
             {overlayData && (
@@ -341,8 +347,8 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
 
             {currentBuckets.map((bucket, idx) => {
               const isActive = activeBarIdx === idx;
-              const inflowPxPct = Math.min(100, (bucket.totalInflow / scaleMax) * 100);
-              const outflowPxPct = Math.min(100, (bucket.totalOutflow / scaleMax) * 100);
+              const inflowPxPct = (bucket.totalInflow / domainMax) * 100;
+              const outflowPxPct = (bucket.totalOutflow / domainMax) * 100;
               const hasActivity = bucket.totalInflow > 0 || bucket.totalOutflow > 0;
 
               // Parse stacked date (day + month)

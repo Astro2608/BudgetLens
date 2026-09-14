@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { CategoryRunway } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
+import { SectionInfoButton } from './SectionInfoButton';
 
 interface PredictiveRunwayWidgetProps {
   overallMonthlyBurn: number;
@@ -21,7 +22,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
 }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
   const [sliderVal, setSliderVal] = useState<number>(2);
-  const [showHelpGuide, setShowHelpGuide] = useState<boolean>(true);
+  const [showHelpGuide, setShowHelpGuide] = useState<boolean>(false);
 
   // Simulation sensitivity multiplier
   const multiplier = useMemo(() => {
@@ -107,10 +108,18 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>insights</span>
           </div>
           <div>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              Predictive Runway Simulator
-            </h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                Predictive Runway Simulator
+              </h2>
+              <SectionInfoButton
+                title="Predictive Runway"
+                description="Simulates how lifestyle adjustments (Frugal, Baseline, High Outflow) impact your bank account longevity."
+                howItWorks="Scales your average monthly outflow by -15% or +25% to forecast future 30-day burn and calculate exact months of liquidity extension or reduction."
+                example="Switching to Frugal Mode (-15%) immediately recalculates your projected next-month spend and shows how many extra months of runway you gain."
+              />
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
               Simulate how changes in living spend impact bank account longevity
             </p>
           </div>
@@ -134,7 +143,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
             {showHelpGuide ? 'visibility_off' : 'help_outline'}
           </span>
-          <span>{showHelpGuide ? 'Hide Explanation' : 'How it works'}</span>
+          <span>{showHelpGuide ? 'Hide' : 'Details'}</span>
         </button>
       </div>
 

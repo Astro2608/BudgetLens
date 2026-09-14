@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CategoryKey, CategoryConfig } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
+import { SectionInfoButton } from './SectionInfoButton';
 
 interface QuickAddOutflowsProps {
   onQuickAdd: (title: string, amount: number, category: CategoryKey) => void;
@@ -54,6 +55,12 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
           <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
             Quick Add
           </h3>
+          <SectionInfoButton
+            title="Quick Add"
+            description="Allows instant 1-click recording of daily expenses and deposits into your ledger without opening forms."
+            howItWorks="Type an amount into any category input and hit Enter or click '+ Log'. The transaction is immediately committed to local memory with today's date."
+            example="Key in '14.50' under Food & Dining and hit Enter. The entry is recorded instantly and dashboard charts refresh in real-time."
+          />
         </div>
         <span
           style={{

@@ -5,6 +5,7 @@ import { parseBankPDF } from '../utils/pdfParser';
 import { parseMarkdownTable } from '../utils/mdParser';
 import { CATEGORY_LIST } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
+import { SectionInfoButton } from './SectionInfoButton';
 
 interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
@@ -252,6 +253,12 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
               <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                 Universal Statement & Ledger Import Engine
               </h3>
+              <SectionInfoButton
+                title="Universal Statement Import"
+                description="100% private, offline statement parsing with auto-categorization and duplicate detection."
+                howItWorks="Drag & drop bank PDF statements (DBS, OCBC, UOB, Citibank, HSBC), CSV exports, or Obsidian Markdown tables. Transactions are parsed locally in browser memory without sending data to any external server."
+                example="Drop a monthly bank PDF or CSV to auto-extract transaction rows, classify merchants, and review before merging into your ledger."
+              />
               <span
                 style={{
                   fontSize: '9px',

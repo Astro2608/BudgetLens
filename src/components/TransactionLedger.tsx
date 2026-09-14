@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Transaction, CategoryConfig, CategoryKey } from '../types/finance';
-import { getCategoryConfig, DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
-import { exportToCSV, exportToMarkdown } from '../utils/exportUtils';
+import { Transaction, CategoryKey, CategoryConfig } from '../types/finance';
+import { exportLedgerToCSV, exportLedgerToMarkdown, exportReceiptToPDF } from '../utils/exportUtils';
+import { DEFAULT_CATEGORY_CONFIGS, getCategoryConfig } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
+import { SectionInfoButton } from './SectionInfoButton';
 
 interface TransactionLedgerProps {
   transactions: Transaction[];
@@ -110,6 +111,12 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
               <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                 Transaction Activity Ledger
               </h3>
+              <SectionInfoButton
+                title="Transaction Ledger"
+                description="Searchable, filterable audit ledger of all recorded inflows, expenses, and savings transfers."
+                howItWorks="Filter by category, search by merchant keywords, delete entries, and export your verified local ledger to CSV, Markdown table, or official PDF receipts."
+                example="Search for 'Grab' to see all transit rides, or filter by 'Income (+)' to audit paycheck deposits."
+              />
               {isArchiveOpen && (
                 <span
                   style={{

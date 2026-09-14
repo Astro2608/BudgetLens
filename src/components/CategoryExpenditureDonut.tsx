@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, CategoryConfig, CategoryKey } from '../types/finance';
 import { DEFAULT_CATEGORY_CONFIGS, getCategoryConfig } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
+import { SectionInfoButton } from './SectionInfoButton';
 
 interface CategoryExpenditureDonutProps {
   transactions: Transaction[];
@@ -172,9 +173,17 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
           >
             Outflow Composition Analysis
           </span>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-            Category Expenditure Breakdown
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              Category Expenditure Breakdown
+            </h3>
+            <SectionInfoButton
+              title="Category Expenditure"
+              description="Visualizes the proportional distribution of where your money is spent across all active categories."
+              howItWorks="Aggregates your recorded expenses and savings allocations within the selected timeframe (This Month, This Year, or All Time), displaying exact percentage slices and comparative spending pace."
+              example="Hover over any slice or category card to inspect total dollar spend and % weight against your overall monthly outflow."
+            />
+          </div>
         </div>
 
         {/* Header Right Actions: Timeframe Pills & Total Outflow Badge */}

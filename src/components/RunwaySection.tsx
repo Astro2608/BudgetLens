@@ -1,6 +1,7 @@
 import React from 'react';
 import { CategoryRunway } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
+import { SectionInfoButton } from './SectionInfoButton';
 
 interface RunwaySectionProps {
   totalBalance: number;
@@ -71,6 +72,12 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
                   Requires ≥ 1 Month Data ({daysRecorded}/30 Days)
                 </span>
               )}
+              <SectionInfoButton
+                title="Category Runway"
+                description="Projects how many months your available bank balance will last if dedicated to specific essential spending categories."
+                howItWorks="Divides your Current Net Balance by each category's Average Monthly Spend rate (Formula: Balance ÷ Monthly Category Burn Rate)."
+                example={`With ${formatCurrency(totalBalance)} in your account and ${currencyInfo.prefix}90/mo average Transport spend, your transport runway is ~${(totalBalance / 90).toFixed(1)} months.`}
+              />
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               Longevity projection based on historical average monthly burn rate
@@ -95,32 +102,8 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
         </div>
       </div>
 
-      {/* Top Banner */}
-      {hasMinimumData ? (
-        <div
-          style={{
-            padding: '1rem 1.25rem',
-            borderRadius: 'var(--radius-lg)',
-            background: 'linear-gradient(90deg, rgba(240, 253, 250, 0.9) 0%, rgba(255, 255, 255, 1) 50%, rgba(236, 253, 245, 0.8) 100%)',
-            border: '1px solid var(--color-primary-border)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '0.875rem'
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '24px', flexShrink: 0, marginTop: '2px' }}>
-            tips_and_updates
-          </span>
-          <div>
-            <p style={{ fontSize: '14px', color: 'var(--text-main)', lineHeight: 1.4 }}>
-              You have <strong style={{ color: 'var(--color-primary-hover)', fontWeight: 800 }}>{formatCurrency(totalBalance)} left</strong> — this will last <strong style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-primary)', fontWeight: 800 }}>approx. {overallRunwayMonths} months</strong> based on current monthly expense trends (avg {currencyInfo.prefix}{overallMonthlyBurn.toLocaleString()}/mo).
-            </p>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              💡 Formula: <code>Runway (Months) = Total Current Balance ÷ Monthly Category Burn Rate</code>.
-            </p>
-          </div>
-        </div>
-      ) : (
+      {/* Minimum Data Warning Banner (Only shown when < 30 days) */}
+      {!hasMinimumData && (
         <div
           style={{
             padding: '1rem 1.25rem',
