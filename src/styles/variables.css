@@ -60,12 +60,13 @@
   --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(13, 148, 136, 0.06);
   --shadow-xl: 0 24px 48px -8px rgba(15, 23, 42, 0.14);
 
-  /* Rounded Radii */
-  --radius-sm: 0.5rem;    /* 8px */
-  --radius-md: 0.75rem;   /* 12px */
-  --radius-lg: 1rem;      /* 16px */
-  --radius-xl: 1.25rem;   /* 20px */
-  --radius-2xl: 1.5rem;   /* 24px */
+  /* Rounded Radii (Standardized Corner Roundness) */
+  --radius-xs: 0.25rem;  /* 4px */
+  --radius-sm: 0.35rem;  /* ~5.6px */
+  --radius-md: 0.55rem;  /* ~8.8px */
+  --radius-lg: 0.75rem;  /* 12px */
+  --radius-xl: 1rem;     /* 16px */
+  --radius-2xl: 1.35rem; /* ~21.6px */
   --radius-full: 9999px;
 
   /* Transition Physics */

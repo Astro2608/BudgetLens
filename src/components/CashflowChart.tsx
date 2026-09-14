@@ -360,8 +360,8 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
                             width: '100%',
                             height: `${hPct}%`,
                             backgroundColor: cat.color,
-                            borderTopLeftRadius: cIdx === 0 ? '4px' : '0',
-                            borderTopRightRadius: cIdx === 0 ? '4px' : '0',
+                            borderTopLeftRadius: cIdx === 0 ? 'var(--radius-xs)' : '0',
+                            borderTopRightRadius: cIdx === 0 ? 'var(--radius-xs)' : '0',
                             borderTop: cIdx > 0 ? '1px solid rgba(255,255,255,0.25)' : 'none'
                           }}
                         ></div>
@@ -401,8 +401,8 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
                             width: '100%',
                             height: `${hPct}%`,
                             backgroundColor: cat.color,
-                            borderBottomLeftRadius: cIdx === arr.length - 1 ? '4px' : '0',
-                            borderBottomRightRadius: cIdx === arr.length - 1 ? '4px' : '0',
+                            borderBottomLeftRadius: cIdx === arr.length - 1 ? 'var(--radius-xs)' : '0',
+                            borderBottomRightRadius: cIdx === arr.length - 1 ? 'var(--radius-xs)' : '0',
                             borderBottom: cIdx < arr.length - 1 ? '1px solid rgba(255,255,255,0.25)' : 'none'
                           }}
                         ></div>
