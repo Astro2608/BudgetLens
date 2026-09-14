@@ -348,11 +348,11 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '2rem',
-          alignItems: 'center'
+          alignItems: 'start'
         }}
       >
         {/* Left Side: Double Donut Chart & Center Stats */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem', alignSelf: 'start' }}>
           <div style={{ position: 'relative', width: '280px', height: '280px', maxWidth: '100%' }}>
             <svg
               viewBox="0 0 280 280"
@@ -583,7 +583,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
         </div>
 
         {/* Right Side: Category Breakdown with Inflow / Outflow Toggle Tabs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', alignSelf: 'start', minHeight: '280px' }}>
           {/* Tab Pill Selector */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
             <div style={{ display: 'inline-flex', gap: '4px', backgroundColor: 'var(--bg-canvas-subtle)', padding: '3px', borderRadius: '8px' }}>
