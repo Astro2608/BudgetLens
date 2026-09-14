@@ -7,13 +7,17 @@ interface RunwaySectionProps {
   overallRunwayMonths: number;
   overallMonthlyBurn: number;
   categoryRunways: CategoryRunway[];
+  hasMinimumData?: boolean;
+  daysRecorded?: number;
 }
 
 export const RunwaySection: React.FC<RunwaySectionProps> = ({
   totalBalance,
   overallRunwayMonths,
   overallMonthlyBurn,
-  categoryRunways
+  categoryRunways,
+  hasMinimumData = true,
+  daysRecorded = 0
 }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
 
@@ -38,8 +42,8 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
               width: '36px',
               height: '36px',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--color-primary-light)',
-              color: 'var(--color-primary)',
+              backgroundColor: hasMinimumData ? 'var(--color-primary-light)' : '#f1f5f9',
+              color: hasMinimumData ? 'var(--color-primary)' : '#64748b',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -48,11 +52,28 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>timer</span>
           </div>
           <div>
-            <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              Category Runway Breakdown
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                Category Runway Breakdown
+              </h2>
+              {!hasMinimumData && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    backgroundColor: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a'
+                  }}
+                >
+                  Requires ≥ 1 Month Data ({daysRecorded}/30 Days)
+                </span>
+              )}
+            </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Detailed longevity projection for each essential category
+              Longevity projection based on historical average monthly burn rate
             </p>
           </div>
         </div>
@@ -63,46 +84,86 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
             style={{
               fontSize: '12px',
               fontWeight: 700,
-              color: 'var(--text-main)',
+              color: hasMinimumData ? 'var(--text-main)' : 'var(--text-muted)',
               backgroundColor: 'var(--bg-canvas-subtle)',
               padding: '4px 10px',
               borderRadius: '8px'
             }}
           >
-            {currencyInfo.prefix}{overallMonthlyBurn.toLocaleString()} / mo avg
+            {hasMinimumData ? `${currencyInfo.prefix}${overallMonthlyBurn.toLocaleString()} / mo avg` : '-- / mo'}
           </span>
         </div>
       </div>
 
       {/* Top Banner */}
+      {hasMinimumData ? (
+        <div
+          style={{
+            padding: '1rem 1.25rem',
+            borderRadius: 'var(--radius-lg)',
+            background: 'linear-gradient(90deg, rgba(240, 253, 250, 0.9) 0%, rgba(255, 255, 255, 1) 50%, rgba(236, 253, 245, 0.8) 100%)',
+            border: '1px solid var(--color-primary-border)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.875rem'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '24px', flexShrink: 0, marginTop: '2px' }}>
+            tips_and_updates
+          </span>
+          <div>
+            <p style={{ fontSize: '14px', color: 'var(--text-main)', lineHeight: 1.4 }}>
+              You have <strong style={{ color: 'var(--color-primary-hover)', fontWeight: 800 }}>{formatCurrency(totalBalance)} left</strong> — this will last <strong style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-primary)', fontWeight: 800 }}>approx. {overallRunwayMonths} months</strong> based on current monthly expense trends (avg {currencyInfo.prefix}{overallMonthlyBurn.toLocaleString()}/mo).
+            </p>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              💡 Formula: <code>Runway (Months) = Total Current Balance ÷ Monthly Category Burn Rate</code>.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            padding: '1rem 1.25rem',
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fde68a',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.875rem'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '24px', flexShrink: 0, marginTop: '2px' }}>
+            hourglass_empty
+          </span>
+          <div>
+            <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#92400e', margin: 0 }}>
+              Feature requires minimum 1 month (30 days) of transaction data to be helpful
+            </h4>
+            <p style={{ fontSize: '12px', color: '#b45309', marginTop: '4px', lineHeight: 1.4 }}>
+              Your ledger currently spans <strong>{daysRecorded} day(s)</strong>. To calculate statistically sound monthly burn rates and avoid skewed projections, longevity forecasts will automatically unlock once at least 30 days of data is recorded.
+            </p>
+            <p style={{ fontSize: '11px', color: '#92400e', marginTop: '6px', fontWeight: 600 }}>
+              💡 <em>Formula: Runway (Months) = Total Liquid Balance ÷ Historical Monthly Spend</em>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Category Runway Cards */}
       <div
         style={{
-          padding: '1rem 1.25rem',
-          borderRadius: 'var(--radius-lg)',
-          background: 'linear-gradient(90deg, rgba(240, 253, 250, 0.9) 0%, rgba(255, 255, 255, 1) 50%, rgba(236, 253, 245, 0.8) 100%)',
-          border: '1px solid var(--color-primary-border)',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '0.875rem'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '0.75rem',
+          opacity: hasMinimumData ? 1 : 0.45,
+          filter: hasMinimumData ? 'none' : 'grayscale(35%)',
+          pointerEvents: hasMinimumData ? 'auto' : 'none'
         }}
       >
-        <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '24px', flexShrink: 0, marginTop: '2px' }}>
-          tips_and_updates
-        </span>
-        <div>
-          <p style={{ fontSize: '14px', color: 'var(--text-main)', lineHeight: 1.4 }}>
-            You have <strong style={{ color: 'var(--color-primary-hover)', fontWeight: 800 }}>{formatCurrency(totalBalance)} left</strong> — this will last <strong style={{ textDecoration: 'underline', textDecorationColor: 'var(--color-primary)', fontWeight: 800 }}>approx. {overallRunwayMonths} months</strong> based on current monthly expense trends (avg {currencyInfo.prefix}{overallMonthlyBurn.toLocaleString()}/mo).
-          </p>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Without future income injections, your liquidity reserve safely sustains essential living costs until mid-March next year.
-          </p>
-        </div>
-      </div>
-
-      {/* 5 Category Runway Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
         {categoryRunways.map((cat) => {
-          let customPhrase = `Your current balance covers ${cat.remainingMonths} months of ${cat.label} (${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()}/mo avg)`;
+          let customPhrase = hasMinimumData
+            ? `Your current balance covers ${cat.remainingMonths} months of ${cat.label} (${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()}/mo avg)`
+            : 'Requires at least 1 month of ledger data';
 
           return (
             <div
@@ -116,7 +177,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
                 flexDirection: 'column',
                 gap: '0.75rem',
                 transition: 'border-color 0.2s ease',
-                cursor: 'help'
+                cursor: hasMinimumData ? 'help' : 'default'
               }}
               title={customPhrase}
             >
@@ -148,16 +209,17 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
                     color: 'var(--text-muted)'
                   }}
                 >
-                  {cat.percentageOfSpend}% spend
+                  {hasMinimumData ? `${cat.percentageOfSpend}% spend` : '--'}
                 </span>
               </div>
 
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: cat.color }}>
-                  {cat.remainingMonths} <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>months</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: hasMinimumData ? cat.color : 'var(--text-muted)' }}>
+                  {hasMinimumData ? cat.remainingMonths : '--'}{' '}
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>months</span>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                  {currencyInfo.prefix}{cat.monthlyBurn.toLocaleString()} / mo avg
+                  {hasMinimumData ? `${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()} / mo avg` : 'Requires 1 mo data'}
                 </div>
               </div>
             </div>

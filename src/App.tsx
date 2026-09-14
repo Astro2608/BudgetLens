@@ -369,6 +369,8 @@ const AppContent: React.FC = () => {
                 overallRunwayMonths={summary.overallRunwayMonths}
                 overallMonthlyBurn={summary.overallMonthlyBurn}
                 categoryRunways={summary.categoryRunways}
+                hasMinimumData={summary.hasMinimumDataForRunway}
+                daysRecorded={summary.daysRecorded}
               />
             </div>
 

@@ -36,13 +36,18 @@ export function calculateFinanceSummary(
     (tx) => tx.type === 'expense' && tx.category !== 'Savings'
   );
 
+  let daysRecorded = 0;
+  let hasMinimumDataForRunway = false;
   let monthsSpan = 1;
-  if (expenseTransactions.length > 0) {
-    const timestamps = expenseTransactions.map((tx) => new Date(tx.date).getTime());
+
+  if (transactions.length > 0) {
+    const timestamps = transactions.map((tx) => new Date(tx.date).getTime());
     const minTime = Math.min(...timestamps);
-    const maxTime = Math.max(...timestamps, Date.now());
-    const daysDiff = Math.max(14, Math.round((maxTime - minTime) / (1000 * 60 * 60 * 24)));
-    monthsSpan = Math.max(0.5, daysDiff / 30.4167);
+    const maxTime = Math.max(...timestamps);
+    const spanDays = Math.round((maxTime - minTime) / (1000 * 60 * 60 * 24)) + 1;
+    daysRecorded = spanDays;
+    hasMinimumDataForRunway = spanDays >= 30;
+    monthsSpan = Math.max(1, spanDays / 30.4167);
   }
 
   // 3. Category Runways & Burn Rates
@@ -94,7 +99,9 @@ export function calculateFinanceSummary(
     overallMonthlyBurn,
     overallRunwayMonths,
     safeWeeklySpend,
-    categoryRunways
+    categoryRunways,
+    hasMinimumDataForRunway,
+    daysRecorded
   };
 }
 

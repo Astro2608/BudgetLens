@@ -43,6 +43,8 @@ export interface FinanceSummary {
   overallRunwayMonths: number;
   safeWeeklySpend: number;
   categoryRunways: CategoryRunway[];
+  hasMinimumDataForRunway: boolean;
+  daysRecorded: number;
 }
 
 export type TimeframeFilter = '1M' | '3M' | '1Y' | 'ALL';
