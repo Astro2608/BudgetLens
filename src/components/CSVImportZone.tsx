@@ -3,6 +3,7 @@ import { Transaction, CategoryKey } from '../types/finance';
 import { parseBankCSV, CSVParseResult } from '../utils/csvParser';
 import { parseBankPDF } from '../utils/pdfParser';
 import { parseMarkdownTable } from '../utils/mdParser';
+import { parseFreeformText } from '../utils/freeformParser';
 import { CATEGORY_LIST } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
 import { SectionInfoButton } from './SectionInfoButton';
@@ -25,6 +26,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'duplicate'>('all');
   const [confirmDuplicatesModal, setConfirmDuplicatesModal] = useState(false);
+  const [freeformText, setFreeformText] = useState('');
 
   // Lock background body scroll when review modal is open
   useEffect(() => {
@@ -99,6 +101,29 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
     const file = e.dataTransfer.files?.[0];
     if (file) {
       handleProcessFile(file);
+    }
+  };
+
+  const handleParseFreeform = async () => {
+    if (!freeformText.trim()) return;
+    setIsParsing(true);
+    setErrorMsg(null);
+    try {
+      const result = await parseFreeformText(freeformText);
+      if (result.transactions.length === 0) {
+        setErrorMsg('Could not find any readable transactions in the text.');
+        setIsParsing(false);
+        return;
+      }
+      setParseResult(result);
+      setModalTransactions(result.transactions);
+      setFilterType('all');
+      setConfirmDuplicatesModal(false);
+      setFreeformText('');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to parse text notes.');
+    } finally {
+      setIsParsing(false);
     }
   };
 
@@ -361,6 +386,50 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
             Supports: DBS, POSB, OCBC, UOB, HSBC, Citibank e-Statements & Markdown Budget Tables
           </span>
         </div>
+      </div>
+
+      {/* Freeform Notes Input */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+        <label style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>edit_note</span>
+          Or Paste Freeform Notes & Ledgers:
+        </label>
+        <textarea
+          value={freeformText}
+          onChange={(e) => setFreeformText(e.target.value)}
+          placeholder="e.g. North trip - 68200&#10;17th march- 10000-5000=5000"
+          style={{
+            width: '100%',
+            height: '110px',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-main)',
+            padding: '0.75rem',
+            fontSize: '13px',
+            resize: 'vertical',
+            fontFamily: 'monospace',
+            backgroundColor: '#fafafa'
+          }}
+        />
+        <button
+          type="button"
+          onClick={handleParseFreeform}
+          disabled={isParsing || !freeformText.trim()}
+          style={{
+            alignSelf: 'flex-start',
+            padding: '0.5rem 1.25rem',
+            backgroundColor: 'var(--text-main)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            fontWeight: 700,
+            fontSize: '12px',
+            cursor: freeformText.trim() ? 'pointer' : 'not-allowed',
+            opacity: freeformText.trim() ? 1 : 0.5,
+            transition: 'all 150ms ease'
+          }}
+        >
+          {isParsing ? 'Parsing Notes...' : 'Parse Notes'}
+        </button>
       </div>
 
       {errorMsg && (
