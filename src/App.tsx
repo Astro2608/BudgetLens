@@ -96,7 +96,7 @@ const AppContent: React.FC = () => {
         if (savedTxs && savedTxs.length > 0) {
           const todayStr = new Date().toISOString().split('T')[0];
           const hasFutureDates = savedTxs.some((t: Transaction) => t.date > todayStr);
-          
+
           // Auto-heal any transactions if they were corrupted to all General expenses
           const healedTxs = savedTxs.map((t: Transaction) => {
             let category = t.category;
@@ -185,15 +185,15 @@ const AppContent: React.FC = () => {
   // Sync to IndexedDB & raw file automatically
   useEffect(() => {
     if (!isDataLoaded) return;
-    
+
     saveAppData(STORAGE_KEY_TXS, transactions).catch(e => console.error(e));
-    
+
     // Auto save to raw MD file if user connected one
     const saveToRaw = async () => {
       if (rawFileHandle) {
         try {
           const headers = ['| Date | Title | Amount | Type | Category | Source | Note | Recurring |', '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |'];
-          const rows = transactions.map(t => 
+          const rows = transactions.map(t =>
             `| ${t.date} | ${t.title.replace(/\|/g, '-')} | ${formatSGD(t.amount)} | ${t.type} | ${t.category} | ${(t.source || '').replace(/\|/g, '-')} | ${(t.note || '').replace(/\|/g, '-')} | ${t.isRecurring ? 'Yes' : 'No'} |`
           );
           const mdContent = `# BudgetLens Export\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}\n`;
@@ -280,7 +280,7 @@ const AppContent: React.FC = () => {
       saveAppData(STORAGE_KEY_TXS, MOCK_TRANSACTIONS);
       saveAppData(STORAGE_KEY_BALANCE, INITIAL_BASELINE_BALANCE);
       saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // Safe Archival & Reset Workspace to $0.00
@@ -363,7 +363,7 @@ const AppContent: React.FC = () => {
               />
             </div>
 
-            {/* Right 4-Column Area: Quick Add Outflows, Predictive Runway */}
+            {/* Right 4-Column Area: Quick Add, Predictive Runway */}
             <div className="col-span-4">
               {/* Quick Add Frequent Outflows */}
               <QuickAddOutflows

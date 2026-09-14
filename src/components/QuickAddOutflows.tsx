@@ -52,7 +52,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '20px' }}>bolt</span>
           <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-            Quick Add Outflows
+            Quick Add
           </h3>
         </div>
         <span
@@ -71,7 +71,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
       </div>
 
       <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
-        Key in any price below to instantly record into your ledger. Dynamic list updates automatically when categories change:
+        Key in any amount below to instantly record into your ledger. Dynamic list updates automatically when categories change:
       </p>
 
       <div
