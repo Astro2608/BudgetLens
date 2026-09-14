@@ -10,6 +10,7 @@ import { HeroSection } from './components/HeroSection';
 import { RunwaySection } from './components/RunwaySection';
 import { CategoryLegend } from './components/CategoryLegend';
 import { CashflowChart } from './components/CashflowChart';
+import { CategoryExpenditureDonut } from './components/CategoryExpenditureDonut';
 import { CSVImportZone } from './components/CSVImportZone';
 import { TransactionLedger } from './components/TransactionLedger';
 import { QuickAddOutflows } from './components/QuickAddOutflows';
@@ -345,9 +346,9 @@ const AppContent: React.FC = () => {
             categoryConfigs={categoryConfigs}
           />
 
-          {/* 4. 2-Column Responsive Layout for Ledger, CSV, and Widgets */}
+          {/* 4. 2-Column Responsive Layout for Ledger, Analytics, and Widgets */}
           <div className="dashboard-grid">
-            {/* Left 8-Column Area: Transaction Ledger, File Import Engine */}
+            {/* Left 8-Column Area: Transaction Ledger, Runway Breakdown & Expenditure Composition */}
             <div className="col-span-8">
               {/* Transaction Activity Ledger */}
               <TransactionLedger
@@ -356,16 +357,24 @@ const AppContent: React.FC = () => {
                 onDeleteTransaction={handleDeleteTransaction}
               />
 
-              {/* Universal Bank Statement & Ledger Import Zone */}
-              <CSVImportZone
-                onImportTransactions={handleImportTransactions}
-                existingTransactions={transactions}
+              {/* Outflow Composition Analysis & Donut Breakdown */}
+              <CategoryExpenditureDonut
+                transactions={transactions}
+                categoryConfigs={categoryConfigs}
+              />
+
+              {/* Category Runway & Longevity Projection Matrix */}
+              <RunwaySection
+                totalBalance={summary.totalBalance}
+                overallRunwayMonths={summary.overallRunwayMonths}
+                overallMonthlyBurn={summary.overallMonthlyBurn}
+                categoryRunways={summary.categoryRunways}
               />
             </div>
 
-            {/* Right 4-Column Area: Quick Add, Predictive Runway */}
+            {/* Right 4-Column Area: Quick Add, Predictive Runway, Dedicated Import Engine */}
             <div className="col-span-4">
-              {/* Quick Add Frequent Outflows */}
+              {/* Quick Add */}
               <QuickAddOutflows
                 onQuickAdd={handleQuickAdd}
                 categoryConfigs={categoryConfigs}
@@ -378,16 +387,14 @@ const AppContent: React.FC = () => {
                 overallRunwayMonths={summary.overallRunwayMonths}
                 categoryRunways={summary.categoryRunways}
               />
+
+              {/* Universal Bank Statement & Ledger Import Zone */}
+              <CSVImportZone
+                onImportTransactions={handleImportTransactions}
+                existingTransactions={transactions}
+              />
             </div>
           </div>
-
-          {/* 5. Runway & Longevity Projection Matrix */}
-          <RunwaySection
-            totalBalance={summary.totalBalance}
-            overallRunwayMonths={summary.overallRunwayMonths}
-            overallMonthlyBurn={summary.overallMonthlyBurn}
-            categoryRunways={summary.categoryRunways}
-          />
         </main>
       </div>
 

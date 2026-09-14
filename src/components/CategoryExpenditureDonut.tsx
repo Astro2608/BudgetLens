@@ -8,23 +8,49 @@ interface CategoryExpenditureDonutProps {
   categoryConfigs?: Record<CategoryKey, CategoryConfig>;
 }
 
+type TimeframeOption = 'month' | 'year' | 'all';
+
 export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> = ({
   transactions,
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS
 }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
+  const [timeframe, setTimeframe] = useState<TimeframeOption>('month');
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+
+  // Determine current month/year reference
+  const now = new Date();
+  const currentYearStr = `${now.getFullYear()}`;
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  // Previous month string
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+  
+  // Previous year string
+  const prevYearStr = `${now.getFullYear() - 1}`;
 
   // Filter for living expenses (excluding Savings which is retained asset)
   const expenseData = useMemo(() => {
-    const expenseTxs = transactions.filter(
+    const allExpenseTxs = transactions.filter(
       (t) => t.type === 'expense' && t.category !== 'Savings'
     );
+
+    // Filter by selected timeframe
+    const filteredTxs = allExpenseTxs.filter((t) => {
+      if (timeframe === 'month') {
+        return t.date.startsWith(currentMonthStr);
+      }
+      if (timeframe === 'year') {
+        return t.date.startsWith(currentYearStr);
+      }
+      return true;
+    });
 
     const categoryTotals: Record<string, number> = {};
     let totalOutflows = 0;
 
-    expenseTxs.forEach((t) => {
+    filteredTxs.forEach((t) => {
       const amt = Math.abs(Number(t.amount)) || 0;
       categoryTotals[t.category] = (categoryTotals[t.category] || 0) + amt;
       totalOutflows += amt;
@@ -45,17 +71,33 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
       })
       .sort((a, b) => b.amount - a.amount);
 
+    // Prior period comparisons
+    let priorTotal = 0;
+    let priorLabel = '';
+
+    if (timeframe === 'month') {
+      const prevMonthTxs = allExpenseTxs.filter((t) => t.date.startsWith(prevMonthStr));
+      priorTotal = prevMonthTxs.reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+      priorLabel = 'last month';
+    } else if (timeframe === 'year') {
+      const prevYearTxs = allExpenseTxs.filter((t) => t.date.startsWith(prevYearStr));
+      priorTotal = prevYearTxs.reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+      priorLabel = 'last year';
+    }
+
     return {
       items,
       totalOutflows,
-      categoriesCount: items.length
+      categoriesCount: items.length,
+      priorTotal,
+      priorLabel
     };
-  }, [transactions, categoryConfigs]);
+  }, [transactions, categoryConfigs, timeframe, currentMonthStr, currentYearStr, prevMonthStr, prevYearStr]);
 
-  // Donut geometry calculations
-  const radius = 72;
-  const strokeWidth = 24;
-  const center = 100;
+  // Donut geometry calculations with expanded dimensions to prevent text overflow
+  const radius = 90;
+  const strokeWidth = 22;
+  const center = 120;
   const circumference = 2 * Math.PI * radius;
 
   let cumulativePercent = 0;
@@ -69,6 +111,39 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
       strokeDashoffset
     };
   });
+
+  // Calculate comparison metrics
+  const comparison = useMemo(() => {
+    if (expenseData.priorTotal <= 0) return null;
+    const diff = expenseData.totalOutflows - expenseData.priorTotal;
+    const pct = Math.round((Math.abs(diff) / expenseData.priorTotal) * 100);
+
+    if (diff < 0) {
+      return {
+        type: 'saved',
+        text: `📉 -${formatCurrency(Math.abs(diff))} (-${pct}%) vs ${expenseData.priorLabel} (Saved more)`,
+        bg: '#ecfdf5',
+        color: '#047857',
+        border: '#a7f3d0'
+      };
+    } else if (diff > 0) {
+      return {
+        type: 'spent_more',
+        text: `📈 +${formatCurrency(diff)} (+${pct}%) vs ${expenseData.priorLabel}`,
+        bg: '#fff1f2',
+        color: '#be123c',
+        border: '#fecdd3'
+      };
+    } else {
+      return {
+        type: 'equal',
+        text: `● Matches ${expenseData.priorLabel} spend`,
+        bg: '#f8fafc',
+        color: '#64748b',
+        border: '#e2e8f0'
+      };
+    }
+  }, [expenseData.totalOutflows, expenseData.priorTotal, expenseData.priorLabel, formatCurrency]);
 
   return (
     <div className="lumina-card" style={{ gap: '1.25rem' }}>
@@ -102,25 +177,80 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
           </h3>
         </div>
 
-        {/* Right Badge: Total Outflows */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '9999px',
-            backgroundColor: '#fff1f2',
-            border: '1px solid #fecdd3',
-            fontSize: '12px',
-            fontWeight: 700,
-            color: '#be123c'
-          }}
-        >
-          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span>
-          <span>Total Outflows: <strong style={{ fontWeight: 800 }}>{formatCurrency(expenseData.totalOutflows)}</strong></span>
+        {/* Header Right Actions: Timeframe Pills & Total Outflow Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+          {/* Timeframe Toggle Pills */}
+          <div style={{ display: 'inline-flex', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            {[
+              { id: 'month', label: 'This Month' },
+              { id: 'year', label: 'This Year' },
+              { id: 'all', label: 'All Time' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setTimeframe(tab.id as TimeframeOption)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '11px',
+                  fontWeight: timeframe === tab.id ? 800 : 600,
+                  backgroundColor: timeframe === tab.id ? '#ffffff' : 'transparent',
+                  color: timeframe === tab.id ? 'var(--color-primary-hover)' : 'var(--text-muted)',
+                  boxShadow: timeframe === tab.id ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Right Badge: Total Outflows */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '9999px',
+              backgroundColor: '#fff1f2',
+              border: '1px solid #fecdd3',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#be123c'
+            }}
+          >
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span>
+            <span>Outflows: <strong style={{ fontWeight: 800 }}>{formatCurrency(expenseData.totalOutflows)}</strong></span>
+          </div>
         </div>
       </div>
+
+      {/* Optional Highlight: Period Comparison */}
+      {comparison && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '0.5rem 0.875rem',
+            borderRadius: 'var(--radius-md)',
+            backgroundColor: comparison.bg,
+            border: `1px solid ${comparison.border}`,
+            color: comparison.color,
+            fontSize: '12px',
+            fontWeight: 700
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+            {comparison.type === 'saved' ? 'trending_down' : comparison.type === 'spent_more' ? 'trending_up' : 'compare_arrows'}
+          </span>
+          <span>{comparison.text}</span>
+        </div>
+      )}
 
       {/* Main Grid: Donut + Category List */}
       <div
@@ -133,9 +263,9 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
       >
         {/* Left Side: Donut Chart & Center Stats */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-          <div style={{ position: 'relative', width: '220px', height: '220px' }}>
+          <div style={{ position: 'relative', width: '240px', height: '240px' }}>
             <svg
-              viewBox="0 0 200 200"
+              viewBox="0 0 240 240"
               style={{
                 width: '100%',
                 height: '100%',
@@ -191,7 +321,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
               )}
             </svg>
 
-            {/* Center Content Hub */}
+            {/* Center Content Hub (Sized generously to prevent text clipping) */}
             <div
               style={{
                 position: 'absolute',
@@ -201,7 +331,8 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                padding: '0 16px'
               }}
             >
               <span
@@ -213,17 +344,22 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                   color: 'var(--text-muted)'
                 }}
               >
-                Disbursed Total
+                {timeframe === 'month' ? 'Month Spend' : timeframe === 'year' ? 'Year Spend' : 'Disbursed Total'}
               </span>
               <span
                 style={{
-                  fontSize: '1.35rem',
+                  fontSize: '1.18rem',
                   fontWeight: 800,
                   color: 'var(--text-main)',
                   letterSpacing: '-0.02em',
-                  lineHeight: 1.2,
-                  marginTop: '2px'
+                  lineHeight: 1.25,
+                  marginTop: '2px',
+                  maxWidth: '140px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
                 }}
+                title={formatCurrency(expenseData.totalOutflows)}
               >
                 {hoveredCategory
                   ? formatCurrency(expenseData.items.find((i) => i.key === hoveredCategory)?.amount || 0)
@@ -255,7 +391,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
           {expenseData.items.length === 0 ? (
             <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
-              No expenses recorded yet. Add transactions to see categorical distribution.
+              No expenses recorded for this timeframe.
             </div>
           ) : (
             expenseData.items.map((item) => {
