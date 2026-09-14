@@ -11,13 +11,20 @@
   --color-primary-glow: rgba(13, 148, 136, 0.2);
 
   /* Specific Design Reference Colors */
-  --color-transport: #10b981; /* Emerald Green */
-  --color-food: #f59e0b;      /* Amber / Warm Yellow */
-  --color-bills: #ef4444;     /* Red / Rose */
-  --color-rent: #3b82f6;      /* Vibrant Blue */
-  --color-salary: #f97316;    /* Orange (Cash In) */
-  --color-savings: #8b5cf6;   /* Soft Lavender */
-  --color-general: #94a3b8;   /* Slate Grey */
+  --color-transport: #10b981;
+  /* Emerald Green */
+  --color-food: #f59e0b;
+  /* Amber / Warm Yellow */
+  --color-bills: #ef4444;
+  /* Red / Rose */
+  --color-rent: #3b82f6;
+  /* Vibrant Blue */
+  --color-salary: #f97316;
+  /* Orange (Cash In) */
+  --color-savings: #8b5cf6;
+  /* Soft Lavender */
+  --color-general: #94a3b8;
+  /* Slate Grey */
 
   /* Neutral Background Stack */
   --bg-canvas: #f8fafc;
@@ -36,14 +43,14 @@
   /* Typography Rules */
   --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Radii (Standardized Corner Roundness - adjust these to experiment with roundness) */
-  --radius-xs: 0.25rem;  /* 4px -> 3.5px */
-  --radius-sm: 0.35rem;  /* ~5.6px */
-  --radius-md: 0.55rem;  /* ~8.8px */
-  --radius-lg: 0.75rem;  /* 12px */
-  --radius-xl: 1rem;     /* 16px */
-  --radius-2xl: 1.35rem; /* ~21.6px */
-  --radius-full: 9999px;
+  /* Radii (Standardized Corner Roundness - Sharp Modern Aesthetic) */
+  --radius-xs: 0.1rem;   /* ~1.6px - bar chart tips & small tags */
+  --radius-sm: 0.18rem;  /* ~2.8px - badges, chips & pills */
+  --radius-md: 0.25rem;  /* 4px - inputs, buttons, dropdowns */
+  --radius-lg: 0.35rem;  /* ~5.6px - category cards, list rows */
+  --radius-xl: 0.45rem;  /* ~7.2px - inner panels & dropzones */
+  --radius-2xl: 0.35rem; /* ~5.6px - main dashboard cards (.lumina-card) */
+  --radius-full: 9999px; /* full circular pills */
 
   /* Elevations */
   --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
@@ -52,13 +59,16 @@
   --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.1);
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   font-family: var(--font-family);
   background-color: var(--bg-canvas);
@@ -86,13 +96,16 @@ html, body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
@@ -404,7 +417,9 @@ html, body {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
-  .col-span-8, .col-span-4 {
+
+  .col-span-8,
+  .col-span-4 {
     grid-column: span 1;
   }
 }
@@ -413,12 +428,15 @@ html, body {
   .sidebar {
     transform: translateX(-100%);
   }
+
   .main-wrapper {
     margin-left: 0;
   }
+
   .top-header {
     padding: 0 1rem;
   }
+
   .workspace-content {
     padding: 1rem;
   }
@@ -429,13 +447,14 @@ html, body {
     opacity: 0;
     transform: translateY(14px) scale(0.96);
   }
+
   60% {
     opacity: 1;
     transform: translateY(-2px) scale(1.01);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
-

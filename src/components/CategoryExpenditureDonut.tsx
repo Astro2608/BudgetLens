@@ -95,9 +95,9 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
   }, [transactions, categoryConfigs, timeframe, currentMonthStr, currentYearStr, prevMonthStr, prevYearStr]);
 
   // Donut geometry calculations with expanded dimensions to prevent text overflow
-  const radius = 90;
-  const strokeWidth = 22;
-  const center = 120;
+  const radius = 98;
+  const strokeWidth = 20;
+  const center = 130;
   const circumference = 2 * Math.PI * radius;
 
   let cumulativePercent = 0;
@@ -263,9 +263,9 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
       >
         {/* Left Side: Donut Chart & Center Stats */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-          <div style={{ position: 'relative', width: '240px', height: '240px' }}>
+          <div style={{ position: 'relative', width: '260px', height: '260px', maxWidth: '100%' }}>
             <svg
-              viewBox="0 0 240 240"
+              viewBox="0 0 260 260"
               style={{
                 width: '100%',
                 height: '100%',
@@ -321,7 +321,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
               )}
             </svg>
 
-            {/* Center Content Hub (Sized generously to prevent text clipping) */}
+            {/* Center Content Hub (Generously sized with dynamic scaling) */}
             <div
               style={{
                 position: 'absolute',
@@ -332,7 +332,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                 justifyContent: 'center',
                 textAlign: 'center',
                 pointerEvents: 'none',
-                padding: '0 16px'
+                padding: '0 20px'
               }}
             >
               <span
@@ -346,25 +346,33 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
               >
                 {timeframe === 'month' ? 'Month Spend' : timeframe === 'year' ? 'Year Spend' : 'Disbursed Total'}
               </span>
-              <span
-                style={{
-                  fontSize: '1.18rem',
-                  fontWeight: 800,
-                  color: 'var(--text-main)',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.25,
-                  marginTop: '2px',
-                  maxWidth: '140px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-                title={formatCurrency(expenseData.totalOutflows)}
-              >
-                {hoveredCategory
+              {(() => {
+                const displayedAmount = hoveredCategory
                   ? formatCurrency(expenseData.items.find((i) => i.key === hoveredCategory)?.amount || 0)
-                  : `${currencyInfo.prefix}${expenseData.totalOutflows.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              </span>
+                  : `${currencyInfo.prefix}${expenseData.totalOutflows.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                
+                const len = displayedAmount.length;
+                const dynamicFontSize = len <= 11 ? '1.25rem' : len <= 14 ? '1.08rem' : len <= 17 ? '0.96rem' : '0.86rem';
+
+                return (
+                  <span
+                    style={{
+                      fontSize: dynamicFontSize,
+                      fontWeight: 800,
+                      color: 'var(--text-main)',
+                      letterSpacing: '-0.02em',
+                      lineHeight: 1.25,
+                      marginTop: '2px',
+                      whiteSpace: 'nowrap',
+                      width: '100%',
+                      textAlign: 'center'
+                    }}
+                    title={displayedAmount}
+                  >
+                    {displayedAmount}
+                  </span>
+                );
+              })()}
               <span
                 style={{
                   fontSize: '11px',
