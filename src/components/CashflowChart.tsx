@@ -17,11 +17,11 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
   const [timeframe, setTimeframe] = useState<TimeframeFilter>('1M');
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
 
-  const formatCompactVal = (val: number) => {
+  const formatScaleVal = (val: number) => {
     const abs = Math.abs(val);
-    if (abs >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-    if (abs >= 1000) return `${(val / 1000).toFixed(abs % 1000 === 0 ? 0 : 1)}k`;
-    return `${Math.round(val)}`;
+    if (abs >= 1000000) return `${Math.round(abs / 1000000)}M`;
+    if (abs >= 1000) return `${Math.round(abs / 1000)}k`;
+    return `${Math.round(abs)}`;
   };
 
   // Generate dynamic buckets based on transactions, timeframe, and categoryConfigs
@@ -38,6 +38,16 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
     );
     return max > 0 ? max : 1;
   }, [currentBuckets]);
+
+  // Clean rounded scale max (e.g., 2145 -> 2000 / 2k, 1100 -> 1000 / 1k)
+  const scaleMax = useMemo(() => {
+    if (maxValue <= 100) return 100;
+    if (maxValue <= 500) return 500;
+    if (maxValue <= 1000) return 1000;
+    return Math.max(1000, Math.round(maxValue / 1000) * 1000);
+  }, [maxValue]);
+
+  const scaleHalf = Math.round(scaleMax / 2);
 
   // Calculate Cumulative Spread (Net Income - Expenses over the period)
   const cumulativeSpread = useMemo(() => {
@@ -61,7 +71,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
     currentBuckets.forEach((b, i) => {
       const x = ((i + 0.5) / n) * 1000;
       const netVal = b.totalInflow - b.totalOutflow;
-      const ratio = Math.min(1, Math.abs(netVal) / maxValue);
+      const ratio = Math.min(1, Math.abs(netVal) / scaleMax);
       const y = netVal >= 0 ? yZero - ratio * maxH : yZero + ratio * maxH;
       points.push({ x, y, netVal });
     });
@@ -215,34 +225,34 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
           {/* Left Y-Axis Scale Column */}
           <div
             style={{
-              width: '46px',
+              width: '38px',
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               alignItems: 'flex-end',
               paddingRight: '8px',
-              fontSize: '10px',
-              fontWeight: 700,
-              color: '#94a3b8',
+              fontSize: '11px',
+              fontWeight: 800,
+              color: '#64748b',
               userSelect: 'none',
               zIndex: 5
             }}
           >
             <span style={{ transform: 'translateY(-50%)', color: '#10b981' }}>
-              +{currencyInfo.prefix}{formatCompactVal(maxValue)}
+              +{formatScaleVal(scaleMax)}
             </span>
             <span style={{ transform: 'translateY(-50%)' }}>
-              +{currencyInfo.prefix}{formatCompactVal(maxValue * 0.5)}
+              +{formatScaleVal(scaleHalf)}
             </span>
             <span style={{ transform: 'translateY(-50%)', fontWeight: 800, color: 'var(--text-main)' }}>
-              {currencyInfo.prefix}0
+              0
             </span>
             <span style={{ transform: 'translateY(-50%)' }}>
-              -{currencyInfo.prefix}{formatCompactVal(maxValue * 0.5)}
+              -{formatScaleVal(scaleHalf)}
             </span>
             <span style={{ transform: 'translateY(-50%)', color: '#f43f5e' }}>
-              -{currencyInfo.prefix}{formatCompactVal(maxValue)}
+              -{formatScaleVal(scaleMax)}
             </span>
           </div>
 
@@ -331,8 +341,8 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
 
             {currentBuckets.map((bucket, idx) => {
               const isActive = activeBarIdx === idx;
-              const inflowPxPct = (bucket.totalInflow / maxValue) * 100;
-              const outflowPxPct = (bucket.totalOutflow / maxValue) * 100;
+              const inflowPxPct = Math.min(100, (bucket.totalInflow / scaleMax) * 100);
+              const outflowPxPct = Math.min(100, (bucket.totalOutflow / scaleMax) * 100);
               const hasActivity = bucket.totalInflow > 0 || bucket.totalOutflow > 0;
 
               // Parse stacked date (day + month)
