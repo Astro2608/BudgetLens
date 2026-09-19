@@ -25,7 +25,8 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>(defaultCategoryKey);
   const [amount, setAmount] = useState<string>('');
-  const [remark, setRemark] = useState<string>('');
+  const [title, setTitle] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
   const [inputError, setInputError] = useState<boolean>(false);
 
   const activeConfig = categoryConfigs[selectedCategory] || {
@@ -45,23 +46,25 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
     }
 
     setInputError(false);
-    const title = remark.trim() || activeConfig.label;
-    const note = remark.trim() || 'Quick Entry';
+    const finalTitle = title.trim() || activeConfig.label;
+    const finalDesc = description.trim() || undefined;
 
     onAddTransaction({
       date,
-      title,
+      title: finalTitle,
+      description: finalDesc,
       amount: parsedAmount,
       type: activeConfig.type || 'expense',
       category: selectedCategory,
       isRecurring: false,
-      note,
+      note: finalDesc || 'Quick Entry',
       source: 'Quick Entry Bar'
     });
 
-    // Reset amount & remark for rapid successive entry
+    // Reset amount, title & description for rapid successive entry
     setAmount('');
-    setRemark('');
+    setTitle('');
+    setDescription('');
 
     // Re-focus amount input for frictionless successive logs
     setTimeout(() => {
@@ -134,7 +137,7 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
         </div>
       </div>
 
-      {/* 1-Liner Fields Layout: Price ➔ Remark ➔ Category ➔ Date ➔ Log Entry */}
+      {/* 1-Liner Fields Layout: Price ➔ Title ➔ Description ➔ Category ➔ Date ➔ Log Entry */}
       <div
         style={{
           display: 'flex',
@@ -146,8 +149,8 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
         {/* Field 1: Amount / Price Entry */}
         <div
           style={{
-            flex: '0 0 125px',
-            minWidth: '115px',
+            flex: '0 0 120px',
+            minWidth: '110px',
             display: 'flex',
             alignItems: 'center',
             height: '38px',
@@ -206,13 +209,38 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
           />
         </div>
 
-        {/* Field 2: Remark / Description */}
-        <div style={{ flex: '1 1 140px', minWidth: '120px' }}>
+        {/* Field 2: Title / Merchant Name */}
+        <div style={{ flex: '1 1 130px', minWidth: '115px' }}>
           <input
             type="text"
-            placeholder="Remark (e.g. Lunch, Groceries)..."
-            value={remark}
-            onChange={(e) => setRemark(e.target.value)}
+            placeholder="Title (e.g. FairPrice, Salary)..."
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
+            style={{
+              height: '38px',
+              padding: '0 0.75rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)',
+              backgroundColor: 'var(--bg-canvas-subtle)',
+              color: 'var(--text-main)',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              outline: 'none',
+              width: '100%',
+              boxSizing: 'border-box'
+            }}
+            title="Title / Merchant Name"
+          />
+        </div>
+
+        {/* Field 3: Description / Remarks (Optional) */}
+        <div style={{ flex: '1 1 150px', minWidth: '120px' }}>
+          <input
+            type="text"
+            placeholder="Description (Optional remarks)..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             onKeyDown={handleKeyDown}
             style={{
               height: '38px',
@@ -227,7 +255,7 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
               width: '100%',
               boxSizing: 'border-box'
             }}
-            title="Remark / Description"
+            title="Description / Remarks"
           />
         </div>
 
