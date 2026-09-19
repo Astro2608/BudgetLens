@@ -28,6 +28,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'duplicate'>('all');
   const [confirmDuplicatesModal, setConfirmDuplicatesModal] = useState(false);
+  const [showVerifyConfirmModal, setShowVerifyConfirmModal] = useState(false);
   const [freeformText, setFreeformText] = useState('');
 
   const liveDetectedTransactions = useMemo(() => {
@@ -77,6 +78,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
       setModalTransactions(result.transactions);
       setFilterType('all');
       setConfirmDuplicatesModal(false);
+      setShowVerifyConfirmModal(false);
 
       if (result.transactions && result.transactions.length > 0) {
         const sampleText = result.transactions.map((t) => `${t.title} ${t.source || ''} ${t.note || ''}`).join(' ');
@@ -130,6 +132,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
       setModalTransactions(result.transactions);
       setFilterType('all');
       setConfirmDuplicatesModal(false);
+      setShowVerifyConfirmModal(false);
       setFreeformText('');
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to parse text notes.');
@@ -223,20 +226,26 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
     return true;
   });
 
+  // Direct Finalization into ledger
+  const executeFinalImport = () => {
+    if (parseResult && modalTransactions.length > 0) {
+      onImportTransactions(modalTransactions);
+      setParseResult(null);
+      setModalTransactions([]);
+      setConfirmDuplicatesModal(false);
+      setShowVerifyConfirmModal(false);
+    }
+  };
+
   const handleConfirmImport = () => {
     if (duplicateCount > 0 && !confirmDuplicatesModal) {
       setConfirmDuplicatesModal(true);
       return;
     }
-
-    if (parseResult && modalTransactions.length > 0) {
-      onImportTransactions(modalTransactions);
-      
-      setParseResult(null);
-      setModalTransactions([]);
-      setConfirmDuplicatesModal(false);
-    }
+    // Always trigger the verification confirmation modal first
+    setShowVerifyConfirmModal(true);
   };
+
 
   const getFormatBadge = (name: string) => {
     const lower = name.toLowerCase();
@@ -1218,6 +1227,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                     setParseResult(null);
                     setModalTransactions([]);
                     setConfirmDuplicatesModal(false);
+                    setShowVerifyConfirmModal(false);
                   }}
                 >
                   Cancel
@@ -1237,6 +1247,137 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
           </div>
         </div>
       )}
+
+      {/* Verification & Confirmation Overlay Modal */}
+      {showVerifyConfirmModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 160,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: 'var(--radius-xl)',
+              maxWidth: '520px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: 'var(--shadow-xl)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem',
+              border: '1px solid var(--border-subtle)'
+            }}
+          >
+            {/* Title & Icon */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  backgroundColor: '#fef3c7',
+                  color: '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>warning</span>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  Verify Transaction Allocations
+                </h3>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Final Confirmation Step before adding to your ledger
+                </span>
+              </div>
+            </div>
+
+            {/* Warning Message */}
+            <div style={{ padding: '0.875rem 1rem', borderRadius: '10px', backgroundColor: '#fffbeb', border: '1px solid #fcd34d', fontSize: '13px', color: '#92400e', lineHeight: 1.5 }}>
+              ⚠️ Bank e-Statements can occasionally list expenses under deposits or vice versa. Please verify that your <strong>Income</strong> and <strong>Expense</strong> totals match your expectations before importing.
+            </div>
+
+            {/* Summary Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ padding: '0.875rem', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
+                  📥 Total Inflow ({incomeCount} items)
+                </span>
+                <span style={{ fontSize: '1.125rem', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
+                  {formatCurrency(computedTotalIncome)}
+                </span>
+              </div>
+
+              <div style={{ padding: '0.875rem', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecdd3', display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>
+                  📤 Total Outflow ({expenseCount} items)
+                </span>
+                <span style={{ fontSize: '1.125rem', fontWeight: 800, color: '#b91c1c', marginTop: '4px' }}>
+                  {formatCurrency(computedTotalExpense)}
+                </span>
+              </div>
+            </div>
+
+            {/* Swap Types Shortcut Button inside Modal */}
+            <button
+              type="button"
+              onClick={handleFlipAllTypes}
+              style={{
+                width: '100%',
+                padding: '0.625rem 1rem',
+                borderRadius: '8px',
+                backgroundColor: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                color: '#334155',
+                fontWeight: 700,
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>swap_horiz</span>
+              <span>Looks Inverted? Swap All Income ↔ Expense Types</span>
+            </button>
+
+            {/* Modal Footer Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowVerifyConfirmModal(false)}
+              >
+                Go Back & Review Rows
+              </button>
+
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={executeFinalImport}
+                style={{ backgroundColor: '#10b981', borderColor: '#059669' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
+                <span>Confirm & Import Ledger</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

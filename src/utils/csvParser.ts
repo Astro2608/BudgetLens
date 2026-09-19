@@ -102,12 +102,23 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
           let totalExpense = 0;
           let unrecognizedCount = 0;
 
+          const WITHDRAWAL_KEYWORDS = [
+            'fairprice', 'ntuc', 'grab', 'gojek', 'foodpanda', 'deliveroo', 'starbucks', 'mcdonald',
+            'uniqlo', 'shopee', 'lazada', 'amazon', 'singtel', 'starhub', 'm1', 'sp services', 'sp digital',
+            'shell', 'esso', 'caltex', 'sinopec', 'din tai fung', 'watsons', 'guardian', 'sephora',
+            'supermarket', 'mart', 'restaurant', 'cafe', 'baking', 'coffee', 'bakery', 'transport',
+            'simplygo', 'mrt', 'bus', 'taxi', 'petrol', 'fuel', 'insurance', 'rental', 'rent',
+            'subscription', 'netflix', 'spotify', 'apple.com', 'google *', 'payment to', 'transfer to',
+            'withdraw', 'atm', 'outward fast', 'fee', 'charge', 'tax', 'interest charged'
+          ];
+
           rows.forEach((row, index) => {
             const dateVal = row[mapping.date || ''] || new Date().toISOString().split('T')[0];
             const date = normalizeDate(String(dateVal));
 
             const rawTitle = (row[mapping.description || ''] || `CSV Tx #${index + 1}`);
             const title = String(rawTitle).trim();
+            const lowerTitle = title.toLowerCase();
 
             let amt = 0;
             let txType: TransactionType = 'expense';
@@ -139,7 +150,7 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
                 if (rawAmt > 0) {
                   amt = rawAmt;
                   // If raw amount is positive but title indicates expense vs income:
-                  if (title.toLowerCase().includes('salary') || title.toLowerCase().includes('payroll') || title.toLowerCase().includes('freelance')) {
+                  if (lowerTitle.includes('salary') || lowerTitle.includes('payroll') || lowerTitle.includes('freelance') || lowerTitle.includes('dividend') || lowerTitle.includes('paynow in')) {
                     txType = 'income';
                   } else {
                     txType = 'expense';
@@ -149,6 +160,11 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
                   txType = 'expense';
                 }
               }
+            }
+
+            // Title Sentiment Override for obvious expense merchants
+            if (WITHDRAWAL_KEYWORDS.some((kw) => lowerTitle.includes(kw))) {
+              txType = 'expense';
             }
 
             if (amt <= 0) return;
@@ -167,9 +183,6 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
                 unrecognizedCount++;
               }
             }
-
-            if (txType === 'income') totalIncome += amt;
-            else totalExpense += amt;
 
             const isRecurring = mapping.recurring
               ? ['yes', 'true', '1', 'recurring'].includes(String(row[mapping.recurring]).toLowerCase().trim())
@@ -191,6 +204,35 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
             });
           });
 
+          // Holistic Batch Anomaly Detection
+          let expenseKeywordCount = 0;
+          let expenseKeywordAsIncomeCount = 0;
+
+          parsedList.forEach((t) => {
+            const lower = t.title.toLowerCase();
+            if (WITHDRAWAL_KEYWORDS.some((kw) => lower.includes(kw))) {
+              expenseKeywordCount++;
+              if (t.type === 'income') expenseKeywordAsIncomeCount++;
+            }
+          });
+
+          if (expenseKeywordCount > 0 && expenseKeywordAsIncomeCount / expenseKeywordCount > 0.4) {
+            parsedList.forEach((t) => {
+              const newType: TransactionType = t.type === 'income' ? 'expense' : 'income';
+              t.type = newType;
+              if (newType === 'income') {
+                t.category = 'Salary';
+              } else if (t.category === 'Salary') {
+                t.category = detectCategoryFromTitle(t.title);
+              }
+            });
+          }
+
+          parsedList.forEach((t) => {
+            if (t.type === 'income') totalIncome += t.amount;
+            else totalExpense += t.amount;
+          });
+
           resolve({
             fileName: file.name,
             transactions: parsedList,
@@ -198,6 +240,7 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
             totalExpense,
             unrecognizedCount
           });
+
         } catch (err) {
           reject(err);
         }

@@ -74,7 +74,18 @@ const DEPOSIT_KEYWORDS = [
   'fast / inward', 'fast in', 'inward fast', 'transfer from', 'funds transfer from',
   'giro credit', 'deposit', 'dividend', 'refund', 'reversal', 'reimbursement',
   'interest credit', 'interest earned', 'cash in', 'cash deposit', 'inward remitt',
-  'credit adv', 'direct credit', 'interbank giro cr', 'fixed deposit', 'rebate', 'cashback'
+  'credit adv', 'direct credit', 'interbank giro cr', 'fixed deposit', 'rebate', 'cashback',
+  'freelance', 'paycheck'
+];
+
+const WITHDRAWAL_KEYWORDS = [
+  'fairprice', 'ntuc', 'grab', 'gojek', 'foodpanda', 'deliveroo', 'starbucks', 'mcdonald',
+  'uniqlo', 'shopee', 'lazada', 'amazon', 'singtel', 'starhub', 'm1', 'sp services', 'sp digital',
+  'shell', 'esso', 'caltex', 'sinopec', 'din tai fung', 'watsons', 'guardian', 'sephora',
+  'supermarket', 'mart', 'restaurant', 'cafe', 'baking', 'coffee', 'bakery', 'transport',
+  'simplygo', 'mrt', 'bus', 'taxi', 'petrol', 'fuel', 'insurance', 'rental', 'rent',
+  'subscription', 'netflix', 'spotify', 'apple.com', 'google *', 'payment to', 'transfer to',
+  'withdraw', 'atm', 'outward fast', 'fee', 'charge', 'tax', 'interest charged', 'card purchase'
 ];
 
 export async function parseBankPDF(file: File): Promise<CSVParseResult> {
@@ -180,6 +191,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
 
       // Determine whether line represents an Income (Deposit) or Expense (Withdrawal)
       const hasDepositKeyword = DEPOSIT_KEYWORDS.some((kw) => lowerLineText.includes(kw));
+      const hasWithdrawalKeyword = WITHDRAWAL_KEYWORDS.some((kw) => lowerLineText.includes(kw));
 
       // Choose transaction amount:
       // If there are multiple amounts (e.g. Tx Amount + Running Balance), filter out the balance column if known
@@ -195,33 +207,32 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
       const primaryAmtObj = candidateAmounts[0];
       const amount = primaryAmtObj.amount;
 
-      // Determine Type (Income vs Expense) via 3-tier heuristic:
+      // Determine Type (Income vs Expense) via robust multi-tier heuristic:
       let isIncome = false;
 
+      // Strongest Priority: Title Sentiment Overrides Column Ambiguity
+      if (hasWithdrawalKeyword && !hasDepositKeyword) {
+        isIncome = false;
+      } else if (hasDepositKeyword && !hasWithdrawalKeyword) {
+        isIncome = true;
+      }
       // Signal 1: Explicit sign / CR / DR flag
-      if (primaryAmtObj.isCR && !primaryAmtObj.isDR) {
+      else if (primaryAmtObj.isCR && !primaryAmtObj.isDR) {
         isIncome = true;
       } else if (primaryAmtObj.isDR) {
         isIncome = false;
       }
       // Signal 2: Header X-coordinate column boundaries
       else if (debitColX !== null && depositColX !== null) {
-        const midPoint = (debitColX + depositColX) / 2;
         if (depositColX > debitColX) {
           // Standard: Debit on Left, Deposit on Right
-          isIncome = primaryAmtObj.x >= midPoint;
+          // Right-aligned numbers under Debit can reach up to (depositColX - 25)
+          isIncome = primaryAmtObj.x >= (depositColX - 20);
         } else {
           // Deposit on Left, Debit on Right
-          isIncome = primaryAmtObj.x <= midPoint;
+          isIncome = primaryAmtObj.x < (debitColX - 20);
         }
-      }
-      // Signal 3: Banking description keyword match
-      else if (hasDepositKeyword) {
-        isIncome = true;
-      }
-
-      // If keywords strongly indicate deposit even without clear columns, prioritize income
-      if (hasDepositKeyword) {
+      } else if (hasDepositKeyword) {
         isIncome = true;
       }
 
@@ -253,9 +264,6 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         }
       }
 
-      if (txType === 'income') totalIncome += amount;
-      else totalExpense += amount;
-
       parsedList.push({
         id: `pdf-${Date.now()}-${parsedList.length}`,
         date,
@@ -276,6 +284,38 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
     );
   }
 
+  // Holistic Batch Anomaly Detection
+  // Count how many known expense keywords were tagged as 'income'
+  let expenseKeywordCount = 0;
+  let expenseKeywordAsIncomeCount = 0;
+
+  parsedList.forEach((t) => {
+    const lower = t.title.toLowerCase();
+    if (WITHDRAWAL_KEYWORDS.some((kw) => lower.includes(kw))) {
+      expenseKeywordCount++;
+      if (t.type === 'income') expenseKeywordAsIncomeCount++;
+    }
+  });
+
+  // If > 40% of known expense merchants were tagged as income, auto-invert the entire batch!
+  if (expenseKeywordCount > 0 && expenseKeywordAsIncomeCount / expenseKeywordCount > 0.4) {
+    parsedList.forEach((t) => {
+      const newType: TransactionType = t.type === 'income' ? 'expense' : 'income';
+      t.type = newType;
+      if (newType === 'income') {
+        t.category = 'Salary';
+      } else if (t.category === 'Salary') {
+        t.category = detectCategoryFromTitle(t.title);
+      }
+    });
+  }
+
+  // Calculate final totals
+  parsedList.forEach((t) => {
+    if (t.type === 'income') totalIncome += t.amount;
+    else totalExpense += t.amount;
+  });
+
   return {
     fileName: file.name,
     transactions: parsedList,
@@ -284,3 +324,4 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
     unrecognizedCount
   };
 }
+
