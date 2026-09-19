@@ -9,6 +9,7 @@ import { getSmartTags } from '../utils/tagUtils';
 interface TransactionLedgerProps {
   transactions: Transaction[];
   categoryConfigs?: Record<CategoryKey, CategoryConfig>;
+  onEditTransaction?: (tx: Transaction) => void;
   onDeleteTransaction?: (id: string) => void;
   onExport?: () => void;
 }
@@ -16,6 +17,7 @@ interface TransactionLedgerProps {
 export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
   transactions,
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS,
+  onEditTransaction,
   onDeleteTransaction,
   onExport
 }) => {
@@ -496,6 +498,36 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>receipt_long</span>
                     </button>
+                    {onEditTransaction && (
+                      <button
+                        type="button"
+                        onClick={() => onEditTransaction(tx)}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#7c3aed',
+                          backgroundColor: '#f5f3ff',
+                          border: '1px solid #ddd6fe',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Edit Transaction Details"
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.backgroundColor = '#ede9fe';
+                          e.currentTarget.style.borderColor = '#c4b5fd';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f5f3ff';
+                          e.currentTarget.style.borderColor = '#ddd6fe';
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>edit</span>
+                      </button>
+                    )}
                     {onDeleteTransaction && (
                       <button
                         type="button"

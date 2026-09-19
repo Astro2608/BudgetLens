@@ -12,7 +12,8 @@
     "papaparse": "^5.4.1",
     "pdfjs-dist": "^6.3.289",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@types/papaparse": "^5.3.15",

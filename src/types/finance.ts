@@ -23,6 +23,7 @@ export interface Transaction {
   note?: string;
   source?: string;
   tags?: string[];
+  loanAllocations?: Record<string, number>; // loanId -> allocated amount
 }
 
 export interface CategoryRunway {
@@ -66,4 +67,15 @@ export interface ChartBucket {
   totalOutflow: number;
   inflowCategories: CategoryAmount[];
   outflowCategories: CategoryAmount[];
+}
+
+export interface Loan {
+  id: string;
+  name: string;             // e.g. "Student Loan"
+  initialPrincipal: number; // e.g. 50000
+  interestRate: number;     // Annual % (e.g. 4.5)
+  startDate: string;        // YYYY-MM-DD
+  termMonths: number;       // e.g. 60 months
+  linkedTag: string;        // e.g. "edu-loan" (matches transaction tags)
+  fixedMonthlyPayment?: number; 
 }

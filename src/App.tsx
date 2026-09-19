@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { calculateFinanceSummary, formatSGD } from './utils/financeCalculator';
-import { Transaction, CategoryKey, CategoryConfig } from './types/finance';
+import { Transaction, CategoryKey, CategoryConfig, Loan } from './types/finance';
 import { DEFAULT_CATEGORY_CONFIGS, ensureUniqueCategoryColors, detectCategoryFromTitle } from './config/categoryConfig';
 
 import { Sidebar } from './components/Sidebar';
@@ -20,6 +20,9 @@ import { SettingsModal } from './components/SettingsModal';
 import { ResetConfirmModal, ExportFormatChoice } from './components/ResetConfirmModal';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { DashboardTour } from './components/DashboardTour';
+import { DebtHubSection } from './components/DebtHubSection';
+import { AddLoanModal } from './components/AddLoanModal';
+import { EditTransactionModal } from './components/EditTransactionModal';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
 import { exportToMarkdown, exportToCSV } from './utils/exportUtils';
 import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
@@ -29,6 +32,7 @@ const WELCOME_KEY = 'budgetlens_welcome_done';
 const STORAGE_KEY_CONFIGS = 'budgetlens_category_configs';
 const STORAGE_KEY_BALANCE = 'budgetlens_initial_balance';
 const STORAGE_KEY_TXS = 'budgetlens_transactions';
+const STORAGE_KEY_LOANS = 'budgetlens_loans';
 
 // Legacy keys for automatic migration
 const LEGACY_STORAGE_KEY_CONFIGS = 'lumina_category_configs';
@@ -39,11 +43,14 @@ const AppContent: React.FC = () => {
   const { formatCurrency, autoDetectCurrency } = useCurrency();
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [initialBalance, setInitialBalance] = useState<number>(0);
   const [categoryConfigs, setCategoryConfigs] = useState<Record<CategoryKey, CategoryConfig>>(DEFAULT_CATEGORY_CONFIGS);
   const [manualTour, setManualTour] = useState<boolean>(false);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddLoanModalOpen, setIsAddLoanModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -97,6 +104,13 @@ const AppContent: React.FC = () => {
           setTransactions(healedTxs);
         } else {
           setTransactions([]);
+        }
+
+        let savedLoans = await getAppData(STORAGE_KEY_LOANS);
+        if (savedLoans && Array.isArray(savedLoans)) {
+          setLoans(savedLoans);
+        } else {
+          setLoans([]);
         }
 
         let savedBal = await getAppData(STORAGE_KEY_BALANCE);
@@ -173,6 +187,7 @@ const AppContent: React.FC = () => {
     if (!isDataLoaded) return;
 
     saveAppData(STORAGE_KEY_TXS, transactions).catch(e => console.error(e));
+    saveAppData(STORAGE_KEY_LOANS, loans).catch(e => console.error(e));
 
     // Auto save to raw MD file if user connected one
     const saveToRaw = async () => {
@@ -248,15 +263,33 @@ const AppContent: React.FC = () => {
     setTransactions((prev) => prev.filter(t => t.id !== id));
   };
 
+  const handleUpdateTransaction = (updatedTx: Transaction) => {
+    const updatedList = transactions.map((t) => (t.id === updatedTx.id ? updatedTx : t));
+    setTransactions(updatedList);
+    saveAppData(STORAGE_KEY_TXS, updatedList).catch((e) => console.error(e));
+    showToast(updatedTx.title, updatedTx.amount, updatedTx.type, `Updated #${updatedTx.category}`);
+  };
+
+  const handleAddLoan = (loan: Omit<Loan, 'id'>) => {
+    setLoans((prev) => [...prev, { ...loan, id: Date.now().toString() }]);
+  };
+
+  const handleDeleteLoan = (id: string) => {
+    setLoans((prev) => prev.filter(l => l.id !== id));
+  };
+
   const handleResetDefaults = () => {
     setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
     setInitialBalance(0);
     setTransactions([]);
+    setLoans([]);
     try {
       localStorage.removeItem(STORAGE_KEY_CONFIGS);
       localStorage.removeItem(STORAGE_KEY_BALANCE);
       localStorage.removeItem(STORAGE_KEY_TXS);
+      localStorage.removeItem(STORAGE_KEY_LOANS);
       saveAppData(STORAGE_KEY_TXS, []);
+      saveAppData(STORAGE_KEY_LOANS, []);
       saveAppData(STORAGE_KEY_BALANCE, 0);
       saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS);
     } catch (e) { }
@@ -282,11 +315,13 @@ const AppContent: React.FC = () => {
 
     // Reset state to clean 0
     setTransactions([]);
+    setLoans([]);
     setInitialBalance(0);
     setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
 
     // Persist clean 0 state into storage
     saveAppData(STORAGE_KEY_TXS, []).catch(e => console.error(e));
+    saveAppData(STORAGE_KEY_LOANS, []).catch(e => console.error(e));
     saveAppData(STORAGE_KEY_BALANCE, 0).catch(e => console.error(e));
     saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS).catch(e => console.error(e));
 
@@ -382,6 +417,7 @@ const AppContent: React.FC = () => {
                 <TransactionLedger
                   transactions={transactions}
                   categoryConfigs={categoryConfigs}
+                  onEditTransaction={(tx) => setEditingTransaction(tx)}
                   onDeleteTransaction={handleDeleteTransaction}
                 />
               </div>
@@ -397,12 +433,20 @@ const AppContent: React.FC = () => {
               />
             </div>
 
-            {/* Right 4-Column Area: Quick Log, Predictive Runway */}
-            <div className="col-span-4">
+            {/* Right 4-Column Area: Quick Log, Debt & Liabilities, Predictive Runway */}
+            <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {/* Quick Log */}
               <QuickAddOutflows
                 onQuickAdd={handleQuickAdd}
                 categoryConfigs={categoryConfigs}
+              />
+
+              {/* Debt & Liabilities Section */}
+              <DebtHubSection
+                loans={loans}
+                transactions={transactions}
+                onAddLoanClick={() => setIsAddLoanModalOpen(true)}
+                onDeleteLoan={handleDeleteLoan}
               />
 
               {/* Predictive Runway Simulation Widget */}
@@ -425,6 +469,26 @@ const AppContent: React.FC = () => {
         onClose={() => setIsAddModalOpen(false)}
         onAddTransaction={handleAddTransaction}
         categoryConfigs={categoryConfigs}
+        loans={loans}
+      />
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <EditTransactionModal
+          isOpen={Boolean(editingTransaction)}
+          transaction={editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+          onSave={handleUpdateTransaction}
+          categoryConfigs={categoryConfigs}
+          loans={loans}
+        />
+      )}
+
+      {/* Add Loan Modal */}
+      <AddLoanModal
+        isOpen={isAddLoanModalOpen}
+        onClose={() => setIsAddLoanModalOpen(false)}
+        onAddLoan={handleAddLoan}
       />
 
       {/* Settings Modal */}
