@@ -27,17 +27,17 @@ const TOUR_STEPS: TourStep[] = [
       {
         icon: 'account_balance_wallet',
         title: 'Safe-to-Spend Balance',
-        text: 'The calculated total of your starting bank balance plus income minus recorded expenses.'
+        text: 'The large dollar number displaying your live net balance (Starting Balance + Income - Expenses).'
       },
       {
-        icon: 'verified',
-        title: 'Balance Status Indicator',
-        text: 'Displays a green badge when your total bank balance is positive, or a red badge if your balance dips into deficit.'
+        icon: 'label',
+        title: 'Surplus / Deficit Text Tag',
+        text: 'Look for the green text pill right next to your dollar balance: it shows "Current Bank Balance (Surplus)" in green, or "Deficit / Negative Balance" in red if spending goes over.'
       },
       {
         icon: 'payments',
-        title: 'Total Money In & Out',
-        text: 'Two simple summary cards showing all income received vs all expenses paid.'
+        title: 'Total Money In & Money Out',
+        text: 'Two summary cards below your balance showing total income received vs total expenses paid.'
       }
     ],
     position: 'bottom'
@@ -49,19 +49,19 @@ const TOUR_STEPS: TourStep[] = [
     description: 'Log daily expenses or income in seconds without leaving your keyboard.',
     keyPoints: [
       {
-        icon: 'dialpad',
-        title: 'Fast 4-Field Entry',
-        text: 'Enter the Amount ➔ Title / Merchant ➔ optional Description ➔ pick Category & Date.'
+        icon: 'edit_note',
+        title: 'Title & Description Fields',
+        text: 'Enter the Amount ➔ Title / Merchant Name ➔ optional Description ➔ pick Category & Date.'
       },
       {
         icon: 'palette',
-        title: 'Dynamic Category Tinting',
-        text: 'The input bar automatically updates its color accent to match your selected category.'
+        title: 'Dynamic Category Color Accent',
+        text: 'The input box automatically updates its color accent to match your selected category.'
       },
       {
         icon: 'keyboard_return',
         title: 'Press Enter Anywhere',
-        text: 'Press Enter on your keyboard at any point to record the transaction directly into your ledger.'
+        text: 'Press Enter on your keyboard at any point to instantly record the transaction into your ledger.'
       }
     ],
     position: 'bottom'
@@ -73,19 +73,14 @@ const TOUR_STEPS: TourStep[] = [
     description: 'Visual breakdown showing how your money moves over days, weeks, and months.',
     keyPoints: [
       {
-        icon: 'arrow_upward',
-        title: 'Income Bars (Top)',
-        text: 'Green bars going up show incoming money (salary, freelance, deposits).'
+        icon: 'show_chart',
+        title: 'Income vs Expense Bars',
+        text: 'Green bars on top show incoming money (+); red bars below show expenses (-).'
       },
       {
-        icon: 'arrow_downward',
-        title: 'Expense Bars (Bottom)',
-        text: 'Red bars going down show money spent on bills, food, or shopping.'
-      },
-      {
-        icon: 'date_range',
+        icon: 'calendar_month',
         title: 'Timeframe Filters',
-        text: 'Easily filter chart views across 1 Month, 3 Months, 1 Year, or All time.'
+        text: 'Switch chart timeline views between 1 Month, 3 Months, 1 Year, or All time.'
       }
     ],
     position: 'bottom'
@@ -99,12 +94,12 @@ const TOUR_STEPS: TourStep[] = [
       {
         icon: 'pie_chart',
         title: 'Categorized Slices',
-        text: 'See the proportion of your spending allocated across Food, Bills, Rent, and Transport.'
+        text: 'See the percentage allocation of your spending across Food, Bills, Rent, and Transport.'
       },
       {
         icon: 'touch_app',
         title: 'Interactive Inspection',
-        text: 'Hover over any slice to view exact dollar amounts and percentage shares.'
+        text: 'Hover or tap any slice to view exact dollar amounts and percentage shares.'
       }
     ],
     position: 'top'
@@ -118,7 +113,7 @@ const TOUR_STEPS: TourStep[] = [
       {
         icon: 'upload_file',
         title: 'Statement Import',
-        text: 'Drop bank e-Statements (PDF, CSV, MD) to auto-extract transaction tables with verification safety.'
+        text: 'Drop bank e-Statements (PDF, CSV, MD) to auto-extract transactions with verification safety.'
       },
       {
         icon: 'download',
@@ -128,7 +123,7 @@ const TOUR_STEPS: TourStep[] = [
       {
         icon: 'info',
         title: 'Info Tooltips (ℹ️)',
-        text: 'Click the info icons on any section header to learn how metrics are calculated.'
+        text: 'Click the info button on any header to learn how metrics are calculated.'
       },
       {
         icon: 'currency_exchange',
