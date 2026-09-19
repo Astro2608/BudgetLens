@@ -4,6 +4,7 @@ import { exportToCSV, exportToMarkdown } from '../utils/exportUtils';
 import { DEFAULT_CATEGORY_CONFIGS, getCategoryConfig } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
 import { SectionInfoButton } from './SectionInfoButton';
+import { getSmartTags } from '../utils/tagUtils';
 
 interface TransactionLedgerProps {
   transactions: Transaction[];
@@ -43,6 +44,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
       list = list.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
+          (t.description && t.description.toLowerCase().includes(q)) ||
           t.category.toLowerCase().includes(q) ||
           (t.source && t.source.toLowerCase().includes(q)) ||
           (t.note && t.note.toLowerCase().includes(q)) ||
@@ -148,36 +150,35 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
       {/* 2. Embedded Search Bar & Filter Controls */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {/* Full-width Search Input */}
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: '#ffffff',
-            border: '1.5px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '0.5rem 0.875rem',
-            gap: '0.5rem',
-            boxShadow: 'var(--shadow-xs)',
-            transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>
+        <div style={{ position: 'relative' }}>
+          <span
+            className="material-symbols-outlined"
+            style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-muted)',
+              fontSize: '18px'
+            }}
+          >
             search
           </span>
           <input
             type="text"
-            placeholder="Search transactions by merchant, category, date, or notes..."
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search by merchant, title, category, or date..."
             style={{
-              border: 'none',
-              outline: 'none',
-              background: 'transparent',
+              width: '100%',
+              padding: '0.5rem 0.75rem 0.5rem 2.25rem',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-subtle)',
+              backgroundColor: 'var(--bg-canvas-subtle)',
               fontSize: '13px',
-              fontWeight: 500,
               color: 'var(--text-main)',
-              width: '100%'
+              outline: 'none',
+              boxSizing: 'border-box'
             }}
           />
           {searchTerm && (
@@ -185,66 +186,58 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
               type="button"
               onClick={() => handleSearchChange('')}
               style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
                 background: 'transparent',
                 border: 'none',
-                cursor: 'pointer',
                 color: 'var(--text-muted)',
+                cursor: 'pointer',
                 display: 'flex',
-                alignItems: 'center',
-                padding: '2px'
+                alignItems: 'center'
               }}
-              title="Clear search"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>cancel</span>
             </button>
           )}
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--text-muted)',
-              backgroundColor: 'var(--bg-canvas-subtle)',
-              padding: '2px 8px',
-              borderRadius: '6px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {filtered.length} found
-          </span>
         </div>
 
-        {/* Filter Type Pills */}
+        {/* Filter Pills & Export Action Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', overflowX: 'auto' }}>
-            {[
-              { id: 'all', label: 'All Entries' },
-              { id: 'income', label: 'Income (+)' },
-              { id: 'expense', label: 'Expenses (-)' },
-              { id: 'recurring', label: 'Recurring' }
-            ].map((chip) => (
-              <button
-                key={chip.id}
-                onClick={() => handleFilterChange(chip.id as any)}
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: activeFilter === chip.id ? 700 : 600,
-                  backgroundColor: activeFilter === chip.id ? 'var(--color-primary)' : 'var(--bg-canvas-subtle)',
-                  color: activeFilter === chip.id ? 'white' : 'var(--text-muted)',
-                  border: '1px solid transparent',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease'
-                }}
-              >
-                {chip.label}
-              </button>
-            ))}
+          {/* Left: Type Filter Chips */}
+          <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
+            {(['all', 'income', 'expense', 'recurring'] as const).map((filter) => {
+              const isActive = activeFilter === filter;
+              const labels = { all: 'All Activity', income: 'Income (+)', expense: 'Outflows (-)', recurring: 'Recurring' };
+              return (
+                <button
+                  key={filter}
+                  type="button"
+                  onClick={() => handleFilterChange(filter)}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid',
+                    borderColor: isActive ? 'var(--color-primary-border)' : 'var(--border-subtle)',
+                    backgroundColor: isActive ? 'var(--color-primary-light)' : 'var(--bg-card)',
+                    color: isActive ? 'var(--color-primary)' : 'var(--text-muted)',
+                    fontSize: '12px',
+                    fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease'
+                  }}
+                >
+                  {labels[filter]}
+                </button>
+              );
+            })}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {/* Export Buttons */}
-            <div style={{ display: 'flex', gap: '0.375rem' }}>
+          {/* Right: Export & View Options */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Quick Export Dropdown/Buttons */}
+            <div style={{ display: 'flex', gap: '4px' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -325,7 +318,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
         </div>
       </div>
 
-      {/* 3. Transaction Items Container (with scrollable max-height when in archive mode) */}
+      {/* 3. Transaction Items Container */}
       <div
         style={{
           display: 'flex',
@@ -357,6 +350,8 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
           displayedList.map((tx) => {
             const config = getCategoryConfig(tx.category, categoryConfigs);
             const isIncome = tx.type === 'income';
+            const smartTags = getSmartTags(tx);
+            const displayDesc = tx.description || tx.note || '';
 
             return (
               <div
@@ -374,7 +369,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                 }}
               >
                 {/* Left: Icon & Details */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
                   <div
                     style={{
                       width: '38px',
@@ -392,7 +387,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                     <span className="material-symbols-outlined" style={{ fontSize: '19px' }}>{config.icon}</span>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <span
                         style={{
@@ -402,7 +397,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          maxWidth: '240px'
+                          maxWidth: '220px'
                         }}
                       >
                         {tx.title}
@@ -421,31 +416,45 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                       >
                         {config.label}
                       </span>
-                      {tx.isRecurring && (
+                      {smartTags.map((tag) => (
                         <span
+                          key={tag}
                           style={{
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            padding: '1px 5px',
+                            fontSize: '9.5px',
+                            fontWeight: 600,
+                            padding: '1px 6px',
                             borderRadius: '4px',
-                            backgroundColor: '#e0f2fe',
-                            color: '#0284c7',
-                            border: '1px solid #bae6fd'
+                            backgroundColor: 'var(--bg-canvas-subtle)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-subtle)',
+                            whiteSpace: 'nowrap'
                           }}
                         >
-                          Recurring
+                          {tag}
                         </span>
-                      )}
-                      {tx.note && (
-                        <span style={{ fontSize: '10px', fontWeight: 500, padding: '1px 6px', borderRadius: '4px', backgroundColor: 'var(--bg-canvas-subtle)', color: 'var(--text-muted)' }}>
-                          {tx.note}
-                        </span>
-                      )}
+                      ))}
                     </div>
 
-                    <span style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>
-                      {tx.date} • {tx.source || 'Checking Account'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-subtle)' }}>
+                      <span>{tx.date}</span>
+                      {displayDesc && (
+                        <>
+                          <span>•</span>
+                          <span
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '300px',
+                              color: 'var(--text-muted)'
+                            }}
+                            title={displayDesc}
+                          >
+                            {displayDesc}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -743,13 +752,36 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                 <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{selectedReceiptTx.source || 'Checking Account'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Smart Tags</span>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {getSmartTags(selectedReceiptTx).map((tag) => (
+                    <span
+                      key={tag}
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: '#f1f5f9',
+                        color: '#475569',
+                        border: '1px solid #cbd5e1'
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Status</span>
                 <span style={{ fontWeight: 700, color: '#10b981' }}>Verified & Cleared</span>
               </div>
-              {selectedReceiptTx.note && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Note</span>
-                  <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>{selectedReceiptTx.note}</span>
+              {(selectedReceiptTx.description || selectedReceiptTx.note) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}>Description / Remarks:</span>
+                  <span style={{ fontStyle: 'italic', color: 'var(--text-main)', wordBreak: 'break-word', backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    {selectedReceiptTx.description || selectedReceiptTx.note}
+                  </span>
                 </div>
               )}
             </div>

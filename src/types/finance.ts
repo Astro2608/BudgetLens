@@ -15,12 +15,14 @@ export interface Transaction {
   id: string;
   date: string; // YYYY-MM-DD
   title: string;
+  description?: string;
   amount: number;
   type: TransactionType;
   category: CategoryKey;
   isRecurring?: boolean;
   note?: string;
   source?: string;
+  tags?: string[];
 }
 
 export interface CategoryRunway {

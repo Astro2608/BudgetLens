@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useCurrency } from '../context/CurrencyContext';
 
+export type ExportFormatChoice = 'csv' | 'md' | 'none';
+
 interface ResetConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirmReset: (downloadBackup: boolean) => void;
+  onConfirmReset: (exportFormat: ExportFormatChoice) => void;
   transactionsCount: number;
   totalBalance: number;
 }
@@ -17,7 +19,7 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
   totalBalance
 }) => {
   const { formatCurrency } = useCurrency();
-  const [downloadBackup, setDownloadBackup] = useState<boolean>(true);
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormatChoice>('csv');
 
   if (!isOpen) return null;
 
@@ -44,7 +46,7 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
           backgroundColor: '#ffffff',
           borderRadius: 'var(--radius-2xl)',
           width: '100%',
-          maxWidth: '480px',
+          maxWidth: '500px',
           boxShadow: 'var(--shadow-xl)',
           border: '1px solid var(--border-subtle)',
           overflow: 'hidden',
@@ -83,10 +85,10 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
             </div>
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Reset to Fresh Session ($0)
+                Reset Dashboard to Fresh Session ($0)
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                Re-initialize the active dashboard with $0.00 balances
+                Re-initialize active ledger with zero balance
               </p>
             </div>
           </div>
@@ -126,40 +128,100 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
             </span>
             <div style={{ fontSize: '12px', color: '#92400e', lineHeight: 1.5 }}>
               <strong style={{ color: '#78350f', display: 'block', marginBottom: '2px' }}>
-                Automated Safety Archival
+                Automated Backup & Archival
               </strong>
-              Your current <strong>{transactionsCount} recorded transactions</strong> (Total Balance: {formatCurrency(totalBalance)}) will be automatically archived into a timestamped file before clearing so you never lose historical records.
+              Your <strong>{transactionsCount} recorded transactions</strong> ({formatCurrency(totalBalance)}) can be exported before resetting so you never lose financial history.
             </div>
           </div>
 
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-            The active dashboard will immediately reset all cashflow metrics, income, outflows, and runway projections to <strong>$0.00</strong>. You will begin storing entries into a completely new, clean data state.
-          </p>
+          {/* Backup Format Selection */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Select Backup Format to Save:
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.625rem',
+                  padding: '0.625rem 0.875rem',
+                  borderRadius: '8px',
+                  backgroundColor: selectedFormat === 'csv' ? '#f0fdf4' : '#fafafa',
+                  border: `1px solid ${selectedFormat === 'csv' ? '#bbf7d0' : '#e2e8f0'}`,
+                  cursor: 'pointer',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  color: 'var(--text-main)'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="resetFormat"
+                  value="csv"
+                  checked={selectedFormat === 'csv'}
+                  onChange={() => setSelectedFormat('csv')}
+                  style={{ accentColor: '#10b981' }}
+                />
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#10b981' }}>download</span>
+                <span>Export as CSV Spreadsheet (.csv)</span>
+              </label>
 
-          {/* Download Checkbox */}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.625rem',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              color: 'var(--text-main)',
-              cursor: 'pointer',
-              padding: '0.625rem 0.75rem',
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-canvas-subtle)',
-              border: '1px solid var(--border-subtle)'
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={downloadBackup}
-              onChange={(e) => setDownloadBackup(e.target.checked)}
-              style={{ width: '16px', height: '16px', accentColor: 'var(--color-primary)', cursor: 'pointer' }}
-            />
-            <span>Download offline Markdown backup file before resetting</span>
-          </label>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.625rem',
+                  padding: '0.625rem 0.875rem',
+                  borderRadius: '8px',
+                  backgroundColor: selectedFormat === 'md' ? '#faf5ff' : '#fafafa',
+                  border: `1px solid ${selectedFormat === 'md' ? '#e9d5ff' : '#e2e8f0'}`,
+                  cursor: 'pointer',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  color: 'var(--text-main)'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="resetFormat"
+                  value="md"
+                  checked={selectedFormat === 'md'}
+                  onChange={() => setSelectedFormat('md')}
+                  style={{ accentColor: '#9333ea' }}
+                />
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#9333ea' }}>description</span>
+                <span>Export as Markdown Table (.md)</span>
+              </label>
+
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.625rem',
+                  padding: '0.625rem 0.875rem',
+                  borderRadius: '8px',
+                  backgroundColor: selectedFormat === 'none' ? '#fef2f2' : '#fafafa',
+                  border: `1px solid ${selectedFormat === 'none' ? '#fecdd3' : '#e2e8f0'}`,
+                  cursor: 'pointer',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  color: 'var(--text-main)'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="resetFormat"
+                  value="none"
+                  checked={selectedFormat === 'none'}
+                  onChange={() => setSelectedFormat('none')}
+                  style={{ accentColor: '#ef4444' }}
+                />
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444' }}>do_not_disturb_on</span>
+                <span>Skip Backup (Reset Directly)</span>
+              </label>
+            </div>
+          </div>
         </div>
 
         {/* Footer Actions */}
@@ -184,7 +246,7 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => onConfirmReset(downloadBackup)}
+            onClick={() => onConfirmReset(selectedFormat)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -206,10 +268,11 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
               restart_alt
             </span>
-            <span>Archive & Reset to $0</span>
+            <span>Confirm & Reset Dashboard</span>
           </button>
         </div>
       </div>
     </div>
   );
 };
+

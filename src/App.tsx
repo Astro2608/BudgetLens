@@ -17,11 +17,11 @@ import { QuickAddOutflows } from './components/QuickAddOutflows';
 import { PredictiveRunwayWidget } from './components/PredictiveRunwayWidget';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { SettingsModal } from './components/SettingsModal';
-import { ResetConfirmModal } from './components/ResetConfirmModal';
+import { ResetConfirmModal, ExportFormatChoice } from './components/ResetConfirmModal';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { DashboardTour } from './components/DashboardTour';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
-import { exportToMarkdown } from './utils/exportUtils';
+import { exportToMarkdown, exportToCSV } from './utils/exportUtils';
 import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
 
 const WELCOME_KEY = 'budgetlens_welcome_done';
@@ -262,10 +262,22 @@ const AppContent: React.FC = () => {
     } catch (e) { }
   };
 
+  const [postResetNotice, setPostResetNotice] = useState<{
+    format: ExportFormatChoice;
+    fileName?: string;
+  } | null>(null);
+
   // Safe Archival & Reset Workspace to $0.00
-  const handleArchiveAndReset = (downloadBackup: boolean) => {
-    if (downloadBackup && transactions.length > 0) {
+  const handleArchiveAndReset = (exportFormat: ExportFormatChoice) => {
+    let exportedFileName = '';
+    const dateStr = new Date().toISOString().split('T')[0];
+
+    if (exportFormat === 'csv' && transactions.length > 0) {
+      exportToCSV(transactions);
+      exportedFileName = `budgetlens_export_${dateStr}.csv`;
+    } else if (exportFormat === 'md' && transactions.length > 0) {
       exportToMarkdown(transactions);
+      exportedFileName = `budgetlens_export_${dateStr}.md`;
     }
 
     // Reset state to clean 0
@@ -279,6 +291,12 @@ const AppContent: React.FC = () => {
     saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS).catch(e => console.error(e));
 
     setIsResetModalOpen(false);
+
+    // Display saved location directory alert modal
+    setPostResetNotice({
+      format: exportFormat,
+      fileName: exportedFileName
+    });
     showToast('Fresh Session Initialized', 0, 'income', 'Reset to $0.00');
   };
 
@@ -428,6 +446,116 @@ const AppContent: React.FC = () => {
         transactionsCount={transactions.length}
         totalBalance={summary.totalBalance}
       />
+
+      {/* Post-Reset Saved Location File Directory Alert */}
+      {postResetNotice && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 220,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem'
+          }}
+          onClick={() => setPostResetNotice(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: 'var(--radius-xl)',
+              maxWidth: '500px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: 'var(--shadow-xl)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem',
+              border: '1px solid var(--border-subtle)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  backgroundColor: '#d1fae5',
+                  color: '#059669',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>folder_zip</span>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  Dashboard Reset Completed
+                </h3>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Active session initialized with $0.00 balance
+                </span>
+              </div>
+            </div>
+
+            {postResetNotice.format !== 'none' && postResetNotice.fileName ? (
+              <div
+                style={{
+                  padding: '1rem',
+                  borderRadius: '10px',
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#10b981' }}>download_done</span>
+                  Backup Export Downloaded:
+                </span>
+                <code
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    backgroundColor: '#ffffff',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    wordBreak: 'break-all',
+                    fontFamily: 'monospace'
+                  }}
+                >
+                  {postResetNotice.fileName}
+                </code>
+                <span style={{ fontSize: '11.5px', color: '#64748b', lineHeight: 1.45 }}>
+                  📂 <strong>Saved Directory Location:</strong> Check your browser's default <strong>Downloads folder</strong> (e.g. <code>Downloads/</code>). You can copy or move this file anywhere for safekeeping.
+                </span>
+              </div>
+            ) : (
+              <div style={{ padding: '0.875rem 1rem', borderRadius: '10px', backgroundColor: '#f1f5f9', fontSize: '12.5px', color: '#475569' }}>
+                Your financial dashboard has been reset directly to $0.00 without creating a file export.
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setPostResetNotice(null)}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              Got it, continue to Fresh Dashboard
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* On-Demand Statement & File Import Modal */}
       {isImportModalOpen && (

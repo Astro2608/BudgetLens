@@ -19,6 +19,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const { currencyCode, autoDetectCurrency } = useCurrency();
   const [type, setType] = useState<TransactionType>('expense');
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<CategoryKey>('Food');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -34,15 +35,17 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
     onAddTransaction({
       title: title.trim() || 'Untitled Transaction',
+      description: description.trim() || undefined,
       amount: numAmt,
       type,
       category,
       date,
-      note: 'Manual Record',
+      note: description.trim() || 'Manual Record',
       source: 'User Entry'
     });
 
     setTitle('');
+    setDescription('');
     setAmount('');
     onClose();
   };
@@ -163,7 +166,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
           {/* Title */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>Merchant / Title</label>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>Title / Merchant Name</label>
             <input
               type="text"
               required
@@ -181,6 +184,26 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 backgroundColor: 'var(--bg-input)',
                 fontSize: '13px',
                 fontWeight: 600,
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          {/* Description (Optional) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>Description / Remarks (Optional)</label>
+            <input
+              type="text"
+              placeholder="e.g. Weekly Grocery Haul, Invoice #1042"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-input)',
+                fontSize: '13px',
+                fontWeight: 500,
                 outline: 'none'
               }}
             />
