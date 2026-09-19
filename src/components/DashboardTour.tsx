@@ -223,12 +223,14 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
     maxWidth: 'calc(100vw - 32px)',
     backgroundColor: '#ffffff',
     borderRadius: '18px',
-    padding: '20px 22px',
+    padding: '18px 20px',
     boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.38), 0 0 0 1px rgba(226, 232, 240, 0.9)',
     animation: 'tourFadeScale 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
     transition: 'top 0.25s ease, left 0.25s ease',
-    maxHeight: '90vh',
-    overflowY: 'auto'
+    maxHeight: 'calc(100vh - 48px)',
+    display: 'flex',
+    flexDirection: 'column',
+    boxSizing: 'border-box'
   };
 
   if (targetRect && !isCenter) {
@@ -295,8 +297,8 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
 
       {/* Tour Step Popover Card */}
       <div style={tooltipStyle} onClick={(e) => e.stopPropagation()}>
-        {/* Step Badge & Close */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+        {/* Header: Step Badge & Close */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexShrink: 0 }}>
           <span
             style={{
               fontSize: '11px',
@@ -330,38 +332,48 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
         </div>
 
         {/* Title */}
-        <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: '#0f172a', flexShrink: 0 }}>
           {currentStep.title}
         </h3>
 
         {/* Description */}
-        <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#475569', lineHeight: 1.45 }}>
+        <p style={{ margin: '0 0 10px', fontSize: '12.5px', color: '#475569', lineHeight: 1.4, flexShrink: 0 }}>
           {currentStep.description}
         </p>
 
-        {/* Detailed Element Breakdown (Simple & Friendly) */}
+        {/* Scrollable Keypoints Container */}
         {currentStep.keyPoints && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              marginBottom: '12px',
+              overflowY: 'auto',
+              flex: 1,
+              paddingRight: '4px'
+            }}
+          >
             {currentStep.keyPoints.map((point) => (
               <div
                 key={point.title}
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
-                  gap: '10px',
+                  gap: '8px',
                   backgroundColor: '#f8fafc',
                   border: '1px solid #e2e8f0',
                   borderRadius: '10px',
-                  padding: '8px 10px'
+                  padding: '7px 9px'
                 }}
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: '18px', color: '#10b981', marginTop: '1px', flexShrink: 0 }}
+                  style={{ fontSize: '17px', color: '#10b981', marginTop: '1px', flexShrink: 0 }}
                 >
                   {point.icon}
                 </span>
-                <div style={{ fontSize: '12px', lineHeight: 1.4 }}>
+                <div style={{ fontSize: '12px', lineHeight: 1.35 }}>
                   <strong style={{ color: '#0f172a' }}>{point.title}: </strong>
                   <span style={{ color: '#475569' }}>{point.text}</span>
                 </div>
@@ -370,8 +382,17 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
           </div>
         )}
 
-        {/* Footer Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+        {/* Sticky Footer Navigation */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: '10px',
+            borderTop: '1px solid #e2e8f0',
+            flexShrink: 0
+          }}
+        >
           <button
             onClick={handlePrev}
             disabled={currentStepIdx === 0}
