@@ -22,17 +22,17 @@ const TOUR_STEPS: TourStep[] = [
     targetSelector: '.tour-hero',
     badge: 'Step 1 of 5 • Money Summary',
     title: '💰 Bank Balance & Live Cash Status',
-    description: 'This gives you a clear, live overview of where your real money stands right now.',
+    description: 'Provides an accurate, real-time summary of your current bank balance and overall cashflow.',
     keyPoints: [
       {
         icon: 'account_balance_wallet',
         title: 'Safe-to-Spend Balance',
-        text: 'The true amount of cash you have available in your pocket right now.'
+        text: 'The calculated total of your starting bank balance plus income minus recorded expenses.'
       },
       {
         icon: 'verified',
-        title: 'Surplus vs Deficit Badge',
-        text: 'A green badge means you are safe with money to spare; red warns you if spending went over.'
+        title: 'Balance Status Indicator',
+        text: 'Displays a green badge when your total bank balance is positive, or a red badge if your balance dips into deficit.'
       },
       {
         icon: 'payments',
@@ -46,27 +46,22 @@ const TOUR_STEPS: TourStep[] = [
     targetSelector: '.tour-quick-entry',
     badge: 'Step 2 of 5 • Fast Data Entry',
     title: '⚡ 1-Liner Quick Log Bar',
-    description: 'Log your daily expenses in just 3 seconds without leaving the keyboard.',
+    description: 'Log daily expenses or income in seconds without leaving your keyboard.',
     keyPoints: [
       {
         icon: 'dialpad',
-        title: 'Natural 4-Step Flow',
-        text: 'Type the Price ➔ add a Remark (like Lunch) ➔ pick Category ➔ pick Date.'
+        title: 'Fast 4-Field Entry',
+        text: 'Enter the Amount ➔ Title / Merchant ➔ optional Description ➔ pick Category & Date.'
       },
       {
         icon: 'palette',
-        title: 'Dynamic Color Tint',
-        text: 'The box changes color to match your category (Green for Income, Red for Bills, Teal for General).'
-      },
-      {
-        icon: 'event',
-        title: 'Scroll Wheel Date Picker',
-        text: 'Click the date chip to spin the 3D scroll wheel, or tap Today or Yesterday.'
+        title: 'Dynamic Category Tinting',
+        text: 'The input bar automatically updates its color accent to match your selected category.'
       },
       {
         icon: 'keyboard_return',
         title: 'Press Enter Anywhere',
-        text: 'Hit Enter on your keyboard to instantly record the transaction into your ledger.'
+        text: 'Press Enter on your keyboard at any point to record the transaction directly into your ledger.'
       }
     ],
     position: 'bottom'
@@ -74,81 +69,71 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetSelector: '.tour-chart',
     badge: 'Step 3 of 5 • Visual Trends',
-    title: '📊 How to Read Your Cash Flow Chart',
-    description: 'A visual picture of how your money moves over days and months.',
+    title: '📊 Cash Flow Activity Chart',
+    description: 'Visual breakdown showing how your money moves over days, weeks, and months.',
     keyPoints: [
       {
         icon: 'arrow_upward',
-        title: 'Bars on Top (+)',
-        text: 'Green bars going up show money received (salary, freelance, deposits).'
+        title: 'Income Bars (Top)',
+        text: 'Green bars going up show incoming money (salary, freelance, deposits).'
       },
       {
         icon: 'arrow_downward',
-        title: 'Bars on Bottom (-)',
-        text: 'Red bars dipping down show money spent on bills, food, or shopping.'
-      },
-      {
-        icon: 'savings',
-        title: 'Net Savings Line',
-        text: 'Shows how much real money you kept in your pocket during that time.'
+        title: 'Expense Bars (Bottom)',
+        text: 'Red bars going down show money spent on bills, food, or shopping.'
       },
       {
         icon: 'date_range',
-        title: 'Time Buttons',
-        text: 'Easily switch views between 1 Month, 3 Months, or 1 Year.'
+        title: 'Timeframe Filters',
+        text: 'Easily filter chart views across 1 Month, 3 Months, 1 Year, or All time.'
       }
     ],
     position: 'bottom'
   },
   {
     targetSelector: '.tour-donut',
-    badge: 'Step 4 of 5 • Spending Slices',
-    title: '🍩 Where Your Money Goes (Pie Chart)',
-    description: 'A colorful breakdown showing which categories take up the biggest chunk of your money.',
+    badge: 'Step 4 of 5 • Spending Breakdown',
+    title: '🍩 Category Distribution Donut Chart',
+    description: 'Visual breakdown showing which categories account for your largest expenditures.',
     keyPoints: [
       {
         icon: 'pie_chart',
-        title: 'Spending Slices',
-        text: 'See the percentage of your spending divided across Bills, Food, Transport, and Savings.'
-      },
-      {
-        icon: 'donut_large',
-        title: 'Double Ring View',
-        text: 'Outer ring shows every category; inner ring groups essentials vs extras.'
+        title: 'Categorized Slices',
+        text: 'See the proportion of your spending allocated across Food, Bills, Rent, and Transport.'
       },
       {
         icon: 'touch_app',
-        title: 'Hover to See Details',
-        text: 'Hover or tap any slice to see the exact dollar amount and percentage.'
+        title: 'Interactive Inspection',
+        text: 'Hover over any slice to view exact dollar amounts and percentage shares.'
       }
     ],
     position: 'top'
   },
   {
     targetSelector: 'center',
-    badge: 'Step 5 of 5 • Extra Features',
-    title: '🌟 Bonus Features & Helpful Tips',
-    description: 'BudgetLens includes extra smart tools to make managing money simple and private.',
+    badge: 'Step 5 of 5 • Extra Tools',
+    title: '🌟 Dashboard Tools & Privacy Features',
+    description: 'BudgetLens is 100% offline and browser-based to keep your data private.',
     keyPoints: [
       {
         icon: 'upload_file',
-        title: 'Attach e-Statement',
-        text: 'Drop bank PDFs (DBS, OCBC, UOB) or CSVs anytime to auto-import transactions.'
+        title: 'Statement Import',
+        text: 'Drop bank e-Statements (PDF, CSV, MD) to auto-extract transaction tables with verification safety.'
       },
       {
-        icon: 'hourglass_bottom',
-        title: 'Category Lifespan',
-        text: 'Tells you how many months your savings will last under current spending habits.'
+        icon: 'download',
+        title: 'Export & Reset Backups',
+        text: 'Export your ledger anytime to CSV or Markdown, or reset with full backup format choices.'
       },
       {
         icon: 'info',
-        title: 'Helpful Info Icons (ℹ️)',
-        text: 'Every single card on this dashboard has an info button explaining how it works.'
+        title: 'Info Tooltips (ℹ️)',
+        text: 'Click the info icons on any section header to learn how metrics are calculated.'
       },
       {
         icon: 'currency_exchange',
-        title: 'Currency Switcher',
-        text: 'Change your currency at the top right anytime (SGD, USD, EUR, and more).'
+        title: 'Multi-Currency Support',
+        text: 'Switch your active currency code in Settings anytime (SGD, USD, EUR, GBP, etc.).'
       }
     ],
     position: 'center'
