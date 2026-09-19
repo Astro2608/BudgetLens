@@ -12,6 +12,7 @@ export interface CSVParseResult {
 
 interface ColumnMapping {
   date: string | null;
+  title: string | null;
   description: string | null;
   amount: string | null;
   debit: string | null;
@@ -20,6 +21,7 @@ interface ColumnMapping {
   type: string | null;
   source: string | null;
   note: string | null;
+  tags: string | null;
   recurring: string | null;
 }
 
@@ -58,25 +60,29 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
   };
 
   const date = findMatch(['transaction date', 'txn date', 'posting date', 'value date', 'date', 'time']);
-  const description = findMatch(['transaction description', 'narrative', 'description', 'particulars', 'remarks', 'details', 'payee', 'merchant', 'title']);
+  const title = findMatch(['title', 'merchant', 'payee']);
+  const description = findMatch(['description', 'transaction description', 'narrative', 'particulars', 'remarks', 'details']);
   const amount = findMatch(['transaction amount', 'amount', 'net amount', 'total', 'amt', 'price', 'sgd', 'usd', 'inr', 'eur', 'gbp', 'jpy', 'aud', 'cad', 'myr', 'cny', 'val']);
   const debit = findMatch(['debit amount', 'withdrawal', 'debit', 'outflow', 'dr']);
   const credit = findMatch(['credit amount', 'deposit', 'credit', 'inflow', 'cr']);
-  const category = findMatch(['category', 'expense category', 'tag']);
+  const category = findMatch(['category', 'expense category']);
   const type = findMatch(['type', 'txn type', 'transaction type', 'cr/dr']);
   const source = findMatch(['source', 'account', 'bank', 'card']);
+  const tags = findMatch(['tags', 'tag', 'labels', 'keywords']);
   const note = findMatch(['note', 'notes', 'memo']);
   const recurring = findMatch(['recurring', 'isrecurring', 'subscription']);
 
   return {
     date: date || fields[0],
-    description: description || fields[1] || fields[0],
+    title: title || description || fields[1] || fields[0],
+    description,
     amount: amount || (!debit && !credit ? fields[2] || fields[0] : null),
     debit,
     credit,
     category,
     type,
     source,
+    tags,
     note,
     recurring
   };
@@ -190,17 +196,21 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
 
             const source = mapping.source && row[mapping.source] ? String(row[mapping.source]).trim() : file.name;
             const note = mapping.note && row[mapping.note] ? String(row[mapping.note]).trim() : `e-Statement (${file.name})`;
+            const descRaw = mapping.description && row[mapping.description] ? String(row[mapping.description]).trim() : undefined;
+            const tagsRaw = mapping.tags && row[mapping.tags] ? String(row[mapping.tags]).split(/[;,]/).map((s) => s.trim()).filter(Boolean) : undefined;
 
             parsedList.push({
               id: `csv-${Date.now()}-${index}`,
               date,
               title,
+              description: descRaw,
               amount: amt,
               type: txType,
               category,
               isRecurring,
               note,
-              source
+              source,
+              tags: tagsRaw
             });
           });
 

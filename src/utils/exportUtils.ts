@@ -1,18 +1,25 @@
 import { Transaction } from '../types/finance';
 import { formatSGD } from './financeCalculator';
+import { getSmartTags } from './tagUtils';
 
 export const exportToCSV = (transactions: Transaction[]) => {
-  const headers = ['Date', 'Title', 'Amount', 'Type', 'Category', 'Source', 'Note', 'Recurring'];
-  const rows = transactions.map(t => [
-    t.date,
-    `"${(t.title || '').replace(/"/g, '""')}"`,
-    t.amount,
-    t.type,
-    t.category,
-    `"${(t.source || '').replace(/"/g, '""')}"`,
-    `"${(t.note || '').replace(/"/g, '""')}"`,
-    t.isRecurring ? 'Yes' : 'No'
-  ]);
+  const headers = ['Date', 'Title', 'Description', 'Amount', 'Type', 'Category', 'Source', 'Tags', 'Note', 'Recurring'];
+  const rows = transactions.map(t => {
+    const smartTags = getSmartTags(t).join('; ');
+    const desc = t.description || t.note || '';
+    return [
+      t.date,
+      `"${(t.title || '').replace(/"/g, '""')}"`,
+      `"${(desc).replace(/"/g, '""')}"`,
+      t.amount,
+      t.type,
+      t.category,
+      `"${(t.source || '').replace(/"/g, '""')}"`,
+      `"${(smartTags).replace(/"/g, '""')}"`,
+      `"${(t.note || '').replace(/"/g, '""')}"`,
+      t.isRecurring ? 'Yes' : 'No'
+    ];
+  });
   
   const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
   // Include UTF-8 BOM so Excel and Chromium browsers properly read character set & formatting
@@ -26,12 +33,14 @@ export function exportToMarkdown(transactions: Transaction[], currencyCode?: str
   if (transactions.length === 0) return;
 
   const headers = [
-    '| Date | Title | Amount | Type | Category | Source | Note | Recurring |',
-    '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |'
+    '| Date | Title | Description | Amount | Type | Category | Source | Tags | Note | Recurring |',
+    '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |'
   ];
-  const rows = transactions.map(t => 
-    `| ${t.date} | ${(t.title || '').replace(/\|/g, '-')} | ${formatSGD(t.amount, false, currencyCode)} | ${t.type} | ${t.category} | ${(t.source || '').replace(/\|/g, '-')} | ${(t.note || '').replace(/\|/g, '-')} | ${t.isRecurring ? 'Yes' : 'No'} |`
-  );
+  const rows = transactions.map(t => {
+    const smartTags = getSmartTags(t).join('; ');
+    const desc = t.description || t.note || '';
+    return `| ${t.date} | ${(t.title || '').replace(/\|/g, '-')} | ${(desc).replace(/\|/g, '-')} | ${formatSGD(t.amount, false, currencyCode)} | ${t.type} | ${t.category} | ${(t.source || '').replace(/\|/g, '-')} | ${smartTags.replace(/\|/g, '-')} | ${(t.note || '').replace(/\|/g, '-')} | ${t.isRecurring ? 'Yes' : 'No'} |`;
+  });
 
   const mdContent = `# BudgetLens Export\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}\n`;
   
