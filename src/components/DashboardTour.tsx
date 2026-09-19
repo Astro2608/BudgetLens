@@ -158,6 +158,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
     const step = TOUR_STEPS[currentStepIdx];
     if (!step || step.position === 'center' || step.targetSelector === 'center') {
       setTargetRect(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -168,6 +169,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
       setTargetRect(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [isOpen, currentStepIdx]);
 
@@ -176,7 +178,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
     const handleResize = () => updateRect();
     const handleScroll = () => {
       const step = TOUR_STEPS[currentStepIdx];
-      if (step && step.targetSelector !== 'center') {
+      if (step && step.targetSelector !== 'center' && step.position !== 'center') {
         const el = document.querySelector(step.targetSelector);
         if (el) setTargetRect(el.getBoundingClientRect());
       }
@@ -216,9 +218,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
   const isCenter = currentStep.position === 'center' || !targetRect;
   const isTop = currentStep.position === 'top';
 
-  let tooltipStyle: React.CSSProperties = {
-    position: 'fixed',
-    zIndex: 99999,
+  const cardBaseStyle: React.CSSProperties = {
     width: '420px',
     maxWidth: 'calc(100vw - 32px)',
     backgroundColor: '#ffffff',
@@ -226,26 +226,34 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
     padding: '18px 20px',
     boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.38), 0 0 0 1px rgba(226, 232, 240, 0.9)',
     animation: 'tourFadeScale 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-    transition: 'top 0.25s ease, left 0.25s ease',
-    maxHeight: 'calc(100vh - 48px)',
     display: 'flex',
     flexDirection: 'column',
     boxSizing: 'border-box'
   };
 
+  let positionStyle: React.CSSProperties = {};
+
   if (targetRect && !isCenter) {
     const left = Math.max(16, Math.min(window.innerWidth - 440, targetRect.left + (targetRect.width / 2) - 210));
     if (isTop) {
-      tooltipStyle.top = `${Math.max(16, targetRect.top - 280)}px`;
-      tooltipStyle.left = `${left}px`;
+      positionStyle = {
+        position: 'fixed',
+        zIndex: 99999,
+        top: `${Math.max(16, targetRect.top - 280)}px`,
+        left: `${left}px`,
+        maxHeight: 'min(480px, calc(100vh - 48px))',
+        transition: 'top 0.25s ease, left 0.25s ease'
+      };
     } else {
-      tooltipStyle.top = `${Math.min(window.innerHeight - 320, targetRect.bottom + 12)}px`;
-      tooltipStyle.left = `${left}px`;
+      positionStyle = {
+        position: 'fixed',
+        zIndex: 99999,
+        top: `${Math.min(window.innerHeight - 320, targetRect.bottom + 12)}px`,
+        left: `${left}px`,
+        maxHeight: 'min(480px, calc(100vh - 48px))',
+        transition: 'top 0.25s ease, left 0.25s ease'
+      };
     }
-  } else {
-    tooltipStyle.top = '50%';
-    tooltipStyle.left = '50%';
-    tooltipStyle.transform = 'translate(-50%, -50%)';
   }
 
   return (
@@ -296,162 +304,351 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ manualRun = false,
       )}
 
       {/* Tour Step Popover Card */}
-      <div style={tooltipStyle} onClick={(e) => e.stopPropagation()}>
-        {/* Header: Step Badge & Close */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexShrink: 0 }}>
-          <span
+      {isCenter ? (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            pointerEvents: 'none',
+            padding: '16px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div
             style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: '#047857',
-              backgroundColor: '#ecfdf5',
-              padding: '3px 9px',
-              borderRadius: '6px',
-              border: '1px solid #a7f3d0'
+              ...cardBaseStyle,
+              pointerEvents: 'auto',
+              maxHeight: 'min(480px, calc(100vh - 36px))'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {currentStep.badge}
-          </span>
-          <button
-            onClick={handleComplete}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#94a3b8',
-              cursor: 'pointer',
-              padding: '2px',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-            title="Skip Tour"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
-          </button>
+            {/* Header: Step Badge & Close */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexShrink: 0 }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: '#047857',
+                  backgroundColor: '#ecfdf5',
+                  padding: '3px 9px',
+                  borderRadius: '6px',
+                  border: '1px solid #a7f3d0'
+                }}
+              >
+                {currentStep.badge}
+              </span>
+              <button
+                onClick={handleComplete}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                title="Skip Tour"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+              </button>
+            </div>
+
+            {/* Title */}
+            <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: '#0f172a', flexShrink: 0 }}>
+              {currentStep.title}
+            </h3>
+
+            {/* Description */}
+            <p style={{ margin: '0 0 10px', fontSize: '12.5px', color: '#475569', lineHeight: 1.4, flexShrink: 0 }}>
+              {currentStep.description}
+            </p>
+
+            {/* Scrollable Keypoints Container */}
+            {currentStep.keyPoints && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  marginBottom: '12px',
+                  overflowY: 'auto',
+                  flex: 1,
+                  paddingRight: '4px'
+                }}
+              >
+                {currentStep.keyPoints.map((point) => (
+                  <div
+                    key={point.title}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      padding: '7px 9px'
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '17px', color: '#10b981', marginTop: '1px', flexShrink: 0 }}
+                    >
+                      {point.icon}
+                    </span>
+                    <div style={{ fontSize: '12px', lineHeight: 1.35 }}>
+                      <strong style={{ color: '#0f172a' }}>{point.title}: </strong>
+                      <span style={{ color: '#475569' }}>{point.text}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Sticky Footer Navigation */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingTop: '10px',
+                borderTop: '1px solid #e2e8f0',
+                flexShrink: 0
+              }}
+            >
+              <button
+                onClick={handlePrev}
+                disabled={currentStepIdx === 0}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: currentStepIdx === 0 ? '#cbd5e1' : '#475569',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: currentStepIdx === 0 ? 'default' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_back</span>
+                <span>Back</span>
+              </button>
+
+              {/* Dots Indicator */}
+              <div style={{ display: 'flex', gap: '5px' }}>
+                {TOUR_STEPS.map((_, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      width: i === currentStepIdx ? '16px' : '6px',
+                      height: '6px',
+                      borderRadius: '3px',
+                      backgroundColor: i === currentStepIdx ? '#10b981' : '#cbd5e1',
+                      transition: 'all 0.2s ease'
+                    }}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={handleNext}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                <span>{currentStepIdx === TOUR_STEPS.length - 1 ? 'Finish' : 'Next'}</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                  {currentStepIdx === TOUR_STEPS.length - 1 ? 'done' : 'arrow_forward'}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
+      ) : (
+        <div
+          style={{
+            ...cardBaseStyle,
+            ...positionStyle
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header: Step Badge & Close */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexShrink: 0 }}>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#047857',
+                backgroundColor: '#ecfdf5',
+                padding: '3px 9px',
+                borderRadius: '6px',
+                border: '1px solid #a7f3d0'
+              }}
+            >
+              {currentStep.badge}
+            </span>
+            <button
+              onClick={handleComplete}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Skip Tour"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+            </button>
+          </div>
 
-        {/* Title */}
-        <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: '#0f172a', flexShrink: 0 }}>
-          {currentStep.title}
-        </h3>
+          {/* Title */}
+          <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: '#0f172a', flexShrink: 0 }}>
+            {currentStep.title}
+          </h3>
 
-        {/* Description */}
-        <p style={{ margin: '0 0 10px', fontSize: '12.5px', color: '#475569', lineHeight: 1.4, flexShrink: 0 }}>
-          {currentStep.description}
-        </p>
+          {/* Description */}
+          <p style={{ margin: '0 0 10px', fontSize: '12.5px', color: '#475569', lineHeight: 1.4, flexShrink: 0 }}>
+            {currentStep.description}
+          </p>
 
-        {/* Scrollable Keypoints Container */}
-        {currentStep.keyPoints && (
+          {/* Scrollable Keypoints Container */}
+          {currentStep.keyPoints && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                marginBottom: '12px',
+                overflowY: 'auto',
+                flex: 1,
+                paddingRight: '4px'
+              }}
+            >
+              {currentStep.keyPoints.map((point) => (
+                <div
+                  key={point.title}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '7px 9px'
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: '17px', color: '#10b981', marginTop: '1px', flexShrink: 0 }}
+                  >
+                    {point.icon}
+                  </span>
+                  <div style={{ fontSize: '12px', lineHeight: 1.35 }}>
+                    <strong style={{ color: '#0f172a' }}>{point.title}: </strong>
+                    <span style={{ color: '#475569' }}>{point.text}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Sticky Footer Navigation */}
           <div
             style={{
               display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-              marginBottom: '12px',
-              overflowY: 'auto',
-              flex: 1,
-              paddingRight: '4px'
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: '10px',
+              borderTop: '1px solid #e2e8f0',
+              flexShrink: 0
             }}
           >
-            {currentStep.keyPoints.map((point) => (
-              <div
-                key={point.title}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '8px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '7px 9px'
-                }}
-              >
+            <button
+              onClick={handlePrev}
+              disabled={currentStepIdx === 0}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: currentStepIdx === 0 ? '#cbd5e1' : '#475569',
+                fontSize: '12.5px',
+                fontWeight: 700,
+                cursor: currentStepIdx === 0 ? 'default' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_back</span>
+              <span>Back</span>
+            </button>
+
+            {/* Dots Indicator */}
+            <div style={{ display: 'flex', gap: '5px' }}>
+              {TOUR_STEPS.map((_, i) => (
                 <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '17px', color: '#10b981', marginTop: '1px', flexShrink: 0 }}
-                >
-                  {point.icon}
-                </span>
-                <div style={{ fontSize: '12px', lineHeight: 1.35 }}>
-                  <strong style={{ color: '#0f172a' }}>{point.title}: </strong>
-                  <span style={{ color: '#475569' }}>{point.text}</span>
-                </div>
-              </div>
-            ))}
+                  key={i}
+                  style={{
+                    width: i === currentStepIdx ? '16px' : '6px',
+                    height: '6px',
+                    borderRadius: '3px',
+                    backgroundColor: i === currentStepIdx ? '#10b981' : '#cbd5e1',
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={handleNext}
+              style={{
+                backgroundColor: '#10b981',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              <span>{currentStepIdx === TOUR_STEPS.length - 1 ? 'Finish' : 'Next'}</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                {currentStepIdx === TOUR_STEPS.length - 1 ? 'done' : 'arrow_forward'}
+              </span>
+            </button>
           </div>
-        )}
-
-        {/* Sticky Footer Navigation */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingTop: '10px',
-            borderTop: '1px solid #e2e8f0',
-            flexShrink: 0
-          }}
-        >
-          <button
-            onClick={handlePrev}
-            disabled={currentStepIdx === 0}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: currentStepIdx === 0 ? '#cbd5e1' : '#475569',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              cursor: currentStepIdx === 0 ? 'default' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_back</span>
-            <span>Back</span>
-          </button>
-
-          {/* Dots Indicator */}
-          <div style={{ display: 'flex', gap: '5px' }}>
-            {TOUR_STEPS.map((_, i) => (
-              <span
-                key={i}
-                style={{
-                  width: i === currentStepIdx ? '16px' : '6px',
-                  height: '6px',
-                  borderRadius: '3px',
-                  backgroundColor: i === currentStepIdx ? '#10b981' : '#cbd5e1',
-                  transition: 'all 0.2s ease'
-                }}
-              />
-            ))}
-          </div>
-
-          <button
-            onClick={handleNext}
-            style={{
-              backgroundColor: '#10b981',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '6px 14px',
-              fontSize: '12.5px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
-            }}
-          >
-            <span>{currentStepIdx === TOUR_STEPS.length - 1 ? 'Finish' : 'Next'}</span>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-              {currentStepIdx === TOUR_STEPS.length - 1 ? 'done' : 'arrow_forward'}
-            </span>
-          </button>
         </div>
-      </div>
+      )}
     </>
   );
 };
