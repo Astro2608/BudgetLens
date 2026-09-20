@@ -23,11 +23,40 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
 }) => {
   const { formatCurrency, currencyCode } = useCurrency();
   const [activeFilter, setActiveFilter] = useState<'all' | 'income' | 'expense' | 'recurring'>('all');
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReceiptTx, setSelectedReceiptTx] = useState<Transaction | null>(null);
   const itemsPerPage = 8;
+
+  // Extract all unique tags present across transactions in the ledger
+  const allAvailableTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    transactions.forEach((t) => {
+      (t.tags || []).forEach((tg) => {
+        const clean = tg.trim().toLowerCase().replace(/^#/, '');
+        if (clean) tagSet.add(clean);
+      });
+    });
+    return Array.from(tagSet).sort();
+  }, [transactions]);
+
+  // Toggle cycling through all available tags: All -> Tag1 -> Tag2 -> ... -> All
+  const handleToggleTagFilter = () => {
+    if (allAvailableTags.length === 0) return;
+    setCurrentPage(1);
+    if (!selectedTagFilter) {
+      setSelectedTagFilter(allAvailableTags[0]);
+    } else {
+      const currIdx = allAvailableTags.indexOf(selectedTagFilter);
+      if (currIdx === -1 || currIdx === allAvailableTags.length - 1) {
+        setSelectedTagFilter(null);
+      } else {
+        setSelectedTagFilter(allAvailableTags[currIdx + 1]);
+      }
+    }
+  };
 
   // Filter transactions
   const filtered = useMemo(() => {
@@ -39,6 +68,12 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
       list = list.filter((t) => t.type === 'expense');
     } else if (activeFilter === 'recurring') {
       list = list.filter((t) => t.isRecurring);
+    }
+
+    if (selectedTagFilter) {
+      list = list.filter((t) =>
+        (t.tags || []).some((tg) => tg.trim().toLowerCase().replace(/^#/, '') === selectedTagFilter.toLowerCase())
+      );
     }
 
     if (searchTerm.trim()) {
@@ -56,7 +91,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
     }
 
     return list;
-  }, [transactions, activeFilter, searchTerm]);
+  }, [transactions, activeFilter, selectedTagFilter, searchTerm]);
 
   // Reset page when filter or search changes
   const handleFilterChange = (filter: 'all' | 'income' | 'expense' | 'recurring') => {
@@ -235,6 +270,62 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                 </button>
               );
             })}
+
+            {/* Tag Toggle Filter Button */}
+            <button
+              type="button"
+              onClick={handleToggleTagFilter}
+              title="Filter transactions by tag. Click to cycle through all available tags in your ledger."
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '0.35rem 0.75rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid',
+                borderColor: selectedTagFilter ? 'var(--color-primary)' : 'var(--border-subtle)',
+                backgroundColor: selectedTagFilter ? 'var(--color-primary-light)' : 'var(--bg-card)',
+                color: selectedTagFilter ? 'var(--color-primary)' : 'var(--text-muted)',
+                fontSize: '12px',
+                fontWeight: selectedTagFilter ? 700 : 500,
+                cursor: allAvailableTags.length > 0 ? 'pointer' : 'default',
+                opacity: allAvailableTags.length > 0 ? 1 : 0.65,
+                transition: 'all 150ms ease'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+                label
+              </span>
+              <span>
+                {selectedTagFilter ? `Tag: #${selectedTagFilter}` : 'Tag: All'}
+              </span>
+              {selectedTagFilter ? (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedTagFilter(null);
+                    setCurrentPage(1);
+                  }}
+                  style={{
+                    marginLeft: '2px',
+                    padding: '0 3px',
+                    borderRadius: '4px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    lineHeight: '1.2'
+                  }}
+                  title="Clear tag filter"
+                >
+                  ✕
+                </span>
+              ) : allAvailableTags.length > 0 ? (
+                <span style={{ fontSize: '10px', opacity: 0.75, fontWeight: 700 }}>
+                  ({allAvailableTags.length})
+                </span>
+              ) : null}
+            </button>
           </div>
 
           {/* Right: Export & View Options */}
@@ -347,7 +438,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
             <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>
               receipt_long
             </span>
-            No transactions match "{searchTerm || activeFilter}". Try adjusting your filters.
+            No transactions match {selectedTagFilter ? `tag "#${selectedTagFilter}"` : searchTerm ? `"${searchTerm}"` : `filter "${activeFilter}"`}. Try adjusting your filters.
           </div>
         ) : (
           displayedList.map((tx) => {
@@ -419,16 +510,40 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                       >
                         {config.label}
                       </span>
+                      {tx.isRecurring && (
+                        <span
+                          style={{
+                            fontSize: '9.5px',
+                            fontWeight: 700,
+                            padding: '1px 6px',
+                            borderRadius: '5px',
+                            backgroundColor: '#e0e7ff',
+                            color: '#4338ca',
+                            border: '1px solid #c7d2fe',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}
+                          title="Recurring predictable charge / monthly subscription"
+                        >
+                          🔁 Recurring
+                        </span>
+                      )}
                       {smartTags.map((tag) => {
                         const cleanTag = tag.replace(/^#/, '');
-                        const isMatch = searchTerm.toLowerCase().replace(/^#/, '').trim() === cleanTag.toLowerCase();
+                        const isMatch = (selectedTagFilter && selectedTagFilter.toLowerCase() === cleanTag.toLowerCase()) || (searchTerm.toLowerCase().replace(/^#/, '').trim() === cleanTag.toLowerCase());
                         return (
                           <button
                             key={tag}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleSearchChange(cleanTag);
+                              if (selectedTagFilter === cleanTag) {
+                                setSelectedTagFilter(null);
+                              } else {
+                                setSelectedTagFilter(cleanTag);
+                              }
+                              setCurrentPage(1);
                             }}
                             style={{
                               fontSize: '9.5px',

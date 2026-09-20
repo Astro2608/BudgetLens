@@ -28,6 +28,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
   const [category, setCategory] = useState<CategoryKey>('Food');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [tagsInput, setTagsInput] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
 
   // Loan allocations: loanId -> allocated amount
   const [selectedLoanIds, setSelectedLoanIds] = useState<string[]>([]);
@@ -43,6 +44,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
       setCategory(transaction.category || 'General');
       setDate(transaction.date || new Date().toISOString().split('T')[0]);
       setTagsInput(transaction.tags ? transaction.tags.join(', ') : '');
+      setIsRecurring(Boolean(transaction.isRecurring));
 
       // Initialize loan selections
       const numericAmt = transaction.amount || 0;
@@ -238,6 +240,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
       type,
       category,
       date,
+      isRecurring,
       tags: parsedTags.length > 0 ? parsedTags : undefined,
       loanAllocations: selectedLoanIds.length > 0 ? finalAllocations : {}
     };
@@ -488,6 +491,37 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Recurring Toggle */}
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 12px',
+              borderRadius: '10px',
+              backgroundColor: isRecurring ? '#eff6ff' : '#f8fafc',
+              border: isRecurring ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+              cursor: 'pointer',
+              userSelect: 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              style={{ accentColor: 'var(--color-primary)', cursor: 'pointer', width: '16px', height: '16px' }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: isRecurring ? '#1d4ed8' : '#0f172a' }}>
+                🔁 Recurring Transaction (Monthly / Subscription)
+              </span>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                Flag this charge as regular repeating expense or scheduled income
+              </span>
+            </div>
+          </label>
 
           {/* Smart Loan Allocation Section (If user has active loans) */}
           {loans.length > 0 && type === 'expense' && (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Transaction, CategoryKey } from '../types/finance';
+import { Transaction, CategoryKey, CategoryConfig } from '../types/finance';
 import { parseBankCSV, CSVParseResult } from '../utils/csvParser';
 import { parseBankPDF } from '../utils/pdfParser';
 import { parseMarkdownTable } from '../utils/mdParser';
@@ -7,16 +7,19 @@ import { parseFreeformText, parseFreeformSync } from '../utils/freeformParser';
 import { CATEGORY_LIST } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
 import { SectionInfoButton } from './SectionInfoButton';
+import { detectRecurringTransactions } from '../utils/recurringDetector';
 
 interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
   existingTransactions?: Transaction[];
+  categoryConfigs?: Record<CategoryKey, CategoryConfig>;
   onClose?: () => void;
 }
 
 export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   onImportTransactions,
   existingTransactions = [],
+  categoryConfigs = {},
   onClose
 }) => {
   const { formatCurrency, autoDetectCurrency } = useCurrency();
@@ -26,10 +29,12 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<CSVParseResult | null>(null);
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'duplicate'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'recurring' | 'duplicate'>('all');
   const [confirmDuplicatesModal, setConfirmDuplicatesModal] = useState(false);
   const [showVerifyConfirmModal, setShowVerifyConfirmModal] = useState(false);
   const [freeformText, setFreeformText] = useState('');
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [editingTitleValue, setEditingTitleValue] = useState<string>('');
 
   const liveDetectedTransactions = useMemo(() => {
     if (!freeformText.trim()) return [];
@@ -74,14 +79,18 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
       } else {
         result = await parseBankCSV(file);
       }
+
+      // Auto-detect recurring transactions across cadence and subscriptions
+      const detected = detectRecurringTransactions(result.transactions, existingTransactions);
+
       setParseResult(result);
-      setModalTransactions(result.transactions);
+      setModalTransactions(detected);
       setFilterType('all');
       setConfirmDuplicatesModal(false);
       setShowVerifyConfirmModal(false);
 
-      if (result.transactions && result.transactions.length > 0) {
-        const sampleText = result.transactions.map((t) => `${t.title} ${t.source || ''} ${t.note || ''}`).join(' ');
+      if (detected && detected.length > 0) {
+        const sampleText = detected.map((t) => `${t.title} ${t.source || ''} ${t.note || ''}`).join(' ');
         autoDetectCurrency(sampleText);
       }
     } catch (err: any) {
@@ -128,8 +137,9 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
         setIsParsing(false);
         return;
       }
+      const detected = detectRecurringTransactions(result.transactions, existingTransactions);
       setParseResult(result);
-      setModalTransactions(result.transactions);
+      setModalTransactions(detected);
       setFilterType('all');
       setConfirmDuplicatesModal(false);
       setShowVerifyConfirmModal(false);
@@ -154,6 +164,57 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
           category: newCat
         };
       })
+    );
+  };
+
+  // Inline title editing
+  const handleStartEditTitle = (tx: Transaction) => {
+    setEditingTitleId(tx.id);
+    setEditingTitleValue(tx.title);
+  };
+
+  const handleSaveTitle = (id: string) => {
+    const trimmed = editingTitleValue.trim();
+    if (trimmed) {
+      setModalTransactions((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, title: trimmed } : t))
+      );
+    }
+    setEditingTitleId(null);
+  };
+
+  // Toggle or remove a tag on a specific row
+  const handleToggleRowTag = (id: string, tag: string) => {
+    const cleanTag = tag.trim().toLowerCase().replace(/^#/, '');
+    setModalTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const current = t.tags || [];
+        const next = current.includes(cleanTag)
+          ? current.filter((x) => x !== cleanTag)
+          : [...current, cleanTag];
+        return { ...t, tags: next.length > 0 ? next : undefined };
+      })
+    );
+  };
+
+  const handleAddCustomTag = (id: string, customTag: string) => {
+    const clean = customTag.trim().toLowerCase().replace(/^#/, '');
+    if (!clean) return;
+    setModalTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const current = t.tags || [];
+        if (current.includes(clean)) return t;
+        return { ...t, tags: [...current, clean] };
+      })
+    );
+  };
+
+  // Toggle recurring status
+  const handleToggleRecurring = (id: string) => {
+    setModalTransactions((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, isRecurring: !t.isRecurring } : t))
     );
   };
 
@@ -218,10 +279,12 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
 
   const incomeCount = modalTransactions.filter((t) => t.type === 'income').length;
   const expenseCount = modalTransactions.filter((t) => t.type === 'expense').length;
+  const recurringCount = modalTransactions.filter((t) => t.isRecurring).length;
 
   const filteredModalTransactions = modalTransactions.filter((t) => {
     if (filterType === 'income') return t.type === 'income';
     if (filterType === 'expense') return t.type === 'expense';
+    if (filterType === 'recurring') return Boolean(t.isRecurring);
     if (filterType === 'duplicate') return duplicateIds.has(t.id);
     return true;
   });
@@ -684,7 +747,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
               backgroundColor: '#ffffff',
               borderRadius: 'var(--radius-2xl)',
               width: '100%',
-              maxWidth: '860px',
+              maxWidth: '980px',
               height: '88vh',
               maxHeight: '820px',
               minHeight: '450px',
@@ -964,6 +1027,23 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                 >
                   Expenses / Outflows ({expenseCount})
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterType('recurring')}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    cursor: 'pointer',
+                    backgroundColor: filterType === 'recurring' ? '#2563eb' : '#eff6ff',
+                    color: filterType === 'recurring' ? '#ffffff' : '#1d4ed8',
+                    borderColor: filterType === 'recurring' ? '#2563eb' : '#bfdbfe'
+                  }}
+                >
+                  🔁 Recurring ({recurringCount})
+                </button>
                 {duplicateCount > 0 && (
                   <button
                     type="button"
@@ -987,7 +1067,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
 
               <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#0284c7' }}>info</span>
-                Click the <strong>[+ Income]</strong> or <strong>[- Expense]</strong> badge on any row to instantly toggle type.
+                Double-click any <strong>title</strong> to rename it. Click <strong>[Recurring]</strong> or <strong>[+ Income]</strong> to toggle.
               </span>
             </div>
 
@@ -1024,18 +1104,45 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                     }}
                   >
                     <tr style={{ color: 'var(--text-muted)' }}>
-                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '90px' }}>Date</th>
-                      <th style={{ padding: '9px 12px', fontWeight: 700 }}>Description</th>
-                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '130px', textAlign: 'center' }}>Type Toggle</th>
-                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '140px' }}>Category</th>
-                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '110px', textAlign: 'right' }}>Amount</th>
-                      <th style={{ padding: '9px 12px', fontWeight: 700, width: '40px', textAlign: 'center' }}></th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '85px' }}>Date</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, minWidth: '190px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <span>Description</span>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              color: 'var(--color-primary)',
+                              backgroundColor: 'var(--color-primary-light)',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid var(--color-primary-border)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                            title="Double-click any transaction title below to edit it inline"
+                          >
+                            ✏️ Double-click to Edit
+                          </span>
+                        </div>
+                      </th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '150px' }}>Tags</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '105px', textAlign: 'center' }}>Type</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '125px' }}>Category</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '95px', textAlign: 'right' }}>Amount</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '90px', textAlign: 'center' }}>Recurring</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '35px', textAlign: 'center' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredModalTransactions.map((tx, idx) => {
                       const isIncome = tx.type === 'income';
                       const isDuplicate = duplicateIds.has(tx.id);
+                      const isEditingThisTitle = editingTitleId === tx.id;
+                      const activeCat = categoryConfigs[tx.category];
+                      const catPresetTags = activeCat?.tags || [];
+
                       return (
                         <tr
                           key={tx.id || idx}
@@ -1044,32 +1151,194 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                             borderBottom: '1px solid #f1f5f9'
                           }}
                         >
-                          <td style={{ padding: '8px 12px', color: 'var(--text-muted)', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                          {/* Date */}
+                          <td style={{ padding: '8px 10px', color: 'var(--text-muted)', fontSize: '11px', whiteSpace: 'nowrap' }}>
                             {tx.date}
                           </td>
-                          <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--text-main)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span>{tx.title}</span>
-                              {isDuplicate && (
+
+                          {/* Description with Double-Click Inline Rename */}
+                          <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-main)', maxWidth: '240px' }}>
+                            {isEditingThisTitle ? (
+                              <input
+                                type="text"
+                                value={editingTitleValue}
+                                onChange={(e) => setEditingTitleValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveTitle(tx.id);
+                                  if (e.key === 'Escape') setEditingTitleId(null);
+                                }}
+                                onBlur={() => handleSaveTitle(tx.id)}
+                                autoFocus
+                                style={{
+                                  width: '100%',
+                                  padding: '4px 8px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 600,
+                                  borderRadius: '5px',
+                                  border: '1.5px solid var(--color-primary)',
+                                  backgroundColor: '#ffffff',
+                                  outline: 'none',
+                                  boxSizing: 'border-box',
+                                  boxShadow: '0 0 0 2px var(--color-primary-light)'
+                                }}
+                                title="Press Enter to save, Esc to cancel"
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => handleStartEditTitle(tx)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  cursor: 'pointer',
+                                  userSelect: 'none',
+                                  padding: '2px 6px',
+                                  borderRadius: '6px',
+                                  border: '1px solid transparent',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'var(--bg-canvas-subtle)';
+                                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.borderColor = 'transparent';
+                                }}
+                                title="Double-click to edit this transaction title"
+                              >
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {tx.title}
+                                </span>
                                 <span
+                                  className="material-symbols-outlined"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEditTitle(tx);
+                                  }}
                                   style={{
-                                    fontSize: '9px',
-                                    fontWeight: 800,
+                                    fontSize: '13px',
+                                    color: 'var(--color-primary)',
+                                    opacity: 0.85,
+                                    cursor: 'pointer',
+                                    flexShrink: 0
+                                  }}
+                                  title="Click pencil or double-click to rename title"
+                                >
+                                  edit
+                                </span>
+                                {isDuplicate && (
+                                  <span
+                                    style={{
+                                      fontSize: '9px',
+                                      fontWeight: 800,
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      backgroundColor: '#fef3c7',
+                                      color: '#b45309',
+                                      border: '1px solid #fde68a',
+                                      whiteSpace: 'nowrap',
+                                      flexShrink: 0
+                                    }}
+                                    title="Matches date and amount with an existing transaction in ledger"
+                                  >
+                                    ⚠️ Duplicate
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Tags Column: Preset chips + Custom input */}
+                          <td style={{ padding: '6px 8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap', maxWidth: '160px' }}>
+                              {(tx.tags || []).map((tag) => (
+                                <span
+                                  key={tag}
+                                  style={{
+                                    fontSize: '9.5px',
+                                    fontWeight: 700,
                                     padding: '1px 5px',
                                     borderRadius: '4px',
-                                    backgroundColor: '#fef3c7',
-                                    color: '#b45309',
-                                    border: '1px solid #fde68a',
+                                    backgroundColor: 'var(--color-primary-light)',
+                                    color: 'var(--color-primary)',
+                                    border: '1px solid var(--color-primary-border)',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '2px',
                                     whiteSpace: 'nowrap'
                                   }}
-                                  title="Matches date and amount with an existing transaction in ledger"
                                 >
-                                  ⚠️ Duplicate
+                                  #{tag}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleRowTag(tx.id, tag)}
+                                    style={{
+                                      border: 'none',
+                                      background: 'transparent',
+                                      padding: 0,
+                                      cursor: 'pointer',
+                                      fontSize: '10px',
+                                      color: 'var(--color-primary)',
+                                      lineHeight: 1
+                                    }}
+                                    title={`Remove tag #${tag}`}
+                                  >
+                                    ×
+                                  </button>
                                 </span>
-                              )}
+                              ))}
+
+                              {/* Quick click to add preset tag */}
+                              {catPresetTags.filter((t) => !(tx.tags || []).includes(t)).slice(0, 2).map((pTag) => (
+                                <button
+                                  key={pTag}
+                                  type="button"
+                                  onClick={() => handleToggleRowTag(tx.id, pTag)}
+                                  style={{
+                                    fontSize: '9px',
+                                    fontWeight: 600,
+                                    padding: '1px 4px',
+                                    borderRadius: '3px',
+                                    backgroundColor: '#f8fafc',
+                                    color: '#64748b',
+                                    border: '1px dashed #cbd5e1',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title={`Click to add #${pTag}`}
+                                >
+                                  +#{pTag}
+                                </button>
+                              ))}
+
+                              {/* Custom tag input */}
+                              <input
+                                type="text"
+                                placeholder="+tag"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddCustomTag(tx.id, e.currentTarget.value);
+                                    e.currentTarget.value = '';
+                                  }
+                                }}
+                                style={{
+                                  width: '42px',
+                                  fontSize: '9.5px',
+                                  padding: '1px 4px',
+                                  borderRadius: '3px',
+                                  border: '1px solid var(--border-subtle)',
+                                  backgroundColor: '#ffffff',
+                                  outline: 'none'
+                                }}
+                                title="Type tag name and hit Enter"
+                              />
                             </div>
                           </td>
-                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+
+                          {/* Type Toggle */}
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                             <button
                               type="button"
                               onClick={() => handleToggleType(tx.id)}
@@ -1077,26 +1346,29 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '3px',
-                                padding: '2px 8px',
+                                padding: '2px 7px',
                                 borderRadius: '9999px',
-                                fontSize: '11px',
+                                fontSize: '10.5px',
                                 fontWeight: 800,
                                 border: '1px solid',
                                 cursor: 'pointer',
                                 backgroundColor: isIncome ? '#dcfce7' : '#ffe4e6',
                                 color: isIncome ? '#15803d' : '#be123c',
                                 borderColor: isIncome ? '#86efac' : '#fda4af',
-                                transition: 'all 120ms ease'
+                                transition: 'all 120ms ease',
+                                whiteSpace: 'nowrap'
                               }}
                               title="Click to toggle between Income and Expense"
                             >
-                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>
                                 {isIncome ? 'arrow_downward' : 'arrow_upward'}
                               </span>
                               <span>{isIncome ? 'Income (+)' : 'Expense (-)'}</span>
                             </button>
                           </td>
-                          <td style={{ padding: '8px 12px' }}>
+
+                          {/* Category Selector */}
+                          <td style={{ padding: '8px 10px' }}>
                             <select
                               value={tx.category}
                               onChange={(e) => handleChangeCategory(tx.id, e.target.value as CategoryKey)}
@@ -1107,7 +1379,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                                 fontSize: '11px',
                                 color: 'var(--text-main)',
                                 backgroundColor: '#ffffff',
-                                outline: 'none'
+                                outline: 'none',
+                                maxWidth: '120px'
                               }}
                             >
                               {CATEGORY_LIST.map((c) => (
@@ -1117,9 +1390,11 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                               ))}
                             </select>
                           </td>
+
+                          {/* Amount */}
                           <td
                             style={{
-                              padding: '8px 12px',
+                              padding: '8px 10px',
                               textAlign: 'right',
                               fontWeight: 800,
                               color: isIncome ? '#10b981' : '#ef4444',
@@ -1128,7 +1403,39 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                           >
                             {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
                           </td>
-                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+
+                          {/* Recurring Toggle */}
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleRecurring(tx.id)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                fontSize: '10.5px',
+                                fontWeight: 800,
+                                border: '1px solid',
+                                cursor: 'pointer',
+                                backgroundColor: tx.isRecurring ? '#eff6ff' : '#f8fafc',
+                                color: tx.isRecurring ? '#2563eb' : '#94a3b8',
+                                borderColor: tx.isRecurring ? '#bfdbfe' : '#e2e8f0',
+                                transition: 'all 120ms ease',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title="Click to toggle recurring subscription/charge"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>
+                                {tx.isRecurring ? 'sync' : 'sync_disabled'}
+                              </span>
+                              <span>{tx.isRecurring ? 'Recurring' : 'One-off'}</span>
+                            </button>
+                          </td>
+
+                          {/* Delete Row */}
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                             <button
                               type="button"
                               onClick={() => handleDeleteRow(tx.id)}

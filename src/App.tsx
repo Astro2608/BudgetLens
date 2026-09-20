@@ -26,6 +26,7 @@ import { EditTransactionModal } from './components/EditTransactionModal';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
 import { exportToMarkdown, exportToCSV } from './utils/exportUtils';
 import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
+import { upgradeExistingTransactionsWithRecurring } from './utils/recurringDetector';
 
 const WELCOME_KEY = 'budgetlens_welcome_done';
 
@@ -101,7 +102,9 @@ const AppContent: React.FC = () => {
             return { ...t, category, type };
           });
 
-          setTransactions(healedTxs);
+          // Retroactively detect and flag recurring transactions across existing records
+          const upgradedTxs = upgradeExistingTransactionsWithRecurring(healedTxs);
+          setTransactions(upgradedTxs);
         } else {
           setTransactions([]);
         }
@@ -235,7 +238,7 @@ const AppContent: React.FC = () => {
       const sampleText = importedTxs.map((t) => `${t.title} ${t.source || ''} ${t.note || ''}`).join(' ');
       autoDetectCurrency(sampleText);
     }
-    setTransactions((prev) => [...importedTxs, ...prev]);
+    setTransactions((prev) => upgradeExistingTransactionsWithRecurring([...importedTxs, ...prev]));
     const totalAmt = importedTxs.reduce((s, t) => s + t.amount, 0);
     showToast(`Imported ${importedTxs.length} Transactions`, totalAmt, 'income', 'e-Statement Batch');
   };
@@ -712,6 +715,7 @@ const AppContent: React.FC = () => {
                 setIsImportModalOpen(false);
               }}
               existingTransactions={transactions}
+              categoryConfigs={categoryConfigs}
               onClose={() => setIsImportModalOpen(false)}
             />
           </div>

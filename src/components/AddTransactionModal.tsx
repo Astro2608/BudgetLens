@@ -31,6 +31,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [allocations, setAllocations] = useState<Record<string, number>>({});
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagsInput, setTagsInput] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
 
   const categories = Object.values(categoryConfigs);
   const activeCatConfig = categories.find((c) => c.key === category);
@@ -139,6 +140,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       type,
       category,
       date,
+      isRecurring,
       note: description.trim() || 'Manual Record',
       source: 'User Entry',
       tags: mergedTags.length > 0 ? mergedTags : undefined,
@@ -148,6 +150,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     setTitle('');
     setDescription('');
     setAmount('');
+    setIsRecurring(false);
     setSelectedLoanIds([]);
     setAllocations({});
     setSelectedTags([]);
@@ -535,6 +538,37 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               )}
             </div>
           )}
+
+          {/* Recurring Toggle */}
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 12px',
+              borderRadius: '10px',
+              backgroundColor: isRecurring ? '#eff6ff' : '#f8fafc',
+              border: isRecurring ? '1px solid #bfdbfe' : '1px solid var(--border-subtle)',
+              cursor: 'pointer',
+              userSelect: 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              style={{ accentColor: 'var(--color-primary)', cursor: 'pointer', width: '16px', height: '16px' }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: isRecurring ? '#1d4ed8' : 'var(--text-main)' }}>
+                🔁 Recurring Transaction (Monthly / Subscription)
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                Flag this charge as regular repeating expense or scheduled income
+              </span>
+            </div>
+          </label>
 
           {/* Date */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
