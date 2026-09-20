@@ -65,7 +65,7 @@ export function detectRecurringTransactions(
 
   // 1. Cadence & repeat check per merchant group
   merchantGroups.forEach((group) => {
-    if (group.length < 2) return;
+    if (group.length < 3) return; // Require at least 3 occurrences (3 months) to confirm recurring
 
     // Sort by date ascending
     group.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

@@ -1093,7 +1093,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                   backgroundColor: '#ffffff'
                 }}
               >
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left', tableLayout: 'fixed' }}>
                   <thead
                     style={{
                       position: 'sticky',
@@ -1104,22 +1104,23 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                     }}
                   >
                     <tr style={{ color: 'var(--text-muted)' }}>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '85px' }}>Date</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, minWidth: '190px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '80px' }}>Date</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '22%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                           <span>Description</span>
                           <span
                             style={{
-                              fontSize: '10px',
+                              fontSize: '9.5px',
                               fontWeight: 700,
                               color: 'var(--color-primary)',
                               backgroundColor: 'var(--color-primary-light)',
-                              padding: '1px 6px',
+                              padding: '1px 5px',
                               borderRadius: '4px',
                               border: '1px solid var(--color-primary-border)',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '2px'
+                              gap: '2px',
+                              whiteSpace: 'nowrap'
                             }}
                             title="Double-click any transaction title below to edit it inline"
                           >
@@ -1127,12 +1128,12 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                           </span>
                         </div>
                       </th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '150px' }}>Tags</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '105px', textAlign: 'center' }}>Type</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '125px' }}>Category</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '95px', textAlign: 'right' }}>Amount</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '90px', textAlign: 'center' }}>Recurring</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '35px', textAlign: 'center' }}></th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '18%' }}>Tags</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Type</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '115px' }}>Category</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '88px', textAlign: 'right' }}>Amount</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '85px', textAlign: 'center' }}>Recurring</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '32px', textAlign: 'center' }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1157,7 +1158,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                           </td>
 
                           {/* Description with Double-Click Inline Rename */}
-                          <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-main)', maxWidth: '240px' }}>
+                          <td style={{ padding: '8px 6px 8px 10px', fontWeight: 600, color: 'var(--text-main)', overflow: 'hidden' }}>
                             {isEditingThisTitle ? (
                               <input
                                 type="text"
@@ -1207,7 +1208,18 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                                 }}
                                 title="Double-click to edit this transaction title"
                               >
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span
+                                  style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: '180px',
+                                    display: 'block',
+                                    flexShrink: 1,
+                                    minWidth: 0
+                                  }}
+                                  title={tx.title}
+                                >
                                   {tx.title}
                                 </span>
                                 <span

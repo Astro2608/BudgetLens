@@ -28,6 +28,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReceiptTx, setSelectedReceiptTx] = useState<Transaction | null>(null);
+  const [expandedRecurringGroups, setExpandedRecurringGroups] = useState<Set<string>>(new Set());
   const itemsPerPage = 8;
 
   // Extract all unique tags present across transactions in the ledger
@@ -104,7 +105,76 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
     setCurrentPage(1);
   };
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  // Build recurring merchant groups for the smart recurring view
+  const recurringGroups = useMemo(() => {
+    if (activeFilter !== 'recurring') return [];
+    const allRecurring = transactions.filter((t) => t.isRecurring);
+    const groupMap = new Map<string, {
+      key: string;
+      displayName: string;
+      transactions: Transaction[];
+      category: CategoryKey;
+      avgAmount: number;
+      lastDate: string;
+      type: string;
+    }>();
+
+    allRecurring.forEach((tx) => {
+      // Normalize merchant name for grouping
+      const rawKey = tx.title
+        .toLowerCase()
+        .replace(/(\d{4,})/g, '') // strip long ref numbers
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .split(' ')
+        .slice(0, 4) // take first 4 meaningful words
+        .join(' ');
+      const key = rawKey || tx.title.toLowerCase().substring(0, 12);
+      const existing = groupMap.get(key);
+      if (existing) {
+        existing.transactions.push(tx);
+        if (tx.date > existing.lastDate) {
+          existing.lastDate = tx.date;
+          existing.category = tx.category;
+        }
+      } else {
+        groupMap.set(key, {
+          key,
+          displayName: tx.title,
+          transactions: [tx],
+          category: tx.category,
+          avgAmount: tx.amount,
+          lastDate: tx.date,
+          type: tx.type
+        });
+      }
+    });
+
+    // Compute avg amount per group and sort by highest monthly spend descending
+    const groups = Array.from(groupMap.values()).map((g) => ({
+      ...g,
+      avgAmount: g.transactions.reduce((sum, t) => sum + t.amount, 0) / g.transactions.length
+    }));
+
+    // Only include merchants that have appeared at least 3 times (3 months)
+    const confirmedGroups = groups.filter((g) => g.transactions.length >= 3);
+    confirmedGroups.sort((a, b) => b.avgAmount - a.avgAmount);
+    return confirmedGroups;
+  }, [transactions, activeFilter]);
+
+  const totalMonthlyRecurring = useMemo(() => {
+    // Unique recurring merchants, sum one avg charge each = estimated monthly
+    return recurringGroups
+      .filter((g) => g.type === 'expense')
+      .reduce((sum, g) => sum + g.avgAmount, 0);
+  }, [recurringGroups]);
+
+  const totalRecurringIncome = useMemo(() => {
+    return recurringGroups
+      .filter((g) => g.type === 'income')
+      .reduce((sum, g) => sum + g.avgAmount, 0);
+  }, [recurringGroups]);
 
   // Determine which transactions to display
   const displayedList = useMemo(() => {
@@ -114,6 +184,17 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
     const startIdx = (currentPage - 1) * itemsPerPage;
     return filtered.slice(startIdx, startIdx + itemsPerPage);
   }, [filtered, isArchiveOpen, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+
+  const toggleRecurringGroup = (key: string) => {
+    setExpandedRecurringGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <div className="lumina-card" id="transactions-section" style={{ gap: '1.25rem' }}>
@@ -413,35 +494,329 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
       </div>
 
       {/* 3. Transaction Items Container */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.375rem',
-          maxHeight: isArchiveOpen ? '520px' : 'none',
-          overflowY: isArchiveOpen ? 'auto' : 'visible',
-          paddingRight: isArchiveOpen ? '4px' : '0'
-        }}
-      >
-        {displayedList.length === 0 ? (
-          <div
-            style={{
-              padding: '3rem 1rem',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: '13px',
-              backgroundColor: 'var(--bg-canvas-subtle)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px dashed var(--border-subtle)'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>
-              receipt_long
-            </span>
-            No transactions match {selectedTagFilter ? `tag "#${selectedTagFilter}"` : searchTerm ? `"${searchTerm}"` : `filter "${activeFilter}"`}. Try adjusting your filters.
-          </div>
-        ) : (
-          displayedList.map((tx) => {
+      {activeFilter === 'recurring' ? (
+        /* === SMART RECURRING GROUPED VIEW === */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+
+          {/* Summary Ribbon */}
+          {recurringGroups.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
+                padding: '0.875rem 1rem',
+                borderRadius: 'var(--radius-lg)',
+                background: 'linear-gradient(135deg, #6366f108 0%, #8b5cf608 100%)',
+                border: '1px solid #e0e7ff',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '140px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#6366f1' }}>autorenew</span>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Est. Monthly Recurring Cost</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#ef4444', letterSpacing: '-0.5px' }}>
+                    {formatCurrency(totalMonthlyRecurring)}
+                  </div>
+                </div>
+              </div>
+              {totalRecurringIncome > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '140px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#10b981' }}>payments</span>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Recurring Income</div>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', letterSpacing: '-0.5px' }}>
+                      {formatCurrency(totalRecurringIncome)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '110px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#8b5cf6' }}>grid_view</span>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Unique Charges</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.5px' }}>
+                    {recurringGroups.length}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '110px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#f59e0b' }}>calendar_month</span>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Est. Annual</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.5px' }}>
+                    {formatCurrency(totalMonthlyRecurring * 12)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Merchant Group Cards */}
+          {recurringGroups.length === 0 ? (
+            <div
+              style={{
+                padding: '3rem 1rem',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                fontSize: '13px',
+                backgroundColor: 'var(--bg-canvas-subtle)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px dashed var(--border-subtle)'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>autorenew</span>
+              <strong style={{ display: 'block', marginBottom: '6px', color: 'var(--text-main)', fontSize: '14px' }}>No Confirmed Recurring Charges Yet</strong>
+              BudgetLens requires a charge to appear <strong>at least 3 times</strong> (3 months) before listing it here. Import more months of data and recurring charges will be automatically identified.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {recurringGroups.map((group) => {
+                const config = getCategoryConfig(group.category, categoryConfigs);
+                const isExpanded = expandedRecurringGroups.has(group.key);
+                const isIncome = group.type === 'income';
+                const sortedOccurrences = [...group.transactions].sort(
+                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+                const cadenceLabel = group.transactions.length >= 6 ? 'Bi-Monthly' :
+                  group.transactions.length >= 3 ? 'Monthly' : 'Confirmed';
+
+                return (
+                  <div
+                    key={group.key}
+                    style={{
+                      borderRadius: 'var(--radius-lg)',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: 'var(--bg-card)',
+                      overflow: 'hidden',
+                      transition: 'box-shadow 0.2s ease'
+                    }}
+                  >
+                    {/* Group Header Row - click to expand */}
+                    <button
+                      type="button"
+                      onClick={() => toggleRecurringGroup(group.key)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 0.875rem',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      {/* Category icon */}
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: 'var(--radius-md)',
+                          backgroundColor: `${config.color}18`,
+                          color: config.color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{config.icon}</span>
+                      </div>
+
+                      {/* Merchant name + badges */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 700,
+                              color: 'var(--text-main)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '200px'
+                            }}
+                            title={group.displayName}
+                          >
+                            {group.displayName}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 700,
+                              padding: '1px 7px',
+                              borderRadius: '5px',
+                              backgroundColor: '#e0e7ff',
+                              color: '#4338ca',
+                              border: '1px solid #c7d2fe',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            🔁 {cadenceLabel}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 700,
+                              padding: '1px 6px',
+                              borderRadius: '5px',
+                              backgroundColor: `${config.color}15`,
+                              color: config.color,
+                              border: `1px solid ${config.color}40`,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {config.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '2px' }}>
+                          {group.transactions.length} occurrence{group.transactions.length !== 1 ? 's' : ''} · Last: {group.lastDate}
+                        </div>
+                      </div>
+
+                      {/* Avg amount */}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: 800,
+                            color: isIncome ? '#10b981' : '#ef4444'
+                          }}
+                        >
+                          {isIncome ? '+' : '-'}{formatCurrency(group.avgAmount)}
+                        </div>
+                        <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-subtle)' }}>avg / charge</div>
+                      </div>
+
+                      {/* Chevron */}
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          fontSize: '18px',
+                          color: 'var(--text-muted)',
+                          transition: 'transform 0.2s ease',
+                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                          flexShrink: 0
+                        }}
+                      >
+                        expand_more
+                      </span>
+                    </button>
+
+                    {/* Expanded occurrences list */}
+                    {isExpanded && (
+                      <div
+                        style={{
+                          borderTop: '1px solid var(--border-subtle)',
+                          backgroundColor: 'var(--bg-canvas-subtle)',
+                          padding: '0.375rem 0.5rem'
+                        }}
+                      >
+                        {sortedOccurrences.map((tx) => (
+                          <div
+                            key={tx.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '0.5rem 0.625rem',
+                              borderRadius: '8px',
+                              gap: '0.5rem'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--text-muted)', flexShrink: 0 }}>calendar_today</span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{tx.date}</span>
+                              {(tx.tags || []).length > 0 && (
+                                <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                                  {(tx.tags || []).map((tag) => (
+                                    <span
+                                      key={tag}
+                                      style={{
+                                        fontSize: '9px',
+                                        fontWeight: 700,
+                                        padding: '1px 5px',
+                                        borderRadius: '4px',
+                                        backgroundColor: 'var(--color-primary-light)',
+                                        color: 'var(--color-primary)',
+                                        border: '1px solid var(--color-primary-border)'
+                                      }}
+                                    >
+                                      #{tag.replace(/^#/, '')}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                              <span
+                                style={{
+                                  fontSize: '12.5px',
+                                  fontWeight: 700,
+                                  color: isIncome ? '#10b981' : '#ef4444'
+                                }}
+                              >
+                                {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
+                              </span>
+                              {onEditTransaction && (
+                                <button
+                                  type="button"
+                                  onClick={() => onEditTransaction(tx)}
+                                  style={{
+                                    width: '26px', height: '26px', borderRadius: '7px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: '#7c3aed', backgroundColor: '#f5f3ff',
+                                    border: '1px solid #ddd6fe', cursor: 'pointer'
+                                  }}
+                                  title="Edit this occurrence"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* === NORMAL FLAT LIST VIEW === */
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.375rem',
+            maxHeight: isArchiveOpen ? '520px' : 'none',
+            overflowY: isArchiveOpen ? 'auto' : 'visible',
+            paddingRight: isArchiveOpen ? '4px' : '0'
+          }}
+        >
+          {displayedList.length === 0 ? (
+            <div
+              style={{
+                padding: '3rem 1rem',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                fontSize: '13px',
+                backgroundColor: 'var(--bg-canvas-subtle)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px dashed var(--border-subtle)'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#cbd5e1', display: 'block', marginBottom: '8px' }}>
+                receipt_long
+              </span>
+              No transactions match {selectedTagFilter ? `tag "#${selectedTagFilter}"` : searchTerm ? `"${searchTerm}"` : `filter "${activeFilter}"`}. Try adjusting your filters.
+            </div>
+          ) : (
+            displayedList.map((tx) => {
             const config = getCategoryConfig(tx.category, categoryConfigs);
             const isIncome = tx.type === 'income';
             const smartTags = getSmartTags(tx);
@@ -684,7 +1059,8 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
             );
           })
         )}
-      </div>
+        </div>
+      )}
 
       {/* 4. Footer & Pagination Controls */}
       <div
@@ -701,13 +1077,15 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
         }}
       >
         <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
-          {isArchiveOpen
-            ? `Showing page ${currentPage} of ${totalPages} (${filtered.length} filtered items)`
-            : `Showing recent 6 of ${filtered.length} filtered transactions`}
+          {activeFilter === 'recurring'
+            ? `${recurringGroups.length} recurring merchant${recurringGroups.length !== 1 ? 's' : ''} detected — click any row to expand`
+            : isArchiveOpen
+              ? `Showing page ${currentPage} of ${totalPages} (${filtered.length} filtered items)`
+              : `Showing recent 6 of ${filtered.length} filtered transactions`}
         </span>
 
-        {/* Pagination when Archive is open */}
-        {isArchiveOpen && totalPages > 1 ? (
+        {/* Pagination when Archive is open (not in recurring view) */}
+        {activeFilter !== 'recurring' && isArchiveOpen && totalPages > 1 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
             <button
               type="button"
@@ -810,7 +1188,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
             </button>
           </div>
         ) : (
-          !isArchiveOpen && (
+          activeFilter !== 'recurring' && !isArchiveOpen && (
             <button
               type="button"
               onClick={() => setIsArchiveOpen(true)}
