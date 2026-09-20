@@ -23,14 +23,26 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<CategoryKey>('Food');
+  const [category, setCategory] = useState<CategoryKey>('General');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Loan allocations
   const [selectedLoanIds, setSelectedLoanIds] = useState<string[]>([]);
   const [allocations, setAllocations] = useState<Record<string, number>>({});
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagsInput, setTagsInput] = useState('');
 
   const categories = Object.values(categoryConfigs);
+  const activeCatConfig = categories.find((c) => c.key === category);
+  const categoryPresetTags = activeCatConfig?.tags || [];
+  const catColor = activeCatConfig?.color || '#0284c7';
+
+  const toggleTag = (tag: string) => {
+    const clean = tag.toLowerCase().replace(/^#/, '').trim();
+    setSelectedTags((prev) =>
+      prev.includes(clean) ? prev.filter((t) => t !== clean) : [...prev, clean]
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -113,6 +125,13 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       });
     }
 
+    const parsedCustom = tagsInput
+      .split(/[,;\s]+/)
+      .map((s) => s.trim().toLowerCase().replace(/^#/, ''))
+      .filter(Boolean);
+
+    const mergedTags = Array.from(new Set([...tags, ...selectedTags, ...parsedCustom]));
+
     onAddTransaction({
       title: title.trim() || 'Untitled Transaction',
       description: description.trim() || undefined,
@@ -122,7 +141,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       date,
       note: description.trim() || 'Manual Record',
       source: 'User Entry',
-      tags: tags.length > 0 ? tags : undefined,
+      tags: mergedTags.length > 0 ? mergedTags : undefined,
       loanAllocations: selectedLoanIds.length > 0 ? allocations : undefined
     });
 
@@ -131,6 +150,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     setAmount('');
     setSelectedLoanIds([]);
     setAllocations({});
+    setSelectedTags([]);
+    setTagsInput('');
     onClose();
   };
 
@@ -340,6 +361,61 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Category Preset Tags & Custom Tags Input */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Tags (Optional)</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-subtle)', fontWeight: 400 }}>Click chips or type custom tags</span>
+            </label>
+
+            {categoryPresetTags.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-subtle)' }}>Preset Tags:</span>
+                {categoryPresetTags.map((tag) => {
+                  const isActive = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: isActive ? `1px solid ${catColor}` : '1px solid var(--border-subtle)',
+                        backgroundColor: isActive ? `${catColor}20` : 'var(--bg-canvas-subtle)',
+                        color: isActive ? catColor : 'var(--text-main)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                    >
+                      {isActive ? '✓ ' : '+ '}#{tag}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <input
+              type="text"
+              placeholder="Custom tags (e.g. mrt, grab, taxi)"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-input)',
+                fontSize: '12px',
+                outline: 'none'
+              }}
+            />
           </div>
 
           {/* Link to Loan(s) if active loans exist and type is expense */}

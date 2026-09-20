@@ -7,7 +7,8 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     color: '#0d9488', // Teal (Default category)
     icon: 'receipt_long',
     type: 'expense',
-    keywords: ['general', 'misc', 'miscellaneous', 'other', 'shop', 'groceries', 'mart', 'supermarket', 'convenience', '7-eleven', 'fairprice', 'cold storage', 'donki', 'daiso', 'food', 'lunch', 'dinner', 'cafe', 'coffee']
+    keywords: ['general', 'misc', 'miscellaneous', 'other', 'shop', 'groceries', 'mart', 'supermarket', 'convenience', '7-eleven', 'fairprice', 'cold storage', 'donki', 'daiso', 'food', 'lunch', 'dinner', 'cafe', 'coffee'],
+    tags: ['shopping', 'medical', 'personal', 'entertainment']
   },
   Salary: {
     key: 'Salary',
@@ -15,7 +16,8 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     color: '#10b981', // Universally Green for Income
     icon: 'payments',
     type: 'income',
-    keywords: ['salary', 'payroll', 'stripe', 'bonus', 'dividend', 'deposit', 'freelance', 'consultation', 'client payout', 'income', 'paycheck']
+    keywords: ['salary', 'payroll', 'stripe', 'bonus', 'dividend', 'deposit', 'freelance', 'consultation', 'client payout', 'income', 'paycheck'],
+    tags: ['salary', 'freelance', 'bonus', 'dividends', 'refund']
   },
   Bills: {
     key: 'Bills',
@@ -23,7 +25,8 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     color: '#ef4444', // Red for Bills
     icon: 'bolt',
     type: 'expense',
-    keywords: ['sp group', 'sp services', 'singtel', 'starhub', 'm1', 'giga', 'netflix', 'spotify', 'utilities', 'electric', 'water', 'telecom', 'telco', 'wifi', 'broadband', 'insurance', 'bill', 'bills']
+    keywords: ['sp group', 'sp services', 'singtel', 'starhub', 'm1', 'giga', 'netflix', 'spotify', 'utilities', 'electric', 'water', 'telecom', 'telco', 'wifi', 'broadband', 'insurance', 'bill', 'bills'],
+    tags: ['utilities', 'wifi', 'mobile', 'insurance', 'subscriptions']
   },
   Transport: {
     key: 'Transport',
@@ -31,7 +34,8 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     color: '#0284c7', // Sky Blue
     icon: 'directions_subway',
     type: 'expense',
-    keywords: ['grab', 'gojek', 'mrt', 'bus', 'simplygo', 'ezlink', 'transit', 'shell', 'fuel', 'petrol', 'taxi', 'comfortdelgro', 'flight', 'airline', 'transport']
+    keywords: ['grab', 'gojek', 'mrt', 'bus', 'simplygo', 'ezlink', 'transit', 'shell', 'fuel', 'petrol', 'taxi', 'comfortdelgro', 'flight', 'airline', 'transport'],
+    tags: ['mrt', 'bus', 'taxi', 'grab', 'petrol', 'flight']
   },
   Savings: {
     key: 'Savings',
@@ -39,7 +43,8 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     color: '#8b5cf6', // Lavender / Purple
     icon: 'savings',
     type: 'savings',
-    keywords: ['stash', 'emergency fund', 'vault', 'crypto', 'invest', 'etf', 'cpf', 'fixed deposit', 'saving', 'savings']
+    keywords: ['stash', 'emergency fund', 'vault', 'crypto', 'invest', 'etf', 'cpf', 'fixed deposit', 'saving', 'savings'],
+    tags: ['investments', 'emergency-fund', 'crypto', 'deposit']
   }
 };
 

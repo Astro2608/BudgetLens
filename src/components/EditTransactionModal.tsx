@@ -84,6 +84,23 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
   if (!isOpen || !transaction) return null;
 
   const categories = Object.values(categoryConfigs);
+  const activeCatConfig = categories.find((c) => c.key === category);
+  const categoryPresetTags = activeCatConfig?.tags || [];
+  const catColor = activeCatConfig?.color || '#0284c7';
+
+  const toggleTagInInput = (tag: string) => {
+    const cleanTag = tag.toLowerCase().replace(/^#/, '').trim();
+    const currentTags = tagsInput
+      .split(/[,;\s]+/)
+      .map((t: string) => t.trim().toLowerCase().replace(/^#/, ''))
+      .filter(Boolean);
+
+    if (currentTags.includes(cleanTag)) {
+      setTagsInput(currentTags.filter((t: string) => t !== cleanTag).join(', '));
+    } else {
+      setTagsInput([...currentTags, cleanTag].join(', '));
+    }
+  };
   const currentTotalAmount = parseFloat(amount) || 0;
 
   // Toggle a loan selection
@@ -644,13 +661,48 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           {/* Custom Tags */}
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Additional Tags (Optional)
+              Tags & Labels (Optional)
             </label>
+            {categoryPresetTags.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Preset Tags:</span>
+                {categoryPresetTags.map((tag) => {
+                  const currentTags = tagsInput
+                    .split(/[,;\s]+/)
+                    .map((t: string) => t.trim().toLowerCase().replace(/^#/, ''))
+                    .filter(Boolean);
+                  const isActive = currentTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTagInInput(tag)}
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: isActive ? `1px solid ${catColor}` : '1px solid #cbd5e1',
+                        backgroundColor: isActive ? `${catColor}20` : '#f8fafc',
+                        color: isActive ? catColor : '#334155',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                    >
+                      {isActive ? '✓ ' : '+ '}#{tag}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <input
               type="text"
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="e.g. GIRO, monthly-auto"
+              placeholder="e.g. mrt, grab, taxi (comma separated)"
               style={{
                 width: '100%',
                 padding: '0.625rem 0.875rem',

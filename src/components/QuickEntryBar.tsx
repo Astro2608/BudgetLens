@@ -28,11 +28,21 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [inputError, setInputError] = useState<boolean>(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const activeConfig = categoryConfigs[selectedCategory] || {
     label: selectedCategory,
     color: '#0d9488',
     type: 'expense' as const
+  };
+
+  const categoryPresetTags = activeConfig.tags || [];
+
+  const toggleTag = (tag: string) => {
+    const clean = tag.toLowerCase().replace(/^#/, '').trim();
+    setSelectedTags((prev) =>
+      prev.includes(clean) ? prev.filter((t) => t !== clean) : [...prev, clean]
+    );
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -58,13 +68,15 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
       category: selectedCategory,
       isRecurring: false,
       note: finalDesc || 'Quick Entry',
-      source: 'Quick Entry Bar'
+      source: 'Quick Entry Bar',
+      tags: selectedTags.length > 0 ? selectedTags : undefined
     });
 
-    // Reset amount, title & description for rapid successive entry
+    // Reset amount, title, description & tags
     setAmount('');
     setTitle('');
     setDescription('');
+    setSelectedTags([]);
 
     // Re-focus amount input for frictionless successive logs
     setTimeout(() => {
@@ -369,6 +381,39 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Category Preset Tag Chips sub-row */}
+      {categoryPresetTags.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed var(--border-subtle)' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-subtle)' }}>Preset Tags:</span>
+          {categoryPresetTags.map((tag) => {
+            const isActive = selectedTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggleTag(tag)}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: '6px',
+                  border: isActive ? `1px solid ${activeConfig.color}` : '1px solid var(--border-subtle)',
+                  backgroundColor: isActive ? `${activeConfig.color}20` : 'var(--bg-canvas-subtle)',
+                  color: isActive ? activeConfig.color : 'var(--text-main)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}
+              >
+                {isActive ? '✓ ' : '+ '}#{tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </form>
   );
 };

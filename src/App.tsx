@@ -240,7 +240,7 @@ const AppContent: React.FC = () => {
     showToast(`Imported ${importedTxs.length} Transactions`, totalAmt, 'income', 'e-Statement Batch');
   };
 
-  const handleQuickAdd = (title: string, amount: number, category: CategoryKey) => {
+  const handleQuickAdd = (title: string, amount: number, category: CategoryKey, tags?: string[]) => {
     autoDetectCurrency(title);
     const config = categoryConfigs[category];
     const type = config?.type || 'expense';
@@ -253,7 +253,8 @@ const AppContent: React.FC = () => {
       date: new Date().toISOString().split('T')[0],
       isRecurring: false,
       note: '1-Click Quick Add',
-      source: type === 'income' ? 'Quick Income' : 'Quick Outflow'
+      source: type === 'income' ? 'Quick Income' : 'Quick Outflow',
+      tags: tags && tags.length > 0 ? tags : undefined
     };
     setTransactions((prev) => [tx, ...prev]);
     showToast(title, amount, type, String(category));

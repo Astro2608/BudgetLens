@@ -42,7 +42,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
     }
 
     if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim();
+      const q = searchTerm.toLowerCase().trim().replace(/^#/, '');
       list = list.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
@@ -50,6 +50,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
           t.category.toLowerCase().includes(q) ||
           (t.source && t.source.toLowerCase().includes(q)) ||
           (t.note && t.note.toLowerCase().includes(q)) ||
+          (t.tags && t.tags.some((tag) => tag.toLowerCase().includes(q))) ||
           t.date.includes(q)
       );
     }
@@ -418,23 +419,35 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                       >
                         {config.label}
                       </span>
-                      {smartTags.map((tag) => (
-                        <span
-                          key={tag}
-                          style={{
-                            fontSize: '9.5px',
-                            fontWeight: 600,
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            backgroundColor: 'var(--bg-canvas-subtle)',
-                            color: 'var(--text-muted)',
-                            border: '1px solid var(--border-subtle)',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                      {smartTags.map((tag) => {
+                        const cleanTag = tag.replace(/^#/, '');
+                        const isMatch = searchTerm.toLowerCase().replace(/^#/, '').trim() === cleanTag.toLowerCase();
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSearchChange(cleanTag);
+                            }}
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 700,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: isMatch ? 'var(--color-primary-light)' : 'var(--bg-canvas-subtle)',
+                              color: isMatch ? 'var(--color-primary)' : 'var(--text-muted)',
+                              border: isMatch ? '1px solid var(--color-primary-border)' : '1px solid var(--border-subtle)',
+                              whiteSpace: 'nowrap',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            title={`Filter transactions by tag #${cleanTag}`}
+                          >
+                            #{cleanTag}
+                          </button>
+                        );
+                      })}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-subtle)' }}>

@@ -92,6 +92,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }));
   };
 
+  const handleAddTagToCategory = (key: CategoryKey, tagToAdd: string) => {
+    const cleanTag = tagToAdd.trim().toLowerCase().replace(/^#/, '');
+    if (!cleanTag) return;
+    setLocalConfigs((prev) => {
+      const existingTags = prev[key].tags || [];
+      if (existingTags.includes(cleanTag)) return prev;
+      return {
+        ...prev,
+        [key]: {
+          ...prev[key],
+          tags: [...existingTags, cleanTag]
+        }
+      };
+    });
+  };
+
+  const handleRemoveTagFromCategory = (key: CategoryKey, tagToRemove: string) => {
+    setLocalConfigs((prev) => {
+      const existingTags = prev[key].tags || [];
+      return {
+        ...prev,
+        [key]: {
+          ...prev[key],
+          tags: existingTags.filter((t) => t !== tagToRemove)
+        }
+      };
+    });
+  };
+
   const handleDeleteCategory = (key: CategoryKey) => {
     if (Object.keys(localConfigs).length <= 1) {
       alert('You must retain at least one category.');
@@ -592,6 +621,70 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             delete
                           </span>
                         </button>
+                      </div>
+
+                      {/* Sub-row: Category Preset Tags */}
+                      <div style={{ width: '100%', borderTop: '1px dashed var(--border-subtle)', paddingTop: '6px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>label</span>
+                          Preset Tags:
+                        </span>
+                        {(cat.tags || []).map((t) => (
+                          <span
+                            key={t}
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              color: cat.color,
+                              backgroundColor: `${cat.color}15`,
+                              border: `1px solid ${cat.color}35`,
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            #{t}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTagFromCategory(cat.key, t)}
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                color: cat.color,
+                                cursor: 'pointer',
+                                padding: 0,
+                                fontSize: '11px',
+                                lineHeight: 1,
+                                fontWeight: 800
+                              }}
+                              title={`Remove tag #${t}`}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          type="text"
+                          placeholder="+ add tag (Enter)"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddTagToCategory(cat.key, e.currentTarget.value);
+                              e.currentTarget.value = '';
+                            }
+                          }}
+                          style={{
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: '#ffffff',
+                            width: '110px',
+                            outline: 'none'
+                          }}
+                        />
                       </div>
                     </div>
                   ))}

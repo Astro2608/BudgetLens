@@ -9,6 +9,7 @@ export interface CategoryConfig {
   icon: string;
   type: TransactionType;
   keywords: string[];
+  tags?: string[];
 }
 
 export interface Transaction {
