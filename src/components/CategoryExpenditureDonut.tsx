@@ -239,8 +239,8 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
             <SectionInfoButton
               title="Dual-Donut Cashflow Ring"
               description="A multi-tier concentric visualization comparing Income (Inner Ring) against Outflows & Allocations (Outer Ring)."
-              howItWorks="The Inner Ring visualizes all incoming revenue streams (Salary, Freelance, etc.). The Outer Ring maps all expenses and savings allocations. Hover over any ring segment to see exact dollar breakdowns and percentages."
-              example="Inner Ring shows SGD $2,145.60 Income (100%), while Outer Ring breaks down your $1,905.00 spend across Bills, Food, Transport, and Savings."
+              howItWorks="The Inner Ring visualizes all incoming revenue streams (Salary, Freelance, etc.). The Outer Ring maps all expenses and savings allocations. Hover over any ring segment to see exact amount breakdowns and percentages."
+              example="Inner Ring shows 2,145.60 Income (100%), while Outer Ring breaks down your 1,905.00 spend across Bills, Food, Transport, and Savings."
             />
           </div>
         </div>

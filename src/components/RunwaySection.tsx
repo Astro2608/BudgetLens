@@ -19,7 +19,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
   hasMinimumData = true,
   daysRecorded = 0
 }) => {
-  const { formatCurrency, currencyInfo } = useCurrency();
+  const { formatCurrency } = useCurrency();
 
   return (
     <section className="lumina-card" id="runway-section" style={{ gap: '1.25rem' }}>
@@ -75,7 +75,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
                 title="Category Runway"
                 description="Projects how many months your available bank balance will last if dedicated to specific essential spending categories."
                 howItWorks="Divides your Current Net Balance by each category's Average Monthly Spend rate (Formula: Balance ÷ Monthly Category Burn Rate)."
-                example={`With ${formatCurrency(totalBalance)} in your account and ${currencyInfo.prefix}90/mo average Transport spend, your transport runway is ~${(totalBalance / 90).toFixed(1)} months.`}
+                example={`With ${formatCurrency(totalBalance)} in your account and ${formatCurrency(90)}/mo average Transport spend, your transport runway is ~${(totalBalance / 90).toFixed(1)} months.`}
               />
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -96,7 +96,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
               borderRadius: '8px'
             }}
           >
-            {hasMinimumData ? `${currencyInfo.prefix}${overallMonthlyBurn.toLocaleString()} / mo avg` : '-- / mo'}
+            {hasMinimumData ? `${formatCurrency(overallMonthlyBurn)} / mo avg` : '-- / mo'}
           </span>
         </div>
       </div>
@@ -153,7 +153,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
             ? `No spend logged yet in ${cat.label}`
             : isCapped
             ? `Your current balance covers over 12 months of ${cat.label} (Based on initial spend trends)`
-            : `Your current balance covers ${cat.remainingMonths} months of ${cat.label} (${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()}/mo avg)`;
+            : `Your current balance covers ${cat.remainingMonths} months of ${cat.label} (${formatCurrency(cat.monthlyBurn)}/mo avg)`;
 
           return (
             <div
@@ -223,7 +223,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
                     ? '—'
                     : isCapped
                     ? 'Based on initial spend trends'
-                    : `${currencyInfo.prefix}${cat.monthlyBurn.toLocaleString()} / mo avg`}
+                    : `${formatCurrency(cat.monthlyBurn)} / mo avg`}
                 </div>
               </div>
             </div>

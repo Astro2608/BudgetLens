@@ -20,7 +20,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS,
   loans = []
 }) => {
-  const { currencyCode, formatCurrency } = useCurrency();
+  const { currencyCode, currencyInfo, formatCurrency } = useCurrency();
   const [type, setType] = useState<TransactionType>('expense');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -573,7 +573,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                         </span>
                       </div>
                       <div style={{ position: 'relative', width: '130px' }}>
-                        <span style={{ position: 'absolute', left: '8px', top: '7px', fontSize: '12px', fontWeight: 700, color: '#64748b' }}>$</span>
+                        <span style={{ position: 'absolute', left: '8px', top: '7px', fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{currencyInfo.symbol}</span>
                         <input
                           type="number"
                           step="0.01"
@@ -608,7 +608,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                         <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#10b981' }}>check_circle</span>
                       ) : (
                         <span style={{ fontSize: '10px', color: '#f59e0b' }}>
-                          ({allocationDifference > 0 ? `-$${allocationDifference} unallocated` : `+$${Math.abs(allocationDifference)} over`})
+                          ({allocationDifference > 0 ? `-${formatCurrency(allocationDifference)} unallocated` : `+${formatCurrency(Math.abs(allocationDifference))} over`})
                         </span>
                       )}
                     </div>

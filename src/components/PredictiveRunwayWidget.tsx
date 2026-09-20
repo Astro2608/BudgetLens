@@ -19,7 +19,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
   categoryRunways,
   hasMinimumData = true
 }) => {
-  const { formatCurrency, currencyInfo } = useCurrency();
+  const { formatCurrency } = useCurrency();
   const [sliderVal, setSliderVal] = useState<number>(2);
   const [showHelpGuide, setShowHelpGuide] = useState<boolean>(false);
 
@@ -313,7 +313,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
                     {cat.label}
                   </span>
                   <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                    ~{currencyInfo.prefix}{catMonthlyPace.toLocaleString()}
+                    ~{formatCurrency(catMonthlyPace)}
                   </span>
                 </div>
                 <div style={{ width: '100%', height: '5px', backgroundColor: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>

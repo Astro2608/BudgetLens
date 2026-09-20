@@ -440,7 +440,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Try samples:</span>
             <button
               type="button"
-              onClick={() => setFreeformText("June 12 2025 - 300 , transport\ndecember 20 2025 - 600, bills\n25 Oct - $45.50, Food")}
+              onClick={() => setFreeformText("June 12 2025 - 300 , transport\ndecember 20 2025 - 600, bills\n25 Oct - 45.50, Food")}
               style={{
                 fontSize: '11px',
                 padding: '2px 8px',

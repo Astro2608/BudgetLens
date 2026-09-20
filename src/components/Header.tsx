@@ -125,12 +125,12 @@ export const Header: React.FC<HeaderProps> = ({ onResetWorkspace, onStartTour })
               e.currentTarget.style.backgroundColor = '#ffffff';
               e.currentTarget.style.borderColor = '#fecdd3';
             }}
-            title="Reset all balances to $0.00 and archive current data into an offline backup file"
+            title="Reset all balances to zero and archive current data into an offline backup file"
           >
             <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#dc2626' }}>
               restart_alt
             </span>
-            <span>Reset & Start Fresh ($0)</span>
+            <span>Reset & Start Fresh</span>
           </button>
         )}
       </div>

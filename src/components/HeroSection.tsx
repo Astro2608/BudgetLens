@@ -25,7 +25,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const balanceBadge = isNegative
     ? { text: 'Deficit / Negative Balance', bg: '#fee2e2', color: '#dc2626', border: '#fecdd3' }
     : isZero
-      ? { text: `Current Bank Balance (${currencyInfo.prefix}0.00)`, bg: 'var(--bg-canvas-subtle)', color: 'var(--text-muted)', border: 'var(--border-subtle)' }
+      ? { text: `Current Bank Balance (${formatCurrency(0)})`, bg: 'var(--bg-canvas-subtle)', color: 'var(--text-muted)', border: 'var(--border-subtle)' }
       : { text: 'Current Bank Balance (Surplus)', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
 
   return (

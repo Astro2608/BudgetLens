@@ -85,7 +85,7 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
             </div>
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Reset Dashboard to Fresh Session ($0)
+                Reset Dashboard to Fresh Session
               </h3>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
                 Re-initialize active ledger with zero balance

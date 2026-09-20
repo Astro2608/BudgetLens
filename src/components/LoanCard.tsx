@@ -11,7 +11,7 @@ interface LoanCardProps {
 }
 
 export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans = [], onDelete }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, currencyInfo } = useCurrency();
   const [expanded, setExpanded] = useState(false);
 
   // Smart calculation of total payments received for this loan
@@ -229,7 +229,7 @@ export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94a3b8' }} minTickGap={24} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94a3b8' }} tickFormatter={(val) => '$' + (val/1000) + 'k'} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94a3b8' }} tickFormatter={(val) => `${currencyInfo.symbol}${val/1000}k`} />
                   <RechartsTooltip 
                     formatter={(value: any) => [formatCurrency(Number(value) || 0), 'Balance']}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: '11px' }}

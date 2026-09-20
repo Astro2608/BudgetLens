@@ -168,7 +168,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
                       pointerEvents: 'none'
                     }}
                   >
-                    $
+                    {currencyInfo.symbol}
                   </span>
                   <input
                     type="text"

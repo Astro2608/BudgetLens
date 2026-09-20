@@ -18,7 +18,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   categoryConfigs = DEFAULT_CATEGORY_CONFIGS,
   loans = []
 }) => {
-  const { currencyCode, formatCurrency, autoDetectCurrency } = useCurrency();
+  const { currencyCode, currencyInfo, formatCurrency, autoDetectCurrency } = useCurrency();
   const [type, setType] = useState<TransactionType>('expense');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -425,7 +425,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     <div key={loan.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                       <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#1e293b' }}>{loan.name}</span>
                       <div style={{ position: 'relative', width: '110px' }}>
-                        <span style={{ position: 'absolute', left: '6px', top: '5px', fontSize: '11px', color: '#64748b' }}>$</span>
+                        <span style={{ position: 'absolute', left: '6px', top: '5px', fontSize: '11px', color: '#64748b' }}>{currencyInfo.symbol}</span>
                         <input
                           type="number"
                           step="0.01"

@@ -332,7 +332,7 @@ const AppContent: React.FC = () => {
       format: exportFormat,
       fileName: exportedFileName
     });
-    showToast('Fresh Session Initialized', 0, 'income', 'Reset to $0.00');
+    showToast('Fresh Session Initialized', 0, 'income', 'Reset to fresh balance');
   };
 
   // Show a themed loading splash while IndexedDB hydrates — prevents blank flash in all browsers
@@ -619,7 +619,7 @@ const AppContent: React.FC = () => {
                   Dashboard Reset Completed
                 </h3>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Active session initialized with $0.00 balance
+                  Active session initialized with fresh balance
                 </span>
               </div>
             </div>
@@ -661,7 +661,7 @@ const AppContent: React.FC = () => {
               </div>
             ) : (
               <div style={{ padding: '0.875rem 1rem', borderRadius: '10px', backgroundColor: '#f1f5f9', fontSize: '12.5px', color: '#475569' }}>
-                Your financial dashboard has been reset directly to $0.00 without creating a file export.
+                Your financial dashboard has been reset directly to 0.00 balance without creating a file export.
               </div>
             )}
 
