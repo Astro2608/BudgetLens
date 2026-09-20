@@ -21,12 +21,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   // Dynamic color coding: Red for negative/deficit, Green for positive surplus, neutral for zero
   const headlineColor = isNegative ? '#ef4444' : isZero ? 'var(--text-main)' : '#059669';
-  
+
   const balanceBadge = isNegative
     ? { text: 'Deficit / Negative Balance', bg: '#fee2e2', color: '#dc2626', border: '#fecdd3' }
     : isZero
-    ? { text: `Current Bank Balance (${currencyInfo.prefix}0.00)`, bg: 'var(--bg-canvas-subtle)', color: 'var(--text-muted)', border: 'var(--border-subtle)' }
-    : { text: 'Current Bank Balance (Surplus)', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
+      ? { text: `Current Bank Balance (${currencyInfo.prefix}0.00)`, bg: 'var(--bg-canvas-subtle)', color: 'var(--text-muted)', border: 'var(--border-subtle)' }
+      : { text: 'Current Bank Balance (Surplus)', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
 
   return (
     <section className="lumina-card" style={{ padding: '1.75rem', gap: '1.25rem' }}>
@@ -118,7 +118,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button className="btn-secondary" onClick={onScrollToImport} title="Upload a bank CSV statement to parse and categorize transactions">
             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>upload_file</span>
-            <span>Attach e-Statement</span>
+            <span>Bulk Upload</span>
           </button>
         </div>
       </div>

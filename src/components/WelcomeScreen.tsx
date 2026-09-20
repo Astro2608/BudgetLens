@@ -1,22 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface WelcomeScreenProps {
   onDismiss: () => void;
   onStartTour: () => void;
 }
 
-// PWA install prompt event reference
-let deferredInstallPrompt: any = null;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-});
-
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onDismiss, onStartTour }) => {
   const [installing, setInstalling] = useState(false);
   const [installed, setInstalled] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
   const canPrompt = !!deferredInstallPrompt;
+
+  // Register PWA install prompt — inside useEffect so it never runs at module evaluation time
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
 
   const handleInstall = async () => {
     if (!deferredInstallPrompt) return;
@@ -26,7 +29,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onDismiss, onStart
       const { outcome } = await deferredInstallPrompt.userChoice;
       if (outcome === 'accepted') {
         setInstalled(true);
-        deferredInstallPrompt = null;
+        setDeferredInstallPrompt(null);
       }
     } catch (e) {
       console.warn('Install prompt error:', e);

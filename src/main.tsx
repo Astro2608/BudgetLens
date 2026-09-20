@@ -46,25 +46,39 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA offline support (production only)
-if ('serviceWorker' in navigator && !import.meta.env.DEV) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => {
-        console.log('[BudgetLens] Service worker registered:', reg.scope);
-        // Listen for updates and prompt user to refresh
-        reg.onupdatefound = () => {
-          const newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.onstatechange = () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('[BudgetLens] New version available — reload to update.');
-              }
-            };
+// Service Worker management for PWA offline support
+if ('serviceWorker' in navigator) {
+  if (import.meta.env.DEV) {
+    // Automatically unregister service worker in development mode to prevent cached production assets from breaking dev server
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister().then((unregistered) => {
+          if (unregistered) {
+            console.log('[BudgetLens] Unregistered stale service worker in dev mode.');
           }
-        };
-      })
-      .catch((err) => console.warn('[BudgetLens] SW registration failed:', err));
-  });
+        });
+      }
+    });
+  } else {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => {
+          console.log('[BudgetLens] Service worker registered:', reg.scope);
+          // Listen for updates and prompt user to refresh
+          reg.onupdatefound = () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.onstatechange = () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[BudgetLens] New version available — reload to update.');
+                }
+              };
+            }
+          };
+        })
+        .catch((err) => console.warn('[BudgetLens] SW registration failed:', err));
+    });
+  }
 }
+

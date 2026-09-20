@@ -78,16 +78,27 @@ export const clearFileHandle = async (): Promise<void> => {
 };
 
 export const verifyPermission = async (fileHandle: any, withWrite: boolean = true) => {
+  // File System Access API permission queries are not supported in Firefox.
+  // Guard against calling queryPermission/requestPermission in unsupported browsers.
+  if (!fileHandle || typeof fileHandle.queryPermission !== 'function') return false;
+
   const opts = { mode: withWrite ? 'readwrite' : 'read' };
   
-  if ((await fileHandle.queryPermission(opts)) === 'granted') {
-    return true;
-  }
-  if ((await fileHandle.requestPermission(opts)) === 'granted') {
-    return true;
+  try {
+    if ((await fileHandle.queryPermission(opts)) === 'granted') {
+      return true;
+    }
+    if (typeof fileHandle.requestPermission === 'function') {
+      if ((await fileHandle.requestPermission(opts)) === 'granted') {
+        return true;
+      }
+    }
+  } catch (e) {
+    console.warn('[BudgetLens] FSA permission check failed (unsupported browser?):', e);
   }
   return false;
 };
+
 
 export const writeToFile = async (fileHandle: FileSystemFileHandle, content: string) => {
   const writable = await (fileHandle as any).createWritable();

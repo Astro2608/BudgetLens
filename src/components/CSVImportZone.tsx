@@ -296,7 +296,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Import Statements & Files
+                Bulk Import E-Statements & Files
               </h3>
               <SectionInfoButton
                 title="Universal Statement Import"
@@ -625,8 +625,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
           {isParsing
             ? 'Parsing Notes...'
             : liveDetectedTransactions.length > 0
-            ? `Review & Import ${liveDetectedTransactions.length} Items`
-            : 'Parse Notes'}
+              ? `Review & Import ${liveDetectedTransactions.length} Items`
+              : 'Parse Notes'}
         </button>
       </div>
 

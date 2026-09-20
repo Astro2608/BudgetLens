@@ -335,6 +335,62 @@ const AppContent: React.FC = () => {
     showToast('Fresh Session Initialized', 0, 'income', 'Reset to $0.00');
   };
 
+  // Show a themed loading splash while IndexedDB hydrates — prevents blank flash in all browsers
+  if (!isDataLoaded) {
+    return (
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: '#0f172a',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1.25rem',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        zIndex: 99999,
+      }}>
+        <div style={{
+          width: '52px',
+          height: '52px',
+          borderRadius: '14px',
+          background: 'linear-gradient(135deg, #10b981 0%, #0284c7 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 0 28px rgba(16,185,129,0.35)',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#fff' }}>monitoring</span>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#f1f5f9', fontSize: '15px', fontWeight: 700, margin: '0 0 4px' }}>BudgetLens</p>
+          <p style={{ color: '#64748b', fontSize: '12px', margin: 0 }}>Loading your data…</p>
+        </div>
+        <div style={{
+          width: '120px',
+          height: '3px',
+          borderRadius: '99px',
+          backgroundColor: '#1e293b',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            height: '100%',
+            borderRadius: '99px',
+            background: 'linear-gradient(90deg, #10b981, #0284c7)',
+            animation: 'budgetlensLoad 1.4s ease-in-out infinite',
+          }} />
+        </div>
+        <style>{`
+          @keyframes budgetlensLoad {
+            0% { width: 0%; margin-left: 0; }
+            50% { width: 70%; margin-left: 15%; }
+            100% { width: 0%; margin-left: 100%; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="app-layout">
       {/* First-run welcome screen — shown once on fresh install */}
