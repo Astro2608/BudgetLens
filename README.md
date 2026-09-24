@@ -21,7 +21,7 @@ All data stays on your own computer or device. There is no cloud storage, no use
 </table>
 
 <details>
-<summary>📱 Full app walkthrough (click to expand)</summary>
+<summary> Full app walkthrough (click to expand)</summary>
 <img src="https://github.com/user-attachments/assets/8ab96175-0ff4-46d6-b532-cb6c7c6b212d" width="700"/>
 </details>
 
