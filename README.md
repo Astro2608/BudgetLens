@@ -5,6 +5,10 @@ BudgetLens is a private personal finance dashboard that helps you track your inc
 All data stays on your own computer or device. There is no cloud storage, no user account, and no data tracking.
 
 ---
+<p float="left">
+    <img src="https://github.com/user-attachments/assets/3a7190f7-02eb-4fd1-bded-7943475a6902" width="45%" />
+    <img src="https://github.com/user-attachments/assets/68e201b3-26f8-455e-ba06-0226665786bd" width="45%" />
+  </p> 
 
 ## Features
 
