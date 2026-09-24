@@ -37,6 +37,14 @@ All data stays on your own computer or device. There is no cloud storage, no use
 
 ---
 
+## User Guide and Beginner Tutorial
+
+For a complete step-by-step tutorial on how to use every feature in BudgetLens, see the detailed [User Guide](USER_GUIDE.md).
+
+It covers entering transactions, importing bank statements, reading pie charts and graphs, using tags, managing categories, and configuring app settings.
+
+---
+
 ## Accessing BudgetLens
 
 You can access BudgetLens directly in your web browser by opening your Netlify link.
