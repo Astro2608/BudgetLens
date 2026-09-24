@@ -509,4 +509,25 @@ Date,Title,Amount,Type,Category,Source,Note,Recurring,Tags
 
 ---
 
-*BudgetLens Product Documentation • Confidential & Proprietary Reference • 2026*
+## 10. Deployment & Web Access Architecture
+
+### 10.1 Netlify Continuous Deployment Pipeline
+BudgetLens is deployed via Netlify continuous integration:
+- **Production Branch:** `main`
+- **Build Command:** `npm run build`
+- **Publish Directory:** `dist`
+- **Automated Deployment:** Merging pull requests or commits into `main` automatically triggers a zero-downtime production deployment on Netlify CDN edge nodes.
+
+### 10.2 Client Access & Installation Matrix
+
+| Platform / Browser | Direct Web Access | Standalone App Install | Offline Functionality |
+| :--- | :--- | :--- | :--- |
+| **Google Chrome (Desktop & Mobile)** | Supported | Supported (PWA Address Bar Install) | 100% Offline via Service Worker |
+| **Microsoft Edge** | Supported | Supported (PWA Address Bar Install) | 100% Offline via Service Worker |
+| **Mozilla Firefox** | Supported | Browser View Only | 100% Offline via Service Worker |
+| **Apple Safari (macOS & iOS)** | Supported | Browser View / Add to Home Screen | 100% Offline via Service Worker |
+
+---
+
+*BudgetLens Product Documentation • Production Reference • 2026*
+
