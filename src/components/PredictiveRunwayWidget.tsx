@@ -77,7 +77,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
   }, [categoryRunways]);
 
   return (
-    <section className="lumina-card" style={{ gap: '1.25rem' }}>
+    <section className="BudgetLens-card" style={{ gap: '1.25rem' }}>
       {/* Header */}
       <div
         style={{

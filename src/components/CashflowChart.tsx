@@ -128,7 +128,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
   const activeBucket = activeBarIdx !== null ? currentBuckets[activeBarIdx] : null;
 
   return (
-    <div className="lumina-card" id="analytics-section">
+    <div className="BudgetLens-card" id="analytics-section">
       {/* Header */}
       <div
         style={{

@@ -197,7 +197,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
   };
 
   return (
-    <div className="lumina-card" id="transactions-section" style={{ gap: '1.25rem' }}>
+    <div className="BudgetLens-card" id="transactions-section" style={{ gap: '1.25rem' }}>
       {/* 1. Header with Title & Badge */}
       <div
         style={{

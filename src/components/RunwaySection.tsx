@@ -22,7 +22,7 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
   const { formatCurrency } = useCurrency();
 
   return (
-    <section className="lumina-card" id="runway-section" style={{ gap: '1.25rem' }}>
+    <section className="BudgetLens-card" id="runway-section" style={{ gap: '1.25rem' }}>
       {/* Header */}
       <div
         style={{

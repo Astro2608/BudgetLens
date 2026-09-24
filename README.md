@@ -1,88 +1,100 @@
-# BudgetLens — Cash Flow in Focus
+# BudgetLens - Cash Flow in Focus
 
-> Your personal finance dashboard. Track income, expenses, and cash runway — all local, no cloud, no account needed.
+BudgetLens is a personal finance dashboard that helps you track your income, expenses, and cash runway.
+
+All data stays on your own computer or device. There is no cloud, no user account, and no tracking.
 
 ---
 
-## ⚡ Quick Start (2 steps)
+## Features
 
-### Step 1 — Install Node.js (one-time, if you don't have it)
-Download and install from: **https://nodejs.org** — pick the **LTS** version.
+- Private and Local: All data is saved directly in your browser. Nothing is sent to external servers.
+- Cash Runway: See how many months your money will last based on your current spending.
+- Easy Import: Import bank statements from CSV and PDF files, or add transactions manually.
+- Smart Detection: Automatically detects recurring monthly bills and cleans up merchant names.
+- Loan and Debt Tracking: Track loan balances, interest, and payoff schedules.
+- Multi-Currency: Supports major currencies, selectable in settings.
+- Offline Ready: Works without an internet connection and can be installed as an app.
 
-### Step 2 — Launch BudgetLens
+---
 
-**Windows:**
-Double-click **`START BudgetLens.bat`**
+## Quick Start
 
-**Mac / Linux:**
-Open Terminal in this folder and run:
+### Requirements
+
+- Node.js (download the LTS version from https://nodejs.org if you do not have it).
+
+### Running BudgetLens
+
+Windows:
+- Double-click the file named `START BudgetLens.bat`.
+
+Mac or Linux:
+- Open Terminal in this project folder and run:
 ```bash
 chmod +x start-budgetlens.sh
 ./start-budgetlens.sh
 ```
 
-BudgetLens will open in your browser at `http://localhost:5173`.
+Manual setup (any operating system):
+1. Open your terminal in this folder.
+2. Install dependencies:
+```bash
+npm install
+```
+3. Start the application:
+```bash
+npm run dev
+```
+4. Open your browser and go to:
+```
+http://localhost:5173
+```
 
 ---
 
-## 📲 Install as a Desktop App (Recommended)
+## Install as a Desktop App
 
-Once BudgetLens is open in Chrome or Edge:
+You can install BudgetLens to run in its own window like a native application:
 
-1. Look for the **⊕ install icon** in the address bar (right side)
-2. Click it → **"Install BudgetLens"**
-3. A desktop shortcut is created — it runs in its own window like a native app
+1. Open `http://localhost:5173` in Google Chrome or Microsoft Edge.
+2. Click the install icon on the right side of the address bar.
+3. Click "Install BudgetLens".
+4. A shortcut is created on your desktop.
 
-**iOS Safari:** Tap Share → "Add to Home Screen"
-**macOS Safari:** File → "Add to Dock"
-**Firefox:** Bookmark it (Firefox doesn't support PWA install)
-
-> After installing, you can close the terminal. Launch BudgetLens from your desktop shortcut directly.
-
----
-
-## 🗃️ Your Data
-
-- All your financial data is stored **locally in your browser** (IndexedDB)
-- Nothing is uploaded anywhere — it's 100% private
-- To back up: use the **Export** button inside the app (saves as `.md` or `.csv`)
-- To move data to another device: export on old device → import CSV on new device
+Mobile and Safari:
+- iPhone or iPad (Safari): Tap the Share button, then tap "Add to Home Screen".
+- Mac (Safari): In the menu bar, click File, then click "Add to Dock".
 
 ---
 
-## 🧭 First Use Guide
+## Your Data and Privacy
 
-The app will walk you through a 4-step intro on first launch. After that:
-
-| Step | What to do |
-|------|-----------|
-| 1 | Click **⚙️ Settings** → set your opening cash balance |
-| 2 | Click **+ Add** or drag in a bank CSV to import transactions |
-| 3 | Watch the **Runway** section update — see how long your cash lasts |
-| 4 | Use **Export** anytime to save your data as a file |
+- Where data lives: All data is saved inside your browser storage (IndexedDB).
+- Privacy: BudgetLens does not collect, send, or sell your information. No analytics or tracking scripts are used.
+- Backups: Use the Export button inside the app at any time to save your data as a CSV or Markdown file.
+- Moving to a new computer: Export your CSV file from your old computer, then import it on your new computer.
+- Resetting data: Use the Reset button in the dashboard settings if you want to clear all data and start fresh.
 
 ---
 
-## 🌐 Browser Compatibility
+## Troubleshooting
 
-| Browser | Works | Install to Desktop | Offline |
-|---------|-------|-------------------|---------|
-| Chrome | ✅ | ✅ Best experience | ✅ |
-| Edge | ✅ | ✅ | ✅ |
-| Firefox | ✅ | ❌ (bookmark instead) | ✅ |
-| Safari (iOS) | ✅ | ✅ Add to Home Screen | ✅ |
-| Safari (macOS) | ✅ | ✅ Add to Dock | ✅ |
+- Port in use error: If port 5173 is already used by another program, open `package.json` and change `5173` to `5174` in the `dev` script.
+- Data missing after restart: Make sure you open BudgetLens in the same browser you used before. Browser data is tied to the specific browser application.
 
 ---
 
-## ℹ️ Troubleshooting
+## Financial and Legal Disclaimer
 
-**"Port 5173 already in use"** — Another app is using that port. Edit `package.json` and change `5173` to `5174` in the `dev` script.
+BudgetLens is provided for informational and personal budgeting purposes only.
 
-**Data not saving** — Make sure you're using the same browser you always use. Data is browser-specific.
-
-**Want to clear everything and start fresh?** — Use the **🔄 Reset** button in the top-right corner of the dashboard.
+1. Not Financial Advice: The authors and contributors are not licensed financial advisors, investment managers, tax consultants, or attorneys. Nothing in this software should be considered financial, investment, legal, tax, or accounting advice.
+2. Estimates Only: Calculations, cash runways, interest projections, and recurring detections are estimates based on your inputs and past records. Future financial conditions, bank fees, interest rates, and currency values may differ.
+3. User Responsibility: You are responsible for reviewing and confirming all entries, balances, and calculations. Always consult a qualified professional before making financial, investment, or legal decisions.
 
 ---
 
-*BudgetLens • Looking Ahead: How far your cash takes you*
+## License
+
+BudgetLens is open source software licensed under the MIT License. See the [LICENSE](LICENSE) file for the full text.

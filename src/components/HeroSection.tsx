@@ -29,7 +29,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       : { text: 'Current Bank Balance (Surplus)', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' };
 
   return (
-    <section className="lumina-card" style={{ padding: '1.75rem', gap: '1.25rem' }}>
+    <section className="BudgetLens-card" style={{ padding: '1.75rem', gap: '1.25rem' }}>
       {/* Upper row: Balance + Action buttons */}
       <div
         style={{

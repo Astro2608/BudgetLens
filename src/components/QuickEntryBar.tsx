@@ -94,7 +94,7 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="lumina-card"
+      className="BudgetLens-card"
       style={{
         padding: '1rem 1.25rem',
         gap: '0.75rem',

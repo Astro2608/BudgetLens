@@ -17,7 +17,7 @@ export const DebtHubSection: React.FC<DebtHubSectionProps> = ({
 }) => {
   return (
     <div
-      className="lumina-card"
+      className="BudgetLens-card"
       style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',

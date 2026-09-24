@@ -318,7 +318,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   };
 
   return (
-    <div className="lumina-card" id="import-section" style={{ gap: '1rem' }}>
+    <div className="BudgetLens-card" id="import-section" style={{ gap: '1rem' }}>
       {/* Hidden File Input for PDF, CSV, and MD */}
       <input
         type="file"

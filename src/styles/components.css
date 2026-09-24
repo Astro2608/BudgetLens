@@ -1,7 +1,7 @@
-/* Lumina Dashboard Component Styles */
+/* BudgetLens Dashboard Component Styles */
 
 /* Common Card Container */
-.lumina-card {
+.BudgetLens-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-2xl);
@@ -13,7 +13,7 @@
   transition: box-shadow var(--transition-normal);
 }
 
-.lumina-card:hover {
+.BudgetLens-card:hover {
   box-shadow: var(--shadow-md);
 }
 

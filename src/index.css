@@ -1,5 +1,5 @@
 /* ===================================================================
-   Lumina Finance Design System - CSS Variables & Core Styles
+   BudgetLens Finance Design System - CSS Variables & Core Styles
    =================================================================== */
 
 :root {
@@ -49,7 +49,7 @@
   --radius-md: 0.25rem;  /* 4px - inputs, buttons, dropdowns */
   --radius-lg: 0.35rem;  /* ~5.6px - category cards, list rows */
   --radius-xl: 0.45rem;  /* ~7.2px - inner panels & dropzones */
-  --radius-2xl: 0.35rem; /* ~5.6px - main dashboard cards (.lumina-card) */
+  --radius-2xl: 0.35rem; /* ~5.6px - main dashboard cards (.BudgetLens-card) */
   --radius-full: 9999px; /* full circular pills */
 
   /* Elevations */
@@ -340,7 +340,7 @@ body {
 }
 
 /* Card Surface */
-.lumina-card {
+.BudgetLens-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-2xl);

@@ -206,7 +206,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
   const netSurplus = incomeData.totalInflows - expenseData.totalOutflows;
 
   return (
-    <div className="lumina-card" style={{ gap: '1.25rem' }}>
+    <div className="BudgetLens-card" style={{ gap: '1.25rem' }}>
       {/* Header */}
       <div
         style={{

@@ -36,9 +36,9 @@ const STORAGE_KEY_TXS = 'budgetlens_transactions';
 const STORAGE_KEY_LOANS = 'budgetlens_loans';
 
 // Legacy keys for automatic migration
-const LEGACY_STORAGE_KEY_CONFIGS = 'lumina_category_configs';
-const LEGACY_STORAGE_KEY_BALANCE = 'lumina_initial_balance';
-const LEGACY_STORAGE_KEY_TXS = 'lumina_transactions';
+const LEGACY_STORAGE_KEY_CONFIGS = 'BudgetLens_category_configs';
+const LEGACY_STORAGE_KEY_BALANCE = 'BudgetLens_initial_balance';
+const LEGACY_STORAGE_KEY_TXS = 'BudgetLens_transactions';
 
 const AppContent: React.FC = () => {
   const { formatCurrency, autoDetectCurrency } = useCurrency();

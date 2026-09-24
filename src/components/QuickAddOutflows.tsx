@@ -72,7 +72,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
   };
 
   return (
-    <div className="lumina-card" style={{ gap: '1rem' }}>
+    <div className="BudgetLens-card" style={{ gap: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '20px' }}>bolt</span>

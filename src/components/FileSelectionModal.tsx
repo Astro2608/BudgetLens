@@ -33,7 +33,7 @@ export const FileSelectionModal: React.FC<FileSelectionModalProps> = ({ onSelect
       }}
     >
       <div
-        className="lumina-card"
+        className="BudgetLens-card"
         style={{
           maxWidth: '480px',
           width: '100%',

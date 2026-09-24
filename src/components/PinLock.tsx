@@ -18,7 +18,7 @@ export const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
   const [isSetup, setIsSetup] = useState(false);
   
   useEffect(() => {
-    const storedHash = localStorage.getItem('lumina_pin_hash');
+    const storedHash = localStorage.getItem('BudgetLens_pin_hash');
     setIsSetup(!storedHash);
   }, []);
 
@@ -37,11 +37,11 @@ export const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
   useEffect(() => {
     const processPin = async () => {
       if (pin.length === 4) {
-        const storedHash = localStorage.getItem('lumina_pin_hash');
+        const storedHash = localStorage.getItem('BudgetLens_pin_hash');
         const inputHash = await hashPin(pin);
         
         if (isSetup) {
-          localStorage.setItem('lumina_pin_hash', inputHash);
+          localStorage.setItem('BudgetLens_pin_hash', inputHash);
           onUnlock();
         } else {
           if (storedHash === inputHash) {

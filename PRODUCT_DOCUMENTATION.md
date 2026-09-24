@@ -7,7 +7,7 @@
 
 ## Executive Summary & Product Vision
 
-**BudgetLens** (formerly *Lumina Finance*) is an offline-first, client-side personal financial intelligence system and runway forecasting dashboard. Developed to address the growing invasion of user privacy and subscription fatigue in modern fintech, BudgetLens eliminates third-party servers, cloud databases, and tracking scripts entirely. 
+**BudgetLens** (formerly *BudgetLens Finance*) is an offline-first, client-side personal financial intelligence system and runway forecasting dashboard. Developed to address the growing invasion of user privacy and subscription fatigue in modern fintech, BudgetLens eliminates third-party servers, cloud databases, and tracking scripts entirely. 
 
 Unlike traditional banking aggregation tools that require Open Banking access tokens or bank login credentials, BudgetLens operates on a **zero-trust, zero-custody architecture**:
 1. **100% Local Processing:** Every statement parse, algorithmic calculation, chart render, and storage write occurs within the user's browser sandbox on their local hardware.
@@ -53,7 +53,7 @@ Unlike traditional banking aggregation tools that require Open Banking access to
 |   +----------------------------------------------v---------------------------------------------+   |
 |   |                                     STORAGE ABSTRACTION LAYER                              |   |
 |   |  - IndexedDB Store ("BudgetLensStorage"): "appData" (Txs, Loans, Balances, Configs)        |   |
-|   |  - Web Crypto API: SHA-256 PIN Lock ("lumina_pin_hash")                                   |   |
+|   |  - Web Crypto API: SHA-256 PIN Lock ("BudgetLens_pin_hash")                                   |   |
 |   |  - File System Access API ("fileHandles"): Direct Auto-Sync to Local Disk File (.md / .csv)|   |
 |   |  - Safety Archival Subsystem: Export-before-wipe on workspace reset                        |   |
 |   +--------------------------------------------------------------------------------------------+   |
@@ -158,11 +158,11 @@ BudgetLens utilizes an IndexedDB database named `BudgetLensStorage` (Database Ve
 | `fileHandles` | `rawFileHandle` | `FileSystemFileHandle` | OS file handle for real-time background disk mirror |
 | `localStorage`| `budgetlens_welcome_done` | `'true'` / `'false'` | First-run onboarding dismissal flag |
 | `localStorage`| `budgetlens_currency` | Currency Code (e.g., `'SGD'`) | Active currency standard |
-| `localStorage`| `lumina_pin_hash` | SHA-256 Hex Digest | 4-digit PIN authentication security hash |
+| `localStorage`| `BudgetLens_pin_hash` | SHA-256 Hex Digest | 4-digit PIN authentication security hash |
 
 #### Automated Schema Migration & Self-Healing:
 Upon application boot (`App.tsx`), BudgetLens performs auto-migration:
-1. **Legacy Key Migration:** Inspects previous `lumina_*` keys in IndexedDB. If found, transparently migrates data into standard `budgetlens_*` stores.
+1. **Legacy Key Migration:** Inspects previous `BudgetLens_*` keys in IndexedDB. If found, transparently migrates data into standard `budgetlens_*` stores.
 2. **Category Healing:** Checks if existing transactions were erroneously tagged with fallback "General". Re-evaluates merchant names using `detectCategoryFromTitle()` to categorize them.
 3. **Retroactive Recurring Detection:** Automatically executes `upgradeExistingTransactionsWithRecurring()` across existing records to backfill recurring flags.
 
