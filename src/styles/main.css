@@ -224,7 +224,8 @@ html, body {
 
 /* Top Header Bar */
 .top-header {
-  height: 64px;
+  min-height: 64px;
+  height: auto;
   position: sticky;
   top: 0;
   z-index: 30;
@@ -233,9 +234,7 @@ html, body {
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2rem;
+  flex-direction: column;
 }
 
 .header-search-box {
