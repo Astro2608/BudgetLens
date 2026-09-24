@@ -11,6 +11,8 @@ When you open BudgetLens for the first time, an interactive tour will guide you 
 If you ever want to replay the tour:
 1. Look at the top navigation bar.
 2. Click the **Tour** button to start the step-by-step introduction again.
+   <img width="256" height="68" alt="image" src="https://github.com/user-attachments/assets/f234601b-d03b-463f-91e4-c200c849e7ca" />
+
 
 ---
 
@@ -24,15 +26,21 @@ There are three easy ways to log your income and expenses:
 3. Enter the amount.
 4. Select the type: **Income**, **Expense**, or **Savings**.
 5. Click **Add Transaction** or press Enter.
+   <img width="1307" height="164" alt="image" src="https://github.com/user-attachments/assets/5de73e2f-5164-425d-9060-d10bf8294a60" />
+
 
 ### Quick Outflow Chips
 1. Below the Quick Add bar, you will see predefined category shortcut chips (such as Groceries, Food, Transport, Bills).
 2. Click any chip to quickly prefill the transaction form with that category.
+   <img width="420" height="697" alt="image" src="https://github.com/user-attachments/assets/52b4aa13-acbf-457d-bdf5-7d67f7a38c99" />
+
 
 ### Detailed Transaction Entry
-1. Click the **+ Add Transaction** button.
-2. Fill in optional fields including Date, Category, Payment Source, Notes, and Tags.
-3. Check **Recurring Transaction** if this item repeats monthly (such as rent or subscriptions).
+1. Click the **+ Bulk Upload** button.
+2. Import by pasting your custom written budget logs from your notepad and click parse notes or upload your Bank e-statement.
+3. Once data is parsed a data Log List will appear for user review and amendments.
+4. If all logged data is valid Click "Import" button.
+   <img width="861" height="552" alt="image" src="https://github.com/user-attachments/assets/dc1615b3-0c26-4322-975b-483f9f6cc03b" />
 
 ---
 
@@ -78,6 +86,7 @@ BudgetLens includes interactive charts to visualize your finances.
 ### Expenditure Donut Chart (Pie Chart)
 - Shows how your expenses are divided among categories.
 - **Hover Action**: Hover over any color slice or legend item to highlight that category and see its exact dollar amount and percentage.
+  <img width="857" height="563" alt="image" src="https://github.com/user-attachments/assets/013e13e7-f7ba-4904-a693-c4b7250fab4d" />
 
 ---
 
@@ -133,6 +142,8 @@ Click the **Settings** button in the top navigation bar to open the configuratio
 - **Customize Categories**: View all expense and income categories.
 - **Change Category Colors**: Click the color picker next to any category to choose a custom color for your donut chart and labels.
 - **Add Custom Category**: Create new categories with custom labels and icons.
+  <img width="1137" height="428" alt="image" src="https://github.com/user-attachments/assets/c66e2575-1e8d-4adb-b1b5-762c8a60fe6d" />
+
 
 ---
 
