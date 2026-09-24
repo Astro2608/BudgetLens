@@ -5,15 +5,25 @@ BudgetLens is a private personal finance dashboard that helps you track your inc
 All data stays on your own computer or device. There is no cloud storage, no user account, and no data tracking.
 
 ---
-<p float="left">
-    <img src="https://github.com/user-attachments/assets/9f271262-3b0b-40c7-aeff-997fd55f2c4d" width="45%" />
-    <img src="https://github.com/user-attachments/assets/68e201b3-26f8-455e-ba06-0226665786bd" width="45%" />
-    <img src="https://github.com/user-attachments/assets/8f5b5e41-5446-4a7a-b3fd-92c8d4a2cc0e" width="45%" />
-    <img src="https://github.com/user-attachments/assets/8f6fa69f-49a9-4544-8096-e6a721e665e3" width="45%" />
-    <img src="https://github.com/user-attachments/assets/aea5efec-8d01-4d9d-891c-d2ed40f35ccb" width="45%" />
-    <img src="https://github.com/user-attachments/assets/201ac867-8e5f-471a-94ab-4eb38d0cd55b" width="45%" />
-    <img src="https://github.com/user-attachments/assets/8ab96175-0ff4-46d6-b532-cb6c7c6b212d" width="45%" />
-  </p> 
+<table>
+  <tr>
+    <td width="50%"><img src="https://github.com/user-attachments/assets/9f271262-3b0b-40c7-aeff-997fd55f2c4d" width="100%"/></td>
+    <td width="50%"><img src="https://github.com/user-attachments/assets/68e201b3-26f8-455e-ba06-0226665786bd" width="100%"/></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://github.com/user-attachments/assets/8f5b5e41-5446-4a7a-b3fd-92c8d4a2cc0e" width="100%"/></td>
+    <td width="50%"><img src="https://github.com/user-attachments/assets/8f6fa69f-49a9-4544-8096-e6a721e665e3" width="100%"/></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://github.com/user-attachments/assets/aea5efec-8d01-4d9d-891c-d2ed40f35ccb" width="100%"/></td>
+    <td width="50%"><img src="https://github.com/user-attachments/assets/201ac867-8e5f-471a-94ab-4eb38d0cd55b" width="100%"/></td>
+  </tr>
+</table>
+
+<details>
+<summary>📱 Full app walkthrough (click to expand)</summary>
+<img src="https://github.com/user-attachments/assets/8ab96175-0ff4-46d6-b532-cb6c7c6b212d" width="700"/>
+</details>
 
 ## Features
 
