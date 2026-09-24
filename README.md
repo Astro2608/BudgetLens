@@ -1,6 +1,7 @@
 # BudgetLens - Cash Flow in Focus
 
 BudgetLens is a private personal finance dashboard that helps you track your income, expenses, and cash runway.
+https://budgetlensfinance.netlify.app
 
 All data stays on your own computer or device. There is no cloud storage, no user account, and no data tracking.
 
