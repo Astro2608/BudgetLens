@@ -748,7 +748,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </span>
                     <input
                       type="number"
-                      step="100"
+                      step="any"
                       min="0"
                       value={localBalance}
                       onChange={(e) => setLocalBalance(e.target.value)}

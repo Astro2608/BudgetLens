@@ -319,12 +319,21 @@ export function normalizeDateUniversal(raw: string): string {
   if (!raw) return new Date().toISOString().split('T')[0];
   const str = raw.trim();
 
+  // Pattern 1: ISO YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (isoMatch) {
+    const year = isoMatch[1];
+    const month = isoMatch[2].padStart(2, '0');
+    const day = isoMatch[3].padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   const monthNames: Record<string, string> = {
     jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
     jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
   };
 
-  // e.g. 10-Sep-2026 or 10 Sep 2026 or 10/Sep/26
+  // Pattern 2: 10-Sep-2026 or 10 Sep 2026 or 10/Sep/26
   const textMatch = str.match(/(\d{1,2})[\s/-]([a-zA-Z]{3})[\s/-]?(\d{2,4})?/i);
   if (textMatch) {
     const day = textMatch[1].padStart(2, '0');
@@ -334,8 +343,8 @@ export function normalizeDateUniversal(raw: string): string {
     return `${year}-${month}-${day}`;
   }
 
-  // e.g. DD-MM-YYYY or DD/MM/YYYY
-  const numMatch = str.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
+  // Pattern 3: DD-MM-YYYY or DD/MM/YYYY or MM-DD-YYYY
+  const numMatch = str.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
   if (numMatch) {
     const p1 = parseInt(numMatch[1], 10);
     const p2 = parseInt(numMatch[2], 10);
