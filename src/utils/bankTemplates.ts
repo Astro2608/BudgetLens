@@ -23,6 +23,13 @@ export interface ColumnMappingConfig {
   refCol?: number | null;
 }
 
+export type TitleCleaningRule =
+  | { type: 'split_and_take'; delimiter: string; index: number }
+  | { type: 'remove_text'; pattern: string }
+  | { type: 'replace_text'; pattern: string; replacement: string }
+  | { type: 'regex_extract'; pattern: string; group?: number }
+  | { type: 'take_first_line' };
+
 export interface BankTemplate {
   id: string;
   name: string;
@@ -30,6 +37,7 @@ export interface BankTemplate {
   isBuiltIn?: boolean;
   signatureKeywords: string[];
   mapping: ColumnMappingConfig;
+  titleExtractors?: TitleCleaningRule[];
 }
 
 const STORAGE_KEY = 'budgetlens_saved_bank_templates';
@@ -83,7 +91,7 @@ export const BUILT_IN_TEMPLATES: BankTemplate[] = [
     name: 'JPMorgan Chase Bank',
     currency: 'USD',
     isBuiltIn: true,
-    signatureKeywords: ['posting date', 'description', 'amount', 'type', 'balance'],
+    signatureKeywords: ['chase', 'jpmorgan', 'posting date', 'description', 'amount', 'type', 'balance'],
     mapping: { dateCol: 0, descCol: 1, amountCol: 2, typeCol: 3, balanceCol: 4 }
   },
   {
@@ -118,7 +126,12 @@ export const BUILT_IN_TEMPLATES: BankTemplate[] = [
     currency: 'SGD',
     isBuiltIn: true,
     signatureKeywords: ['transaction date', 'reference', 'description', 'debit amount', 'credit amount', 'balance'],
-    mapping: { dateCol: 0, refCol: 1, descCol: 2, debitCol: 3, creditCol: 4, balanceCol: 5 }
+    mapping: { dateCol: 0, refCol: 1, descCol: 2, debitCol: 3, creditCol: 4, balanceCol: 5 },
+    titleExtractors: [
+      { type: 'take_first_line' },
+      { type: 'remove_text', pattern: '\\bSI SGP\\b.*' },
+      { type: 'remove_text', pattern: '\\d{10,}' }
+    ]
   },
   {
     id: 'ocbc',
@@ -134,7 +147,37 @@ export const BUILT_IN_TEMPLATES: BankTemplate[] = [
     currency: 'SGD',
     isBuiltIn: true,
     signatureKeywords: ['date', 'transaction details', 'withdrawal', 'deposit', 'balance'],
-    mapping: { dateCol: 0, descCol: 1, debitCol: 2, creditCol: 3, balanceCol: 4 }
+    mapping: { dateCol: 0, descCol: 1, debitCol: 2, creditCol: 3, balanceCol: 4 },
+    titleExtractors: [
+      { type: 'take_first_line' },
+      { type: 'remove_text', pattern: '\\b\\d{2} [A-Z]{3} \\d{4}\\b.*' } // e.g., removes "25 MAY 3314..."
+    ]
+  },
+
+  // Union Bank of India
+  {
+    id: 'union_bank',
+    name: 'Union Bank of India',
+    currency: 'INR',
+    isBuiltIn: true,
+    signatureKeywords: ['transaction id', 'remarks', 'amount', 'balance', 'union bank', 'ubin'],
+    mapping: { dateCol: 0, refCol: 1, descCol: 2, amountCol: 3, balanceCol: 4 },
+    titleExtractors: [
+      // 1. UPI: UPIAR/.../DR/<Beneficiary>/... or UPIAB/.../CR/<Beneficiary>/...
+      { type: 'regex_extract', pattern: '/(?:CR|DR)/([^/]+)' },
+      // 2. IMPS: IMPSAB/.../<Beneficiary>/...
+      { type: 'regex_extract', pattern: 'IMPS[A-Z0-9]*/[^/]+/([^/]+)' },
+      // 3. MOBFT with Note: MOBFT/<Beneficiary>/<Note>/...
+      { type: 'regex_extract', pattern: 'MOBFT/[^/]+/([^/]+)' },
+      // 4. MOBFT without Note: MOBFT/<Beneficiary>
+      { type: 'regex_extract', pattern: 'MOBFT/([^/]+)' },
+      // 5. eTXN: eTXN/To:.../<Desc>
+      { type: 'regex_extract', pattern: 'eTXN/[^/]+/([^/]+)' },
+      // 6. Generic slash fallback: take part 3 if available
+      { type: 'split_and_take', delimiter: '/', index: 3 },
+      // 7. Strip leading or trailing whitespace/slashes
+      { type: 'remove_text', pattern: '^[\\s/]+|[\\s/]+$' }
+    ]
   },
 
   // EUR - Eurozone
@@ -226,6 +269,34 @@ export function getTemplatesForCurrency(currencyCode: string): {
   );
 
   return { primaryTemplates, otherTemplates, customTemplates };
+}
+
+export function detectBankTemplateByKeywords(text: string): BankTemplate | undefined {
+  const templates = getSavedBankTemplates();
+  const lowerText = text.toLowerCase();
+  
+  // Sort templates so that built-in specific banks are evaluated first, generics last
+  const sorted = [...templates].sort((a, b) => {
+    if (a.id.includes('generic') && !b.id.includes('generic')) return 1;
+    if (!a.id.includes('generic') && b.id.includes('generic')) return -1;
+    return 0;
+  });
+
+  let bestTemplate: BankTemplate | undefined;
+  let maxScore = 0;
+
+  for (const template of sorted) {
+    if (template.signatureKeywords.length > 0) {
+      const matches = template.signatureKeywords.filter((kw) => lowerText.includes(kw));
+      // Prioritize specific built-in or custom templates over generics
+      const score = matches.length + (!template.id.includes('generic') ? 1.5 : 0);
+      if (matches.length >= 3 && score > maxScore) {
+        maxScore = score;
+        bestTemplate = template;
+      }
+    }
+  }
+  return bestTemplate;
 }
 
 export function saveCustomBankTemplate(template: BankTemplate): void {
@@ -405,12 +476,53 @@ export function reconcileRunningBalances(transactions: Transaction[]): {
 }
 
 /**
+ * Smart pipeline to clean transaction titles based on Bank Template Rules
+ */
+export function cleanTransactionTitle(raw: string, rules?: TitleCleaningRule[]): string {
+  let result = raw.trim();
+  if (!rules || rules.length === 0) return result;
+
+  try {
+    for (const rule of rules) {
+      if (rule.type === 'take_first_line') {
+        result = result.split(/\r?\n/)[0].trim();
+      } else if (rule.type === 'split_and_take') {
+        const parts = result.split(rule.delimiter);
+        if (parts.length > rule.index) {
+          result = parts[rule.index].trim();
+        }
+      } else if (rule.type === 'remove_text') {
+        const regex = new RegExp(rule.pattern, 'gi');
+        result = result.replace(regex, '').trim();
+      } else if (rule.type === 'replace_text') {
+        const regex = new RegExp(rule.pattern, 'gi');
+        result = result.replace(regex, rule.replacement).trim();
+      } else if (rule.type === 'regex_extract') {
+        const regex = new RegExp(rule.pattern, 'i');
+        const match = result.match(regex);
+        if (match && match[rule.group ?? 1]) {
+          result = match[rule.group ?? 1].trim();
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to clean transaction title', err);
+  }
+
+  // Fallback cleanup: remove trailing dashes or slashes
+  result = result.replace(/[-\/\\]+$/, '').trim();
+  
+  return result || raw.trim(); // Return raw if cleaning made it empty
+}
+
+/**
  * Parses raw grid rows according to a chosen column mapping configuration
  */
 export function parseGridWithMapping(
   rows: string[][],
   mapping: ColumnMappingConfig,
-  fileName: string
+  fileName: string,
+  template?: BankTemplate
 ): Transaction[] {
   const result: Transaction[] = [];
 
@@ -479,17 +591,28 @@ export function parseGridWithMapping(
       }
     }
 
-    const category = txType === 'income' ? 'Salary' : detectCategoryFromTitle(description);
+    // Clean title with Smart Extractors
+    const originalDesc = description;
+    let cleanTitle = description;
+    
+    if (template && template.titleExtractors) {
+      cleanTitle = cleanTransactionTitle(description, template.titleExtractors);
+    }
+    
+    // If smart cleaning somehow emptied it, fallback
+    if (!cleanTitle) cleanTitle = originalDesc;
+
+    const category = txType === 'income' ? 'Salary' : detectCategoryFromTitle(cleanTitle);
 
     result.push({
       id: `mapped-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
       date,
-      title: description,
+      title: cleanTitle,
       amount,
       type: txType,
       category,
       isRecurring: false,
-      note: `Bank e-Statement (${fileName})`,
+      note: `Bank e-Statement (${fileName})\nOriginal Text: ${originalDesc.substring(0, 80)}...`,
       source: fileName,
       runningBalance
     });

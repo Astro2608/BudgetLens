@@ -716,6 +716,7 @@ const AppContent: React.FC = () => {
               }}
               existingTransactions={transactions}
               categoryConfigs={categoryConfigs}
+              onUpdateCategoryConfigs={setCategoryConfigs}
               onClose={() => setIsImportModalOpen(false)}
             />
           </div>

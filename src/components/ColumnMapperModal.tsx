@@ -53,7 +53,7 @@ export const ColumnMapperModal: React.FC<ColumnMapperModalProps> = ({
       const initialRoles: ColumnRole[] = rawColumns.map((colName, idx) => {
         const s = colName.toLowerCase();
         if (s.includes('date') || s.includes('time')) return 'date';
-        if (s.includes('chq') || s.includes('ref')) return 'ref';
+        if (s.includes('chq') || s.includes('ref') || s.includes('transaction id') || s.includes('txn id')) return 'ref';
         if (s.includes('desc') || s.includes('narrat') || s.includes('particular') || s.includes('detail') || s.includes('remark')) return 'description';
         if (s.includes('debit') || s.includes('withdrawal') || s.includes('paid out') || s.includes('dr')) return 'debit';
         if (s.includes('credit') || s.includes('deposit') || s.includes('paid in') || s.includes('cr')) return 'credit';
@@ -137,11 +137,15 @@ export const ColumnMapperModal: React.FC<ColumnMapperModalProps> = ({
     };
   }, [colRoles]);
 
+  const selectedTemplate = useMemo(() => {
+    return templates.find((t) => t.id === selectedTemplateId);
+  }, [templates, selectedTemplateId]);
+
   // Preview live parsed count
   const previewTransactions = useMemo(() => {
     if (!rawRows || rawRows.length === 0) return [];
-    return parseGridWithMapping(rawRows, currentMapping, fileName);
-  }, [rawRows, currentMapping, fileName]);
+    return parseGridWithMapping(rawRows, currentMapping, fileName, selectedTemplate);
+  }, [rawRows, currentMapping, fileName, selectedTemplate]);
 
   const handleSaveTemplate = () => {
     const trimmed = newTemplateName.trim();

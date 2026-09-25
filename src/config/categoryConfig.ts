@@ -8,7 +8,7 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     icon: 'receipt_long',
     type: 'expense',
     keywords: ['general', 'misc', 'miscellaneous', 'other', 'shop', 'groceries', 'mart', 'supermarket', 'convenience', '7-eleven', 'fairprice', 'cold storage', 'donki', 'daiso', 'food', 'lunch', 'dinner', 'cafe', 'coffee'],
-    tags: ['shopping', 'medical', 'personal', 'entertainment']
+    tags: ['shopping', 'medical', 'personal']
   },
   Salary: {
     key: 'Salary',
@@ -17,7 +17,7 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     icon: 'payments',
     type: 'income',
     keywords: ['salary', 'payroll', 'stripe', 'bonus', 'dividend', 'deposit', 'freelance', 'consultation', 'client payout', 'income', 'paycheck'],
-    tags: ['salary', 'freelance', 'bonus', 'dividends', 'refund']
+    tags: ['salary', 'freelance', 'bonus']
   },
   Bills: {
     key: 'Bills',
@@ -26,7 +26,7 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     icon: 'bolt',
     type: 'expense',
     keywords: ['sp group', 'sp services', 'singtel', 'starhub', 'm1', 'giga', 'netflix', 'spotify', 'utilities', 'electric', 'water', 'telecom', 'telco', 'wifi', 'broadband', 'insurance', 'bill', 'bills'],
-    tags: ['utilities', 'wifi', 'mobile', 'insurance', 'subscriptions']
+    tags: ['utilities', 'mobile', 'wifi']
   },
   Transport: {
     key: 'Transport',
@@ -35,7 +35,7 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     icon: 'directions_subway',
     type: 'expense',
     keywords: ['grab', 'gojek', 'mrt', 'bus', 'simplygo', 'ezlink', 'transit', 'shell', 'fuel', 'petrol', 'taxi', 'comfortdelgro', 'flight', 'airline', 'transport'],
-    tags: ['mrt', 'bus', 'taxi', 'grab', 'petrol', 'flight']
+    tags: ['transit', 'fuel', 'taxi']
   },
   Savings: {
     key: 'Savings',
@@ -44,7 +44,7 @@ export const DEFAULT_CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     icon: 'savings',
     type: 'savings',
     keywords: ['stash', 'emergency fund', 'vault', 'crypto', 'invest', 'etf', 'cpf', 'fixed deposit', 'saving', 'savings'],
-    tags: ['investments', 'emergency-fund', 'crypto', 'deposit']
+    tags: ['investments', 'emergency-fund', 'crypto']
   }
 };
 

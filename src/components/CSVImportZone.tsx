@@ -15,6 +15,7 @@ interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
   existingTransactions?: Transaction[];
   categoryConfigs?: Record<CategoryKey, CategoryConfig>;
+  onUpdateCategoryConfigs?: (configs: Record<CategoryKey, CategoryConfig>) => void;
   onClose?: () => void;
 }
 
@@ -22,6 +23,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   onImportTransactions,
   existingTransactions = [],
   categoryConfigs = {},
+  onUpdateCategoryConfigs,
   onClose
 }) => {
   const { formatCurrency, autoDetectCurrency } = useCurrency();
@@ -245,14 +247,35 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const handleAddCustomTag = (id: string, customTag: string) => {
     const clean = customTag.trim().toLowerCase().replace(/^#/, '');
     if (!clean) return;
+
+    let targetCategory: CategoryKey | undefined;
+
     setModalTransactions((prev) =>
       prev.map((t) => {
         if (t.id !== id) return t;
+        targetCategory = t.category;
         const current = t.tags || [];
         if (current.includes(clean)) return t;
         return { ...t, tags: [...current, clean] };
       })
     );
+
+    // Auto-register and persist new tag into category presets forever
+    if (targetCategory && categoryConfigs[targetCategory]) {
+      const existingTags = categoryConfigs[targetCategory].tags || [];
+      if (!existingTags.includes(clean)) {
+        const updatedCategoryConfigs = {
+          ...categoryConfigs,
+          [targetCategory]: {
+            ...categoryConfigs[targetCategory],
+            tags: [...existingTags, clean]
+          }
+        };
+        if (onUpdateCategoryConfigs) {
+          onUpdateCategoryConfigs(updatedCategoryConfigs);
+        }
+      }
+    }
   };
 
   // Toggle recurring status
@@ -1210,13 +1233,14 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                   flex: 1,
                   minHeight: 0,
                   overflowY: 'auto',
+                  overflowX: 'auto',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-lg)',
                   overscrollBehavior: 'contain',
                   backgroundColor: '#ffffff'
                 }}
               >
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left', tableLayout: 'fixed' }}>
+                <table style={{ width: '100%', minWidth: '1050px', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left', tableLayout: 'fixed' }}>
                   <thead
                     style={{
                       position: 'sticky',
@@ -1440,7 +1464,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
 
                           {/* Tags Column: Preset chips + Custom input */}
                           <td style={{ padding: '6px 8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap', maxWidth: '160px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap', minWidth: '150px' }}>
                               {(tx.tags || []).map((tag) => (
                                 <span
                                   key={tag}
@@ -1478,51 +1502,91 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                                 </span>
                               ))}
 
-                              {/* Quick click to add preset tag */}
-                              {catPresetTags.filter((t) => !(tx.tags || []).includes(t)).slice(0, 2).map((pTag) => (
-                                <button
-                                  key={pTag}
-                                  type="button"
-                                  onClick={() => handleToggleRowTag(tx.id, pTag)}
-                                  style={{
-                                    fontSize: '9px',
-                                    fontWeight: 600,
-                                    padding: '1px 4px',
-                                    borderRadius: '3px',
-                                    backgroundColor: '#f8fafc',
-                                    color: '#64748b',
-                                    border: '1px dashed #cbd5e1',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                  title={`Click to add #${pTag}`}
-                                >
-                                  +#{pTag}
-                                </button>
-                              ))}
+                              {/* Quick click to add preset tag - show ALL category preset tags */}
+                              {(() => {
+                                const allKnownTags = new Set([
+                                  ...(tx.tags || []).map((t) => t.toLowerCase()),
+                                  ...catPresetTags.map((t) => t.toLowerCase())
+                                ]);
 
-                              {/* Custom tag input */}
-                              <input
-                                type="text"
-                                placeholder="+tag"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleAddCustomTag(tx.id, e.currentTarget.value);
-                                    e.currentTarget.value = '';
-                                  }
-                                }}
-                                style={{
-                                  width: '42px',
-                                  fontSize: '9.5px',
-                                  padding: '1px 4px',
-                                  borderRadius: '3px',
-                                  border: '1px solid var(--border-subtle)',
-                                  backgroundColor: '#ffffff',
-                                  outline: 'none'
-                                }}
-                                title="Type tag name and hit Enter"
-                              />
+                                const availablePresetTags = catPresetTags.filter((t) => !(tx.tags || []).includes(t));
+                                const titleAndNote = `${tx.title} ${tx.note || ''}`.toLowerCase();
+                                const matchingExistingTag = availablePresetTags.find((t) => titleAndNote.includes(t.toLowerCase()));
+
+                                // Find a genuinely NEW candidate from the title/narration that does NOT exist in presets
+                                const titleWords = tx.title
+                                  .toLowerCase()
+                                  .replace(/[^a-z0-9\s-]/g, ' ')
+                                  .split(/\s+/)
+                                  .map((w) => w.trim())
+                                  .filter(
+                                    (w) =>
+                                      w.length >= 3 &&
+                                      !['the', 'and', 'for', 'bank', 'payment', 'transfer', 'txn', 'card', 'upi', 'pos', 'dr', 'cr', 'inc', 'ltd', 'pvt'].includes(w)
+                                  );
+
+                                const newCandidate = titleWords.find((w) => !allKnownTags.has(w));
+                                const primarySuggestedTag = newCandidate || null;
+
+                                return (
+                                  <>
+                                    {availablePresetTags.map((pTag) => {
+                                      const isMatched = matchingExistingTag === pTag;
+                                      return (
+                                        <button
+                                          key={pTag}
+                                          type="button"
+                                          onClick={() => handleToggleRowTag(tx.id, pTag)}
+                                          style={{
+                                            fontSize: '9px',
+                                            fontWeight: isMatched ? 700 : 600,
+                                            padding: '1px 5px',
+                                            borderRadius: '3px',
+                                            backgroundColor: isMatched ? 'var(--color-primary-light)' : '#f8fafc',
+                                            color: isMatched ? 'var(--color-primary)' : '#64748b',
+                                            border: isMatched ? '1px solid var(--color-primary)' : '1px dashed #cbd5e1',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap'
+                                          }}
+                                          title={`Click to add #${pTag}${isMatched ? ' (Matches transaction title)' : ''}`}
+                                        >
+                                          +{isMatched ? '⭐' : ''}#{pTag}
+                                        </button>
+                                      );
+                                    })}
+
+                                    {/* Custom tag input with ghost auto-suggestion for NEW non-existing tags */}
+                                    <input
+                                      type="text"
+                                      placeholder={primarySuggestedTag ? `+${primarySuggestedTag} ↵` : '+tag'}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          const val = e.currentTarget.value.trim();
+                                          if (val) {
+                                            handleAddCustomTag(tx.id, val);
+                                          } else if (primarySuggestedTag) {
+                                            handleAddCustomTag(tx.id, primarySuggestedTag);
+                                          }
+                                          e.currentTarget.value = '';
+                                        }
+                                      }}
+                                      style={{
+                                        minWidth: primarySuggestedTag ? '58px' : '42px',
+                                        maxWidth: '90px',
+                                        fontSize: '9.5px',
+                                        padding: '1px 5px',
+                                        borderRadius: '3px',
+                                        border: '1px solid var(--border-subtle)',
+                                        backgroundColor: '#ffffff',
+                                        outline: 'none',
+                                        color: 'var(--text-main)'
+                                      }}
+                                      title={primarySuggestedTag ? `Hit Enter to add new tag #${primarySuggestedTag}, or type custom tag` : 'Type custom tag name and hit Enter'}
+                                    />
+                                  </>
+                                );
+                              })()}
                             </div>
                           </td>
 

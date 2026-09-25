@@ -11,7 +11,9 @@ import { CSVParseResult } from './csvParser';
 import {
   parseCleanFinancialAmount,
   normalizeDateUniversal,
-  reconcileRunningBalances
+  reconcileRunningBalances,
+  cleanTransactionTitle,
+  detectBankTemplateByKeywords
 } from './bankTemplates';
 
 // Attach to globalThis so PDF.js fake worker fallback ALWAYS succeeds without network fetch
@@ -33,7 +35,7 @@ interface TextItem {
 }
 
 interface ColumnZone {
-  key: 'date' | 'ref' | 'description' | 'debit' | 'credit' | 'balance';
+  key: 'date' | 'ref' | 'description' | 'amount' | 'debit' | 'credit' | 'balance';
   label: string;
   minX: number;
   maxX: number;
@@ -74,10 +76,13 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
   let unrecognizedCount = 0;
 
   const extractedRawRows: string[][] = [];
-  const rawColumnLabels = ['Date', 'Ref / Chq No', 'Description / Narration', 'Withdrawal (Debit)', 'Deposit (Credit)', 'Closing Balance'];
+  const rawColumnLabels = ['Date', 'Ref / Chq No', 'Description / Narration', 'Amount', 'Withdrawal (Debit)', 'Deposit (Credit)', 'Closing Balance'];
 
   // Track discovered column X positions globally across pages
   let detectedZones: ColumnZone[] = [];
+  
+  // We will accumulate all text to detect the bank template
+  let fullPdfText = '';
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
@@ -103,41 +108,50 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
       } else {
         lineMap.push({ y, items: [{ str: it.str, x, y, width, height }] });
       }
+      
+      fullPdfText += ' ' + str;
     });
 
     // Sort lines from top of page to bottom (descending Y)
     lineMap.sort((a, b) => b.y - a.y);
 
     // 1. Detect Header Line on this page if not yet established or page has own headers
+    let pageHeaderY = -1;
     lineMap.forEach((line) => {
       const lineText = line.items.map((i) => i.str.toLowerCase()).join(' ');
 
       const hasDateWord = lineText.includes('date') || lineText.includes('txn dt');
-      const hasNarrationWord = lineText.includes('narration') || lineText.includes('description') || lineText.includes('particulars') || lineText.includes('details');
-      const hasDebitWord = lineText.includes('withdrawal') || lineText.includes('debit') || lineText.includes('paid out') || lineText.includes('money out') || lineText.includes('dr');
-      const hasCreditWord = lineText.includes('deposit') || lineText.includes('credit') || lineText.includes('paid in') || lineText.includes('money in') || lineText.includes('cr');
+      const hasRefWord = lineText.includes('transaction id') || lineText.includes('txn id') || lineText.includes('chq') || lineText.includes('ref') || lineText.includes('cheque');
+      const hasNarrationWord = lineText.includes('remarks') || lineText.includes('remark') || lineText.includes('narration') || lineText.includes('description') || lineText.includes('particulars') || lineText.includes('details');
+      const hasDebitWord = lineText.includes('withdrawal') || lineText.includes('debit') || lineText.includes('paid out') || lineText.includes('money out');
+      const hasCreditWord = lineText.includes('deposit') || lineText.includes('credit') || lineText.includes('paid in') || lineText.includes('money in');
+      const hasAmountWord = lineText.includes('amount');
       const hasBalWord = lineText.includes('balance') || lineText.includes('bal');
 
       // If at least 3 column keywords appear on the same horizontal line, it's a table header!
-      const headerMatches = [hasDateWord, hasNarrationWord, hasDebitWord, hasCreditWord, hasBalWord].filter(Boolean).length;
+      const headerMatches = [hasDateWord, hasRefWord, hasNarrationWord, hasAmountWord, hasDebitWord, hasCreditWord, hasBalWord].filter(Boolean).length;
       if (headerMatches >= 3) {
+        pageHeaderY = line.y;
         line.items.sort((a, b) => a.x - b.x);
 
         let dateX = -1;
         let refX = -1;
         let descX = -1;
+        let amountX = -1;
         let debitX = -1;
         let creditX = -1;
         let balanceX = -1;
 
         line.items.forEach((it) => {
           const s = it.str.toLowerCase().trim();
-          if (s.includes('date')) dateX = it.x;
-          else if (s.includes('chq') || s.includes('ref') || s.includes('cheque')) refX = it.x;
-          else if (s.includes('narration') || s.includes('particular') || s.includes('desc') || s.includes('detail')) descX = it.x;
-          else if (s.includes('withdrawal') || s.includes('debit') || s.includes('dr') || s.includes('outflow')) debitX = it.x;
-          else if (s.includes('deposit') || s.includes('credit') || s.includes('cr') || s.includes('inflow')) creditX = it.x;
-          else if (s.includes('balance') || s.includes('bal')) balanceX = it.x;
+          const midX = it.x + (it.width || 0) / 2;
+          if (s.includes('date')) dateX = midX;
+          else if (s.includes('chq') || s.includes('ref') || s.includes('cheque') || s.includes('transaction id') || s.includes('txn id')) refX = midX;
+          else if (s.includes('narration') || s.includes('particular') || s.includes('desc') || s.includes('detail') || s.includes('remark')) descX = midX;
+          else if (s.includes('withdrawal') || s.includes('debit') || s.includes('paid out') || s.includes('money out')) debitX = midX;
+          else if (s.includes('deposit') || s.includes('credit') || s.includes('paid in') || s.includes('money in')) creditX = midX;
+          else if (s.includes('amount')) amountX = midX;
+          else if (s.includes('balance') || s.includes('bal')) balanceX = midX;
         });
 
         // Build sorted list of detected column centers
@@ -145,6 +159,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         if (dateX !== -1) cols.push({ key: 'date', label: 'Date', x: dateX });
         if (refX !== -1) cols.push({ key: 'ref', label: 'Ref No', x: refX });
         if (descX !== -1) cols.push({ key: 'description', label: 'Description', x: descX });
+        if (amountX !== -1) cols.push({ key: 'amount', label: 'Amount', x: amountX });
         if (debitX !== -1) cols.push({ key: 'debit', label: 'Debit', x: debitX });
         if (creditX !== -1) cols.push({ key: 'credit', label: 'Credit', x: creditX });
         if (balanceX !== -1) cols.push({ key: 'balance', label: 'Balance', x: balanceX });
@@ -168,9 +183,21 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         }
       }
     });
+    
+    // Attempt to detect Bank Template after parsing page 1
+    let matchedTemplate = pageNum === 1 ? detectBankTemplateByKeywords(fullPdfText) : undefined;
+    if (pageNum > 1) {
+      // Re-detect just in case
+      matchedTemplate = detectBankTemplateByKeywords(fullPdfText);
+    }
 
     // 2. Process each line
     lineMap.forEach((line) => {
+      // Ignore header line and any metadata lines placed above the table header
+      if (pageHeaderY !== -1 && line.y >= pageHeaderY - 2) {
+        return;
+      }
+
       line.items.sort((a, b) => a.x - b.x);
       const fullLineText = line.items.map((i) => i.str.trim()).join(' ');
 
@@ -183,6 +210,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
           date: [],
           ref: [],
           description: [],
+          amount: [],
           debit: [],
           credit: [],
           balance: []
@@ -211,6 +239,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         const rowDateStr = cellMap.date.join(' ').trim();
         const rowRefStr = cellMap.ref.join(' ').trim();
         const rowDescStr = cellMap.description.join(' ').trim();
+        const rowAmountStr = cellMap.amount ? cellMap.amount.join(' ').trim() : '';
         const rowDebitStr = cellMap.debit.join(' ').trim();
         const rowCreditStr = cellMap.credit.join(' ').trim();
         const rowBalanceStr = cellMap.balance.join(' ').trim();
@@ -219,9 +248,12 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         const hasDate = DATE_REGEX.test(rowDateStr) || (dateMatch && !rowDescStr.toLowerCase().includes('statement'));
         const debitParsed = parseCleanFinancialAmount(rowDebitStr);
         const creditParsed = parseCleanFinancialAmount(rowCreditStr);
+        const amountParsed = parseCleanFinancialAmount(rowAmountStr);
         const balanceParsed = parseCleanFinancialAmount(rowBalanceStr);
 
-        if (hasDate && (debitParsed.amount > 0 || creditParsed.amount > 0 || balanceParsed.amount > 0)) {
+        const hasValidAmount = debitParsed.amount > 0 || creditParsed.amount > 0 || amountParsed.amount > 0;
+
+        if (hasDate && hasValidAmount) {
           const validDate = normalizeDateUniversal(rowDateStr || (dateMatch ? dateMatch[0] : ''));
 
           let amount = 0;
@@ -233,16 +265,31 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
           } else if (debitParsed.amount > 0) {
             amount = debitParsed.amount;
             txType = 'expense';
-          } else if (balanceParsed.amount > 0 && creditParsed.isCR) {
-            amount = balanceParsed.amount;
-            txType = 'income';
+          } else if (amountParsed.amount > 0) {
+            amount = amountParsed.amount;
+            if (amountParsed.isCR) {
+              txType = 'income';
+            } else if (amountParsed.isDR) {
+              txType = 'expense';
+            } else {
+              const combinedText = `${rowDescStr} ${rowRefStr}`.toLowerCase();
+              if (DEPOSIT_KEYWORDS.some((kw) => combinedText.includes(kw))) {
+                txType = 'income';
+              } else {
+                txType = 'expense';
+              }
+            }
           }
 
-          // Build clean title
-          let title = rowDescStr;
-          if (rowRefStr && !title.includes(rowRefStr)) {
-            title = `${rowRefStr} ${title}`.trim();
+          // Build clean title (prefer narration/description over reference ID)
+          let title = rowDescStr || rowRefStr;
+          const originalTitle = title;
+          
+          // Apply Smart Bank Template Rules if detected
+          if (matchedTemplate && matchedTemplate.titleExtractors) {
+             title = cleanTransactionTitle(title, matchedTemplate.titleExtractors);
           }
+          
           if (!title || title.length < 2) {
             title = txType === 'income' ? `Inward Bank Transfer (${validDate})` : `Bank Payment (${validDate})`;
           }
@@ -263,6 +310,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
             rowDateStr || (dateMatch ? dateMatch[0] : ''),
             rowRefStr,
             rowDescStr,
+            rowAmountStr,
             rowDebitStr,
             rowCreditStr,
             rowBalanceStr
@@ -276,7 +324,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
             type: txType,
             category,
             isRecurring: false,
-            note: `PDF e-Statement (${file.name})`,
+            note: `PDF e-Statement (${file.name})\nOriginal: ${originalTitle}`,
             source: file.name,
             runningBalance
           });
@@ -285,7 +333,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
 
         // Multi-line narration continuation:
         // If line has no date, but has text in description and no amounts, attach to previous transaction title
-        if (!hasDate && rowDescStr && parsedList.length > 0 && debitParsed.amount === 0 && creditParsed.amount === 0) {
+        if (!hasDate && rowDescStr && parsedList.length > 0 && debitParsed.amount === 0 && creditParsed.amount === 0 && amountParsed.amount === 0) {
           const lastTx = parsedList[parsedList.length - 1];
           if (!lastTx.title.includes(rowDescStr) && rowDescStr.length > 2 && !rowDescStr.toLowerCase().includes('page')) {
             lastTx.title = `${lastTx.title} ${rowDescStr}`.trim();
@@ -301,6 +349,11 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
       const amountsFound: { raw: string; amount: number; isCR: boolean; isDR: boolean; x: number }[] = [];
       line.items.forEach((item) => {
         const itemStr = item.str.trim();
+        // Ignore tokens that are obviously textual or reference codes (e.g. UPIAR/..., MOBFT/...)
+        const letterCount = (itemStr.match(/[a-zA-Z]/g) || []).length;
+        if (letterCount > 3 && !itemStr.toUpperCase().includes('(CR)') && !itemStr.toUpperCase().includes('(DR)')) {
+          return;
+        }
         const parsed = parseCleanFinancialAmount(itemStr);
         if (parsed.amount > 0) {
           amountsFound.push({
@@ -360,7 +413,14 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         .replace(/\s+/g, ' ')
         .trim();
 
-      if (!description || description.length < 2) {
+      const originalFallbackTitle = description;
+
+      // Apply Smart Bank Template Rules if detected
+      if (matchedTemplate && matchedTemplate.titleExtractors) {
+         description = cleanTransactionTitle(description, matchedTemplate.titleExtractors);
+      }
+
+      if (!description || description.length < 1) {
         description = isIncome ? `Inward Bank Transfer (${date})` : `Bank Payment (${date})`;
       }
 
@@ -377,7 +437,7 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         type: txType,
         category,
         isRecurring: false,
-        note: `PDF e-Statement (${file.name})`,
+        note: `PDF e-Statement (${file.name})\nOriginal: ${originalFallbackTitle}`,
         source: file.name,
         runningBalance
       });

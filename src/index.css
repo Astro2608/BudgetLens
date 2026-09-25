@@ -659,7 +659,7 @@ body {
   display: inline;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1450px) {
   .recurring-btn-text {
     display: none;
   }
