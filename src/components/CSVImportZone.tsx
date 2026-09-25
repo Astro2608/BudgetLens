@@ -45,6 +45,16 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [editingDateValue, setEditingDateValue] = useState<string>('');
   const [isColumnMapperOpen, setIsColumnMapperOpen] = useState(false);
 
+  const [localCatConfigs, setLocalCatConfigs] = useState<Record<CategoryKey, CategoryConfig>>(categoryConfigs);
+
+  useEffect(() => {
+    if (categoryConfigs && Object.keys(categoryConfigs).length > 0) {
+      setLocalCatConfigs(categoryConfigs);
+    }
+  }, [categoryConfigs]);
+
+  const activeConfigs = Object.keys(localCatConfigs).length > 0 ? localCatConfigs : categoryConfigs;
+
   const liveDetectedTransactions = useMemo(() => {
     if (!freeformText.trim()) return [];
     return parseFreeformSync(freeformText);
@@ -248,12 +258,13 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
     const clean = customTag.trim().toLowerCase().replace(/^#/, '');
     if (!clean) return;
 
-    let targetCategory: CategoryKey | undefined;
+    // Retrieve target transaction synchronously before state update
+    const targetTx = modalTransactions.find((t) => t.id === id);
+    const targetCategory = targetTx?.category;
 
     setModalTransactions((prev) =>
       prev.map((t) => {
         if (t.id !== id) return t;
-        targetCategory = t.category;
         const current = t.tags || [];
         if (current.includes(clean)) return t;
         return { ...t, tags: [...current, clean] };
@@ -261,16 +272,19 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
     );
 
     // Auto-register and persist new tag into category presets forever
-    if (targetCategory && categoryConfigs[targetCategory]) {
-      const existingTags = categoryConfigs[targetCategory].tags || [];
+    if (targetCategory && activeConfigs[targetCategory]) {
+      const existingTags = activeConfigs[targetCategory].tags || [];
       if (!existingTags.includes(clean)) {
         const updatedCategoryConfigs = {
-          ...categoryConfigs,
+          ...activeConfigs,
           [targetCategory]: {
-            ...categoryConfigs[targetCategory],
+            ...activeConfigs[targetCategory],
             tags: [...existingTags, clean]
           }
         };
+        // Update local state immediately so all other rows re-render right now
+        setLocalCatConfigs(updatedCategoryConfigs);
+        // Persist to parent and storage
         if (onUpdateCategoryConfigs) {
           onUpdateCategoryConfigs(updatedCategoryConfigs);
         }
@@ -1312,7 +1326,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                       const isIncome = tx.type === 'income';
                       const isDuplicate = duplicateIds.has(tx.id);
                       const isEditingThisTitle = editingTitleId === tx.id;
-                      const activeCat = categoryConfigs[tx.category];
+                      const activeCat = activeConfigs[tx.category] || categoryConfigs[tx.category];
                       const catPresetTags = activeCat?.tags || [];
 
                       return (
