@@ -1,27 +1,26 @@
 import { Transaction, CategoryKey, TransactionType } from '../types/finance';
 import { detectCategoryFromTitle, matchCategory } from '../config/categoryConfig';
 import { CSVParseResult } from './csvParser';
+import { parseCleanFinancialAmount } from './bankTemplates';
 
 // Evaluate simple math expressions like "$10 + 60.5+ 15" or "$4.7" or "SGD 800.00" or "INR ₹500"
 function evaluateMathExpression(raw: string): number {
   if (!raw) return 0;
-  // Clean currency symbols, letters, commas, and whitespace leaving math expression
-  const cleaned = raw.replace(/[$€£₹¥RM|A\$|C\$|[a-zA-Z,]/g, '').trim();
-  if (!cleaned) return 0;
+  const str = String(raw).trim();
+  if (!str) return 0;
 
   // Split by plus signs and sum
-  if (cleaned.includes('+')) {
-    const parts = cleaned.split('+');
+  if (str.includes('+')) {
+    const parts = str.split('+');
     let sum = 0;
     for (const part of parts) {
-      const num = parseFloat(part.replace(/[^0-9.-]/g, '').trim());
-      if (!isNaN(num)) sum += num;
+      const parsed = parseCleanFinancialAmount(part).amount;
+      sum += parsed;
     }
     return sum;
   }
 
-  const singleNum = parseFloat(cleaned.replace(/[^0-9.-]/g, ''));
-  return isNaN(singleNum) ? 0 : singleNum;
+  return parseCleanFinancialAmount(str).amount;
 }
 
 // Normalize Markdown table dates (e.g. "Jan 3", "Feb 16", "2026-01-03", "16 Jan 2026", "14/09/2026")
@@ -98,7 +97,7 @@ export async function parseMarkdownTable(file: File): Promise<CSVParseResult> {
       const cols = line
         .split('|')
         .map((c) => c.trim())
-        .filter((c, idx, arr) => idx > 0 && idx < arr.length - 1 || (arr.length <= 2 && c.length > 0));
+        .filter((c, idx, arr) => (idx > 0 && idx < arr.length - 1) || (arr.length <= 2 && c.length > 0));
 
       if (cols.length >= 2) {
         headerIndex = i;
@@ -123,22 +122,34 @@ export async function parseMarkdownTable(file: File): Promise<CSVParseResult> {
   if (isRowBased) {
     const findColIdx = (patterns: string[]) => {
       for (const pat of patterns) {
-        const idx = lowerHeaders.findIndex(h => h === pat || h.includes(pat));
+        const idx = lowerHeaders.findIndex(h => {
+          if (pat.length <= 2) {
+            // Exact token or isolated word boundary (stops 'cr' matching 'description')
+            return h === pat || new RegExp(`(^|[^a-z0-9])${pat}([^a-z0-9]|$)`, 'i').test(h);
+          }
+          return h === pat || h.includes(pat);
+        });
         if (idx !== -1) return idx;
       }
       return -1;
     };
 
-    const dateIdx = findColIdx(['date', 'time', 'day']);
-    const titleIdx = findColIdx(['title', 'description', 'particulars', 'narrative', 'item', 'merchant', 'remarks']);
-    const amountIdx = findColIdx(['amount', 'amt', 'price', 'total', 'net']);
-    const debitIdx = findColIdx(['debit', 'withdrawal', 'dr', 'outflow']);
-    const creditIdx = findColIdx(['credit', 'deposit', 'cr', 'inflow']);
-    const typeIdx = findColIdx(['type', 'txn type']);
-    const categoryIdx = findColIdx(['category', 'tag']);
+    const dateIdx = findColIdx(['transaction date', 'txn date', 'posting date', 'date', 'time', 'day']);
+    const titleIdx = findColIdx(['title', 'merchant', 'payee']);
+    const descIdx = findColIdx(['description', 'transaction description', 'particulars', 'narrative', 'item', 'remarks', 'details']);
+    const amountIdx = findColIdx(['transaction amount', 'amount', 'net amount', 'total', 'amt', 'price', 'net']);
+    let debitIdx = findColIdx(['debit amount', 'withdrawal', 'debit', 'outflow', 'dr']);
+    let creditIdx = findColIdx(['credit amount', 'deposit', 'credit', 'inflow', 'cr']);
+    const typeIdx = findColIdx(['type', 'txn type', 'transaction type', 'cr/dr']);
+    const categoryIdx = findColIdx(['category', 'expense category']);
     const sourceIdx = findColIdx(['source', 'account', 'bank', 'card']);
+    const tagsIdx = findColIdx(['tags', 'tag', 'labels', 'keywords']);
     const noteIdx = findColIdx(['note', 'notes', 'memo', 'comment']);
     const recurringIdx = findColIdx(['recurring', 'isrecurring', 'subscription']);
+
+    // Guard: debit/credit must never falsely alias title, description, date, or amount
+    if (debitIdx === titleIdx || debitIdx === descIdx || debitIdx === dateIdx) debitIdx = -1;
+    if (creditIdx === titleIdx || creditIdx === descIdx || creditIdx === dateIdx) creditIdx = -1;
 
     for (let i = headerIndex + 1; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -148,15 +159,19 @@ export async function parseMarkdownTable(file: File): Promise<CSVParseResult> {
       const cells = line
         .split('|')
         .map(c => c.trim())
-        .filter((c, idx, arr) => idx > 0 && idx < arr.length - 1 || (arr.length <= 2 && c.length > 0));
+        .filter((c, idx, arr) => (idx > 0 && idx < arr.length - 1) || (arr.length <= 2 && c.length > 0));
 
       if (cells.length === 0) continue;
 
-      const rawDate = dateIdx !== -1 ? cells[dateIdx] : cells[0];
+      const rawDate = dateIdx !== -1 && cells[dateIdx] ? cells[dateIdx] : cells[0];
       if (!rawDate) continue;
       const date = normalizeMarkdownDate(rawDate);
 
-      const title = titleIdx !== -1 && cells[titleIdx] ? cells[titleIdx] : `Transaction #${parsedList.length + 1}`;
+      const rawTitle = (titleIdx !== -1 && cells[titleIdx]) 
+        || (descIdx !== -1 && cells[descIdx]) 
+        || `Transaction #${parsedList.length + 1}`;
+      const title = rawTitle.trim();
+      const rawDescription = descIdx !== -1 && descIdx !== titleIdx && cells[descIdx] ? cells[descIdx].trim() : undefined;
 
       let amount = 0;
       let txType: TransactionType = 'expense';
@@ -175,7 +190,14 @@ export async function parseMarkdownTable(file: File): Promise<CSVParseResult> {
         amount = evaluateMathExpression(cells[amountIdx] || '');
         if (typeIdx !== -1 && cells[typeIdx]) {
           const typeStr = cells[typeIdx].toLowerCase().trim();
-          if (typeStr.includes('income') || typeStr.includes('cr') || typeStr.includes('deposit') || typeStr.includes('salary')) {
+          if (
+            typeStr.includes('income') || 
+            typeStr.includes('deposit') || 
+            typeStr.includes('inflow') || 
+            typeStr.includes('salary') || 
+            typeStr === 'cr' || 
+            /\bcr\b/i.test(typeStr)
+          ) {
             txType = 'income';
           } else if (typeStr.includes('saving') || typeStr.includes('vault') || typeStr.includes('invest')) {
             txType = 'savings';
@@ -215,17 +237,22 @@ export async function parseMarkdownTable(file: File): Promise<CSVParseResult> {
 
       const source = sourceIdx !== -1 && cells[sourceIdx] ? cells[sourceIdx] : file.name;
       const note = noteIdx !== -1 && cells[noteIdx] ? cells[noteIdx] : '';
+      const tagsRaw = tagsIdx !== -1 && cells[tagsIdx]
+        ? cells[tagsIdx].split(/[;,]/).map(s => s.trim()).filter(Boolean)
+        : undefined;
 
       parsedList.push({
         id: `md-${Date.now()}-${parsedList.length}`,
         date,
         title,
+        description: rawDescription,
         amount,
         type: txType,
         category,
         isRecurring,
         note,
-        source
+        source,
+        tags: tagsRaw
       });
     }
   } else {

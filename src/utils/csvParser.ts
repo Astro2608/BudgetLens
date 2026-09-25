@@ -56,7 +56,13 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
 
   const findMatch = (patterns: string[]): string | null => {
     for (const pat of patterns) {
-      const idx = lower.findIndex((f) => f === pat || f.includes(pat));
+      const idx = lower.findIndex((f) => {
+        if (pat.length <= 2) {
+          // Exact token or isolated word boundary (e.g. stops 'cr' matching 'description')
+          return f === pat || new RegExp(`(^|[^a-z0-9])${pat}([^a-z0-9]|$)`, 'i').test(f);
+        }
+        return f === pat || f.includes(pat);
+      });
       if (idx !== -1) return fields[idx];
     }
     return null;
@@ -66,8 +72,8 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
   const title = findMatch(['title', 'merchant', 'payee']);
   const description = findMatch(['description', 'transaction description', 'narrative', 'particulars', 'remarks', 'details']);
   const amount = findMatch(['transaction amount', 'amount', 'net amount', 'total', 'amt', 'price', 'sgd', 'usd', 'inr', 'eur', 'gbp', 'jpy', 'aud', 'cad', 'myr', 'cny', 'val']);
-  const debit = findMatch(['debit amount', 'withdrawal', 'debit', 'outflow', 'dr']);
-  const credit = findMatch(['credit amount', 'deposit', 'credit', 'inflow', 'cr']);
+  let debit = findMatch(['debit amount', 'withdrawal', 'debit', 'outflow', 'dr']);
+  let credit = findMatch(['credit amount', 'deposit', 'credit', 'inflow', 'cr']);
   const balance = findMatch(['closing balance', 'balance', 'bal', 'running balance']);
   const category = findMatch(['category', 'expense category']);
   const type = findMatch(['type', 'txn type', 'transaction type', 'cr/dr']);
@@ -75,6 +81,10 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
   const tags = findMatch(['tags', 'tag', 'labels', 'keywords']);
   const note = findMatch(['note', 'notes', 'memo']);
   const recurring = findMatch(['recurring', 'isrecurring', 'subscription']);
+
+  // Guard: debit/credit must never falsely alias title, description, date, or amount
+  if (debit && (debit === title || debit === description || debit === date)) debit = null;
+  if (credit && (credit === title || credit === description || credit === date)) credit = null;
 
   return {
     date: date || fields[0],
@@ -127,7 +137,9 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
             const dateVal = row[mapping.date || ''] || new Date().toISOString().split('T')[0];
             const date = normalizeDate(String(dateVal));
 
-            const rawTitle = (row[mapping.description || ''] || `CSV Tx #${index + 1}`);
+            const rawTitle = (mapping.title && row[mapping.title]) 
+              || (mapping.description && row[mapping.description]) 
+              || `CSV Tx #${index + 1}`;
             const title = String(rawTitle).trim();
             const lowerTitle = title.toLowerCase();
 
@@ -149,7 +161,14 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
               const rawAmt = cleanNumeric(row[mapping.amount || '']);
               if (mapping.type && row[mapping.type]) {
                 const typeStr = String(row[mapping.type]).toLowerCase().trim();
-                if (typeStr.includes('income') || typeStr.includes('cr') || typeStr.includes('deposit') || typeStr.includes('inflow') || typeStr.includes('salary')) {
+                if (
+                  typeStr.includes('income') || 
+                  typeStr.includes('deposit') || 
+                  typeStr.includes('inflow') || 
+                  typeStr.includes('salary') ||
+                  typeStr === 'cr' ||
+                  /\bcr\b/i.test(typeStr)
+                ) {
                   txType = 'income';
                 } else if (typeStr.includes('saving') || typeStr.includes('vault') || typeStr.includes('invest')) {
                   txType = 'savings';
@@ -173,8 +192,8 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
               }
             }
 
-            // Title Sentiment Override for obvious expense merchants
-            if (WITHDRAWAL_KEYWORDS.some((kw) => lowerTitle.includes(kw))) {
+            // Title Sentiment Override for obvious expense merchants (only if no explicit type column was provided)
+            if (!mapping.type && WITHDRAWAL_KEYWORDS.some((kw) => lowerTitle.includes(kw))) {
               txType = 'expense';
             }
 
@@ -201,7 +220,9 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
 
             const source = mapping.source && row[mapping.source] ? String(row[mapping.source]).trim() : file.name;
             const note = mapping.note && row[mapping.note] ? String(row[mapping.note]).trim() : `e-Statement (${file.name})`;
-            const descRaw = mapping.description && row[mapping.description] ? String(row[mapping.description]).trim() : undefined;
+            const descRaw = mapping.description && mapping.description !== mapping.title && row[mapping.description] 
+              ? String(row[mapping.description]).trim() 
+              : undefined;
             const tagsRaw = mapping.tags && row[mapping.tags] ? String(row[mapping.tags]).split(/[;,]/).map((s) => s.trim()).filter(Boolean) : undefined;
 
             const runningBalance = mapping.balance && row[mapping.balance] ? cleanNumeric(row[mapping.balance]) : undefined;
@@ -222,28 +243,30 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
             });
           });
 
-          // Holistic Batch Anomaly Detection
-          let expenseKeywordCount = 0;
-          let expenseKeywordAsIncomeCount = 0;
+          // Holistic Batch Anomaly Detection (only if no explicit type column was provided)
+          if (!mapping.type) {
+            let expenseKeywordCount = 0;
+            let expenseKeywordAsIncomeCount = 0;
 
-          parsedList.forEach((t) => {
-            const lower = t.title.toLowerCase();
-            if (WITHDRAWAL_KEYWORDS.some((kw) => lower.includes(kw))) {
-              expenseKeywordCount++;
-              if (t.type === 'income') expenseKeywordAsIncomeCount++;
-            }
-          });
-
-          if (expenseKeywordCount > 0 && expenseKeywordAsIncomeCount / expenseKeywordCount > 0.4) {
             parsedList.forEach((t) => {
-              const newType: TransactionType = t.type === 'income' ? 'expense' : 'income';
-              t.type = newType;
-              if (newType === 'income') {
-                t.category = 'Salary';
-              } else if (t.category === 'Salary') {
-                t.category = detectCategoryFromTitle(t.title);
+              const lower = t.title.toLowerCase();
+              if (WITHDRAWAL_KEYWORDS.some((kw) => lower.includes(kw))) {
+                expenseKeywordCount++;
+                if (t.type === 'income') expenseKeywordAsIncomeCount++;
               }
             });
+
+            if (expenseKeywordCount > 0 && expenseKeywordAsIncomeCount / expenseKeywordCount > 0.4) {
+              parsedList.forEach((t) => {
+                const newType: TransactionType = t.type === 'income' ? 'expense' : 'income';
+                t.type = newType;
+                if (newType === 'income') {
+                  t.category = 'Salary';
+                } else if (t.category === 'Salary') {
+                  t.category = detectCategoryFromTitle(t.title);
+                }
+              });
+            }
           }
 
           const { discrepancyCount } = reconcileRunningBalances(parsedList);
