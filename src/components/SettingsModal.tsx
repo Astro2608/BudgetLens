@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { CategoryConfig, CategoryKey, TransactionType } from '../types/finance';
 import { DEFAULT_CATEGORY_CONFIGS, getNextUniqueColor } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
+import {
+  BankTemplate,
+  getSavedBankTemplates,
+  deleteCustomBankTemplate,
+  BUILT_IN_TEMPLATES
+} from '../utils/bankTemplates';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -32,8 +38,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const { currencyCode, currencyInfo } = useCurrency();
   const [localConfigs, setLocalConfigs] = useState<Record<CategoryKey, CategoryConfig>>(categoryConfigs);
   const [localBalance, setLocalBalance] = useState<string>(initialBalance.toString());
-  const [activeTab, setActiveTab] = useState<'categories' | 'balance'>('categories');
+  const [activeTab, setActiveTab] = useState<'categories' | 'balance' | 'bank_templates'>('categories');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [savedBankTemplates, setSavedBankTemplates] = useState<BankTemplate[]>([]);
 
   // New Category State
   const [newCatName, setNewCatName] = useState('');
@@ -46,7 +53,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setLocalConfigs(categoryConfigs);
     setLocalBalance(initialBalance.toString());
     setNewCatColor(getNextUniqueColor(categoryConfigs));
+    if (isOpen) {
+      const all = getSavedBankTemplates();
+      setSavedBankTemplates(all.filter((t) => !t.isBuiltIn));
+    }
   }, [categoryConfigs, initialBalance, isOpen]);
+
+  const handleDeleteBankTemplate = (id: string) => {
+    if (confirm('Are you sure you want to delete this custom bank template profile?')) {
+      deleteCustomBankTemplate(id);
+      const updated = getSavedBankTemplates().filter((t) => !t.isBuiltIn);
+      setSavedBankTemplates(updated);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -343,6 +362,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>account_balance</span>
             <span>Baseline Account Balance</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('bank_templates')}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '8px 8px 0 0',
+              border: 'none',
+              borderBottom: activeTab === 'bank_templates' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              fontWeight: 700,
+              fontSize: '13px',
+              color: activeTab === 'bank_templates' ? 'var(--color-primary)' : 'var(--text-muted)',
+              backgroundColor: activeTab === 'bank_templates' ? 'var(--color-primary-light)' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>view_column</span>
+            <span>Bank Statement Templates ({savedBankTemplates.length})</span>
           </button>
         </div>
 
@@ -744,6 +785,149 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p style={{ fontSize: '12px', color: '#115e59', lineHeight: 1.45, margin: 0 }}>
                     Formula applied: <strong>Current Bank Balance = Baseline + Total Inflow - Total Outflow (excluding Savings)</strong>.
                   </p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'bank_templates' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Section 1: Saved Custom Profiles */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
+                        Your Saved Custom Bank Profiles ({savedBankTemplates.length})
+                      </h3>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                        Custom column mappings created via the e-Statement Column Mapper
+                      </p>
+                    </div>
+                  </div>
+
+                  {savedBankTemplates.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '2rem 1rem',
+                        textAlign: 'center',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '10px',
+                        border: '1px dashed #cbd5e1',
+                        color: '#64748b',
+                        fontSize: '12.5px'
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                        view_column
+                      </span>
+                      <strong>No Custom Bank Profiles Saved Yet</strong>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '11.5px', color: '#94a3b8' }}>
+                        When uploading bank statements, click <strong>[Map Columns] → Save as Bank Profile</strong> to store custom column layouts here for instant reuse!
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                      {savedBankTemplates.map((tmpl) => (
+                        <div
+                          key={tmpl.id}
+                          style={{
+                            padding: '0.875rem 1rem',
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                            backgroundColor: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                backgroundColor: 'var(--color-primary-light)',
+                                color: 'var(--color-primary)',
+                                fontWeight: 800,
+                                fontSize: '11px',
+                                border: '1px solid var(--color-primary-border)'
+                              }}
+                            >
+                              {tmpl.currency || 'GEN'}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+                                {tmpl.name}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', gap: '8px', marginTop: '2px' }}>
+                                <span>Date: Col {tmpl.mapping.dateCol + 1}</span>
+                                <span>Desc: Col {tmpl.mapping.descCol + 1}</span>
+                                {tmpl.mapping.debitCol != null && <span>Debit: Col {tmpl.mapping.debitCol + 1}</span>}
+                                {tmpl.mapping.creditCol != null && <span>Credit: Col {tmpl.mapping.creditCol + 1}</span>}
+                                {tmpl.mapping.balanceCol != null && <span>Bal: Col {tmpl.mapping.balanceCol + 1}</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBankTemplate(tmpl.id)}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: '#fee2e2',
+                              color: '#ef4444',
+                              border: 'none',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                            title="Delete this saved profile"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
+                            Delete Profile
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Preset Global Bank Templates Explorer */}
+                <div style={{ marginTop: '0.5rem' }}>
+                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Built-in Bank Presets Explorer
+                  </h3>
+                  <p style={{ margin: '0 0 0.75rem 0', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                    Pre-configured auto-detecting bank statement templates provided out-of-the-box
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.625rem' }}>
+                    {BUILT_IN_TEMPLATES.map((tmpl) => (
+                      <div
+                        key={tmpl.id}
+                        style={{
+                          padding: '0.75rem 0.875rem',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          backgroundColor: '#f8fafc',
+                          fontSize: '11.5px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <strong style={{ fontSize: '12px', color: 'var(--text-main)' }}>{tmpl.name}</strong>
+                          <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', backgroundColor: '#e0e7ff', color: '#3730a3' }}>
+                            {tmpl.currency}
+                          </span>
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>
+                          Auto-detects: {tmpl.signatureKeywords.slice(0, 3).join(', ')}...
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

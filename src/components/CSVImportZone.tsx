@@ -8,6 +8,8 @@ import { CATEGORY_LIST } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
 import { SectionInfoButton } from './SectionInfoButton';
 import { detectRecurringTransactions } from '../utils/recurringDetector';
+import { ColumnMapperModal } from './ColumnMapperModal';
+import { parseCleanFinancialAmount, normalizeDateUniversal } from '../utils/bankTemplates';
 
 interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
@@ -35,6 +37,11 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [freeformText, setFreeformText] = useState('');
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [editingTitleValue, setEditingTitleValue] = useState<string>('');
+  const [editingAmountId, setEditingAmountId] = useState<string | null>(null);
+  const [editingAmountValue, setEditingAmountValue] = useState<string>('');
+  const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const [editingDateValue, setEditingDateValue] = useState<string>('');
+  const [isColumnMapperOpen, setIsColumnMapperOpen] = useState(false);
 
   const liveDetectedTransactions = useMemo(() => {
     if (!freeformText.trim()) return [];
@@ -183,6 +190,43 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
     setEditingTitleId(null);
   };
 
+  // Inline amount editing
+  const handleStartEditAmount = (tx: Transaction) => {
+    setEditingAmountId(tx.id);
+    setEditingAmountValue(String(tx.amount));
+  };
+
+  const handleSaveAmount = (id: string) => {
+    const parsed = parseCleanFinancialAmount(editingAmountValue);
+    if (parsed.amount > 0) {
+      setModalTransactions((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? { ...t, amount: parsed.amount, balanceMismatch: false }
+            : t
+        )
+      );
+    }
+    setEditingAmountId(null);
+  };
+
+  // Inline date editing
+  const handleStartEditDate = (tx: Transaction) => {
+    setEditingDateId(tx.id);
+    setEditingDateValue(tx.date);
+  };
+
+  const handleSaveDate = (id: string) => {
+    const trimmed = editingDateValue.trim();
+    if (trimmed) {
+      const normalized = normalizeDateUniversal(trimmed);
+      setModalTransactions((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, date: normalized } : t))
+      );
+    }
+    setEditingDateId(null);
+  };
+
   // Toggle or remove a tag on a specific row
   const handleToggleRowTag = (id: string, tag: string) => {
     const cleanTag = tag.trim().toLowerCase().replace(/^#/, '');
@@ -280,6 +324,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const incomeCount = modalTransactions.filter((t) => t.type === 'income').length;
   const expenseCount = modalTransactions.filter((t) => t.type === 'expense').length;
   const recurringCount = modalTransactions.filter((t) => t.isRecurring).length;
+  const discrepancyCount = modalTransactions.filter((t) => t.balanceMismatch).length;
 
   const filteredModalTransactions = modalTransactions.filter((t) => {
     if (filterType === 'income') return t.type === 'income';
@@ -839,6 +884,30 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                   <span>Flip All Types</span>
                 </button>
 
+                {parseResult?.rawRows && parseResult.rawRows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsColumnMapperOpen(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      backgroundColor: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#1d4ed8',
+                      cursor: 'pointer'
+                    }}
+                    title="Open interactive column mapper to adjust or save bank template"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>view_column</span>
+                    <span>Map Columns</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -852,6 +921,60 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* BALANCE DISCREPANCY ALERT BANNER */}
+            {discrepancyCount > 0 && (
+              <div
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: '#fffbeb',
+                  borderBottom: '1px solid #fde68a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  flexShrink: 0
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '20px' }}>
+                    balance
+                  </span>
+                  <div>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#92400e' }}>
+                      Running Balance Discrepancy: {discrepancyCount} transaction(s) do not tally with bank running balance!
+                    </span>
+                    <p style={{ fontSize: '11px', color: '#b45309', margin: '2px 0 0 0' }}>
+                      Double-click the <strong>Amount</strong> column to correct any number directly, or click <strong>Map Columns</strong> if columns were shifted.
+                    </p>
+                  </div>
+                </div>
+
+                {parseResult?.rawRows && parseResult.rawRows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsColumnMapperOpen(true)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      backgroundColor: '#d97706',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>view_column</span>
+                    <span>Re-map Columns</span>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* DUPLICATE WARNING HIGHLIGHT BANNER */}
             {duplicateCount > 0 && (
@@ -1067,7 +1190,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
 
               <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#0284c7' }}>info</span>
-                Double-click any <strong>title</strong> to rename it. Click <strong>[Recurring]</strong> or <strong>[+ Income]</strong> to toggle.
+                Double-click any <strong>Title</strong>, <strong>Amount</strong>, or <strong>Date</strong> to edit inline. Click <strong>[Recurring]</strong> or <strong>[+ Income]</strong> to toggle.
               </span>
             </div>
 
@@ -1104,7 +1227,12 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                     }}
                   >
                     <tr style={{ color: 'var(--text-muted)' }}>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '80px' }}>Date</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '95px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>Date</span>
+                          <span style={{ fontSize: '9px', color: '#94a3b8' }} title="Double-click date to edit">✏️</span>
+                        </div>
+                      </th>
                       <th style={{ padding: '9px 10px', fontWeight: 700, width: '22%' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                           <span>Description</span>
@@ -1128,11 +1256,30 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                           </span>
                         </div>
                       </th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '18%' }}>Tags</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Type</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '115px' }}>Category</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '88px', textAlign: 'right' }}>Amount</th>
-                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '85px', textAlign: 'center' }}>Recurring</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '16%' }}>Tags</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '95px', textAlign: 'center' }}>Type</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '110px' }}>Category</th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '135px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                          <span
+                            style={{
+                              fontSize: '9px',
+                              fontWeight: 700,
+                              color: 'var(--color-primary)',
+                              backgroundColor: 'var(--color-primary-light)',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              border: '1px solid var(--color-primary-border)',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title="Double-click any transaction amount below to edit it inline"
+                          >
+                            ✏️ Edit
+                          </span>
+                          <span>Amount</span>
+                        </div>
+                      </th>
+                      <th style={{ padding: '9px 10px', fontWeight: 700, width: '70px', textAlign: 'center' }}>Recurring</th>
                       <th style={{ padding: '9px 10px', fontWeight: 700, width: '32px', textAlign: 'center' }}></th>
                     </tr>
                   </thead>
@@ -1152,9 +1299,39 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                             borderBottom: '1px solid #f1f5f9'
                           }}
                         >
-                          {/* Date */}
+                          {/* Date with Double-Click Inline Edit */}
                           <td style={{ padding: '8px 10px', color: 'var(--text-muted)', fontSize: '11px', whiteSpace: 'nowrap' }}>
-                            {tx.date}
+                            {editingDateId === tx.id ? (
+                              <input
+                                type="text"
+                                value={editingDateValue}
+                                onChange={(e) => setEditingDateValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveDate(tx.id);
+                                  if (e.key === 'Escape') setEditingDateId(null);
+                                }}
+                                onBlur={() => handleSaveDate(tx.id)}
+                                autoFocus
+                                style={{
+                                  width: '88px',
+                                  padding: '2px 5px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  borderRadius: '4px',
+                                  border: '1.5px solid var(--color-primary)',
+                                  outline: 'none',
+                                  backgroundColor: '#ffffff'
+                                }}
+                              />
+                            ) : (
+                              <span
+                                onDoubleClick={() => handleStartEditDate(tx)}
+                                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                title="Double-click to edit date"
+                              >
+                                {tx.date}
+                              </span>
+                            )}
                           </td>
 
                           {/* Description with Double-Click Inline Rename */}
@@ -1403,7 +1580,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                             </select>
                           </td>
 
-                          {/* Amount */}
+                          {/* Amount with Double-Click Inline Edit */}
                           <td
                             style={{
                               padding: '8px 10px',
@@ -1413,7 +1590,80 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
+                            {editingAmountId === tx.id ? (
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={editingAmountValue}
+                                onChange={(e) => setEditingAmountValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveAmount(tx.id);
+                                  if (e.key === 'Escape') setEditingAmountId(null);
+                                }}
+                                onBlur={() => handleSaveAmount(tx.id)}
+                                autoFocus
+                                style={{
+                                  width: '95px',
+                                  padding: '3px 6px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 800,
+                                  borderRadius: '4px',
+                                  border: '1.5px solid var(--color-primary)',
+                                  textAlign: 'right',
+                                  outline: 'none',
+                                  backgroundColor: '#ffffff',
+                                  boxShadow: '0 0 0 2px var(--color-primary-light)'
+                                }}
+                              />
+                            ) : (
+                              <div
+                                onDoubleClick={() => handleStartEditAmount(tx)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'flex-end',
+                                  gap: '4px',
+                                  cursor: 'pointer',
+                                  padding: '2px 4px',
+                                  borderRadius: '4px',
+                                  border: '1px solid transparent',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'var(--bg-canvas-subtle)';
+                                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.borderColor = 'transparent';
+                                }}
+                                title="Double-click or click pencil to edit amount"
+                              >
+                                {tx.balanceMismatch && (
+                                  <span
+                                    className="material-symbols-outlined"
+                                    style={{ fontSize: '15px', color: '#f59e0b', cursor: 'help' }}
+                                    title={`Running Balance Tally Mismatch! Expected: ${formatCurrency(tx.expectedBalance || 0)}`}
+                                  >
+                                    warning
+                                  </span>
+                                )}
+                                <span>
+                                  {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
+                                </span>
+                                <span
+                                  className="material-symbols-outlined"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEditAmount(tx);
+                                  }}
+                                  style={{ fontSize: '12px', color: 'var(--color-primary)', opacity: 0.7 }}
+                                  title="Edit amount"
+                                >
+                                  edit
+                                </span>
+                              </div>
+                            )}
                           </td>
 
                           {/* Recurring Toggle */}
@@ -1442,7 +1692,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                               <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>
                                 {tx.isRecurring ? 'sync' : 'sync_disabled'}
                               </span>
-                              <span>{tx.isRecurring ? 'Recurring' : 'One-off'}</span>
+                              <span className="recurring-btn-text">{tx.isRecurring ? 'Recurring' : 'One-off'}</span>
                             </button>
                           </td>
 
@@ -1695,6 +1945,21 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Interactive Column Mapper Modal */}
+      {isColumnMapperOpen && parseResult && (
+        <ColumnMapperModal
+          isOpen={isColumnMapperOpen}
+          onClose={() => setIsColumnMapperOpen(false)}
+          rawColumns={parseResult.rawColumns || ['Date', 'Ref No', 'Description', 'Debit', 'Credit', 'Balance']}
+          rawRows={parseResult.rawRows || []}
+          fileName={parseResult.fileName}
+          onApplyMapping={(mappedTxs) => {
+            const detected = detectRecurringTransactions(mappedTxs, existingTransactions);
+            setModalTransactions(detected);
+          }}
+        />
       )}
     </div>
   );

@@ -653,3 +653,14 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Responsive Recurring toggle button text */
+.recurring-btn-text {
+  display: inline;
+}
+
+@media (max-width: 1280px) {
+  .recurring-btn-text {
+    display: none;
+  }
+}

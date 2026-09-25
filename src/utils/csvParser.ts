@@ -2,12 +2,18 @@ import Papa from 'papaparse';
 import { Transaction, CategoryKey, TransactionType } from '../types/finance';
 import { detectCategoryFromTitle, matchCategory } from '../config/categoryConfig';
 
+import { parseCleanFinancialAmount, reconcileRunningBalances } from './bankTemplates';
+
 export interface CSVParseResult {
   fileName: string;
   transactions: Transaction[];
   totalIncome: number;
   totalExpense: number;
   unrecognizedCount: number;
+  rawColumns?: string[];
+  rawRows?: string[][];
+  bankDetected?: string;
+  balanceDiscrepancyCount?: number;
 }
 
 interface ColumnMapping {
@@ -17,6 +23,7 @@ interface ColumnMapping {
   amount: string | null;
   debit: string | null;
   credit: string | null;
+  balance: string | null;
   category: string | null;
   type: string | null;
   source: string | null;
@@ -26,11 +33,7 @@ interface ColumnMapping {
 }
 
 function cleanNumeric(val: any): number {
-  if (typeof val === 'number') return val;
-  if (!val) return 0;
-  const cleaned = String(val).replace(/[^0-9.-]/g, '');
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : parsed;
+  return parseCleanFinancialAmount(val).amount;
 }
 
 function normalizeDate(dateStr: string): string {
@@ -65,6 +68,7 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
   const amount = findMatch(['transaction amount', 'amount', 'net amount', 'total', 'amt', 'price', 'sgd', 'usd', 'inr', 'eur', 'gbp', 'jpy', 'aud', 'cad', 'myr', 'cny', 'val']);
   const debit = findMatch(['debit amount', 'withdrawal', 'debit', 'outflow', 'dr']);
   const credit = findMatch(['credit amount', 'deposit', 'credit', 'inflow', 'cr']);
+  const balance = findMatch(['closing balance', 'balance', 'bal', 'running balance']);
   const category = findMatch(['category', 'expense category']);
   const type = findMatch(['type', 'txn type', 'transaction type', 'cr/dr']);
   const source = findMatch(['source', 'account', 'bank', 'card']);
@@ -79,6 +83,7 @@ function detectColumnMapping(fields: string[]): ColumnMapping {
     amount: amount || (!debit && !credit ? fields[2] || fields[0] : null),
     debit,
     credit,
+    balance,
     category,
     type,
     source,
@@ -199,6 +204,8 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
             const descRaw = mapping.description && row[mapping.description] ? String(row[mapping.description]).trim() : undefined;
             const tagsRaw = mapping.tags && row[mapping.tags] ? String(row[mapping.tags]).split(/[;,]/).map((s) => s.trim()).filter(Boolean) : undefined;
 
+            const runningBalance = mapping.balance && row[mapping.balance] ? cleanNumeric(row[mapping.balance]) : undefined;
+
             parsedList.push({
               id: `csv-${Date.now()}-${index}`,
               date,
@@ -210,7 +217,8 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
               isRecurring,
               note,
               source,
-              tags: tagsRaw
+              tags: tagsRaw,
+              runningBalance: runningBalance && runningBalance > 0 ? runningBalance : undefined
             });
           });
 
@@ -238,17 +246,24 @@ export function parseBankCSV(file: File): Promise<CSVParseResult> {
             });
           }
 
+          const { discrepancyCount } = reconcileRunningBalances(parsedList);
+
           parsedList.forEach((t) => {
             if (t.type === 'income') totalIncome += t.amount;
             else totalExpense += t.amount;
           });
+
+          const rawRows = rows.map((r) => fields.map((f) => String(r[f] ?? '')));
 
           resolve({
             fileName: file.name,
             transactions: parsedList,
             totalIncome,
             totalExpense,
-            unrecognizedCount
+            unrecognizedCount,
+            rawColumns: fields,
+            rawRows,
+            balanceDiscrepancyCount: discrepancyCount
           });
 
         } catch (err) {

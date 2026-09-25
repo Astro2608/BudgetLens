@@ -8,6 +8,11 @@ import * as pdfjsWorkerModule from 'pdfjs-dist/build/pdf.worker.min.mjs';
 import { Transaction, CategoryKey, TransactionType } from '../types/finance';
 import { detectCategoryFromTitle } from '../config/categoryConfig';
 import { CSVParseResult } from './csvParser';
+import {
+  parseCleanFinancialAmount,
+  normalizeDateUniversal,
+  reconcileRunningBalances
+} from './bankTemplates';
 
 // Attach to globalThis so PDF.js fake worker fallback ALWAYS succeeds without network fetch
 if (typeof globalThis !== 'undefined') {
@@ -27,46 +32,12 @@ interface TextItem {
   height: number;
 }
 
-// Helper to normalize amount string e.g. "$ 1,234.50" -> 1234.50
-function cleanNumeric(val: string): number {
-  if (!val) return 0;
-  const cleaned = val.replace(/[^0-9.-]/g, '');
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : parsed;
-}
-
-// Helper to normalize dates into YYYY-MM-DD
-function normalizeDate(raw: string): string {
-  if (!raw) return new Date().toISOString().split('T')[0];
-  const now = new Date();
-  const currentYear = now.getFullYear();
-
-  const monthNames: Record<string, string> = {
-    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
-    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
-  };
-
-  // Pattern: 15 Oct 2026 or 15 Oct or 15-Oct-2026
-  const textMatch = raw.match(/(\d{1,2})[\s/-]([a-zA-Z]{3})[\s/-]?(\d{2,4})?/i);
-  if (textMatch) {
-    const day = textMatch[1].padStart(2, '0');
-    const month = monthNames[textMatch[2].toLowerCase()] || '01';
-    let year = textMatch[3] ? textMatch[3] : `${currentYear}`;
-    if (year.length === 2) year = `20${year}`;
-    return `${year}-${month}-${day}`;
-  }
-
-  // Pattern: DD/MM/YYYY or DD-MM-YYYY
-  const numMatch = raw.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
-  if (numMatch) {
-    const day = numMatch[1].padStart(2, '0');
-    const month = numMatch[2].padStart(2, '0');
-    let year = numMatch[3];
-    if (year.length === 2) year = `20${year}`;
-    return `${year}-${month}-${day}`;
-  }
-
-  return new Date().toISOString().split('T')[0];
+interface ColumnZone {
+  key: 'date' | 'ref' | 'description' | 'debit' | 'credit' | 'balance';
+  label: string;
+  minX: number;
+  maxX: number;
+  centerX: number;
 }
 
 const DEPOSIT_KEYWORDS = [
@@ -75,7 +46,7 @@ const DEPOSIT_KEYWORDS = [
   'giro credit', 'deposit', 'dividend', 'refund', 'reversal', 'reimbursement',
   'interest credit', 'interest earned', 'cash in', 'cash deposit', 'inward remitt',
   'credit adv', 'direct credit', 'interbank giro cr', 'fixed deposit', 'rebate', 'cashback',
-  'freelance', 'paycheck'
+  'freelance', 'paycheck', 'imps/inward', 'neft/inward', 'rtgs/inward', 'upi/cr'
 ];
 
 const WITHDRAWAL_KEYWORDS = [
@@ -85,8 +56,12 @@ const WITHDRAWAL_KEYWORDS = [
   'supermarket', 'mart', 'restaurant', 'cafe', 'baking', 'coffee', 'bakery', 'transport',
   'simplygo', 'mrt', 'bus', 'taxi', 'petrol', 'fuel', 'insurance', 'rental', 'rent',
   'subscription', 'netflix', 'spotify', 'apple.com', 'google *', 'payment to', 'transfer to',
-  'withdraw', 'atm', 'outward fast', 'fee', 'charge', 'tax', 'interest charged', 'card purchase'
+  'withdraw', 'atm', 'outward fast', 'fee', 'charge', 'tax', 'interest charged', 'card purchase',
+  'upi/dr', 'pos purchase'
 ];
+
+// Date matcher regex
+const DATE_REGEX = /\b(\d{1,2}[\s/-][a-zA-Z]{3}(?:[\s/-]\d{2,4})?|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})\b/i;
 
 export async function parseBankPDF(file: File): Promise<CSVParseResult> {
   const arrayBuffer = await file.arrayBuffer();
@@ -98,9 +73,11 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
   let totalExpense = 0;
   let unrecognizedCount = 0;
 
-  // Regex patterns to detect transaction lines
-  const dateRegex = /\b(\d{1,2}[\s/-][a-zA-Z]{3}(?:[\s/-]\d{2,4})?|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b/i;
-  const amountRegex = /(?:SGD|USD|INR|EUR|GBP|JPY|AUD|CAD|MYR|CNY|₹|€|£|¥|\$|RM)?\s*([+-]?[0-9]{1,3}(?:,[0-9]{3})*\.[0-9]{2})\s*(CR|DR|\+|-)?/gi;
+  const extractedRawRows: string[][] = [];
+  const rawColumnLabels = ['Date', 'Ref / Chq No', 'Description / Narration', 'Withdrawal (Debit)', 'Deposit (Credit)', 'Closing Balance'];
+
+  // Track discovered column X positions globally across pages
+  let detectedZones: ColumnZone[] = [];
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
@@ -109,143 +86,277 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
 
     if (!items || items.length === 0) continue;
 
-    // Detect Table Column Header Coordinates on this page
-    let debitColX: number | null = null;
-    let depositColX: number | null = null;
-    let balanceColX: number | null = null;
-
-    items.forEach((it) => {
-      const s = (it.str || '').toLowerCase().trim();
-      const x = it.transform[4];
-      if (s.includes('withdrawal') || s.includes('debit') || s.includes('money out') || s.includes('paid out')) {
-        debitColX = x;
-      } else if (s.includes('deposit') || s.includes('credit') || s.includes('money in') || s.includes('paid in')) {
-        depositColX = x;
-      } else if (s.includes('balance')) {
-        balanceColX = x;
-      }
-    });
-
-    // Group text items into lines based on Y coordinates (tolerance of ~3px)
+    // Group text items into lines based on Y coordinate (3.5px tolerance)
     const lineMap: { y: number; items: TextItem[] }[] = [];
 
     items.forEach((it) => {
-      if (!it.str || it.str.trim() === '') return;
+      const str = (it.str || '').trim();
+      if (!str) return;
       const x = it.transform[4];
       const y = Math.round(it.transform[5]);
-      const str = it.str;
-      const width = it.width;
-      const height = it.height;
+      const width = it.width || 0;
+      const height = it.height || 0;
 
-      const existingLine = lineMap.find((l) => Math.abs(l.y - y) <= 3);
+      const existingLine = lineMap.find((l) => Math.abs(l.y - y) <= 3.5);
       if (existingLine) {
-        existingLine.items.push({ str, x, y, width, height });
+        existingLine.items.push({ str: it.str, x, y, width, height });
       } else {
-        lineMap.push({ y, items: [{ str, x, y, width, height }] });
+        lineMap.push({ y, items: [{ str: it.str, x, y, width, height }] });
       }
     });
 
     // Sort lines from top of page to bottom (descending Y)
     lineMap.sort((a, b) => b.y - a.y);
 
-    // Process each line as a potential bank statement record
+    // 1. Detect Header Line on this page if not yet established or page has own headers
+    lineMap.forEach((line) => {
+      const lineText = line.items.map((i) => i.str.toLowerCase()).join(' ');
+
+      const hasDateWord = lineText.includes('date') || lineText.includes('txn dt');
+      const hasNarrationWord = lineText.includes('narration') || lineText.includes('description') || lineText.includes('particulars') || lineText.includes('details');
+      const hasDebitWord = lineText.includes('withdrawal') || lineText.includes('debit') || lineText.includes('paid out') || lineText.includes('money out') || lineText.includes('dr');
+      const hasCreditWord = lineText.includes('deposit') || lineText.includes('credit') || lineText.includes('paid in') || lineText.includes('money in') || lineText.includes('cr');
+      const hasBalWord = lineText.includes('balance') || lineText.includes('bal');
+
+      // If at least 3 column keywords appear on the same horizontal line, it's a table header!
+      const headerMatches = [hasDateWord, hasNarrationWord, hasDebitWord, hasCreditWord, hasBalWord].filter(Boolean).length;
+      if (headerMatches >= 3) {
+        line.items.sort((a, b) => a.x - b.x);
+
+        let dateX = -1;
+        let refX = -1;
+        let descX = -1;
+        let debitX = -1;
+        let creditX = -1;
+        let balanceX = -1;
+
+        line.items.forEach((it) => {
+          const s = it.str.toLowerCase().trim();
+          if (s.includes('date')) dateX = it.x;
+          else if (s.includes('chq') || s.includes('ref') || s.includes('cheque')) refX = it.x;
+          else if (s.includes('narration') || s.includes('particular') || s.includes('desc') || s.includes('detail')) descX = it.x;
+          else if (s.includes('withdrawal') || s.includes('debit') || s.includes('dr') || s.includes('outflow')) debitX = it.x;
+          else if (s.includes('deposit') || s.includes('credit') || s.includes('cr') || s.includes('inflow')) creditX = it.x;
+          else if (s.includes('balance') || s.includes('bal')) balanceX = it.x;
+        });
+
+        // Build sorted list of detected column centers
+        const cols: { key: ColumnZone['key']; label: string; x: number }[] = [];
+        if (dateX !== -1) cols.push({ key: 'date', label: 'Date', x: dateX });
+        if (refX !== -1) cols.push({ key: 'ref', label: 'Ref No', x: refX });
+        if (descX !== -1) cols.push({ key: 'description', label: 'Description', x: descX });
+        if (debitX !== -1) cols.push({ key: 'debit', label: 'Debit', x: debitX });
+        if (creditX !== -1) cols.push({ key: 'credit', label: 'Credit', x: creditX });
+        if (balanceX !== -1) cols.push({ key: 'balance', label: 'Balance', x: balanceX });
+
+        cols.sort((a, b) => a.x - b.x);
+
+        if (cols.length >= 3) {
+          detectedZones = cols.map((col, idx) => {
+            const prevCol = cols[idx - 1];
+            const nextCol = cols[idx + 1];
+            const minX = prevCol ? (prevCol.x + col.x) / 2 : 0;
+            const maxX = nextCol ? (col.x + nextCol.x) / 2 : 9999;
+            return {
+              key: col.key,
+              label: col.label,
+              minX,
+              maxX,
+              centerX: col.x
+            };
+          });
+        }
+      }
+    });
+
+    // 2. Process each line
     lineMap.forEach((line) => {
       line.items.sort((a, b) => a.x - b.x);
       const fullLineText = line.items.map((i) => i.str.trim()).join(' ');
-      const lowerLineText = fullLineText.toLowerCase();
 
-      // Check if line contains a date
-      const dateMatch = fullLineText.match(dateRegex);
-      if (!dateMatch) return;
+      // Check for date in line
+      const dateMatch = fullLineText.match(DATE_REGEX);
 
-      // Extract all monetary numbers on the line with their positions
-      const amountMatches: { str: string; amount: number; x: number; isCR: boolean; isDR: boolean }[] = [];
+      // If we have spatial zones established, bucket tokens into table columns
+      if (detectedZones.length >= 3) {
+        const cellMap: Record<string, string[]> = {
+          date: [],
+          ref: [],
+          description: [],
+          debit: [],
+          credit: [],
+          balance: []
+        };
 
-      line.items.forEach((item) => {
-        let m: RegExpExecArray | null;
-        const scanner = new RegExp(amountRegex);
-        while ((m = scanner.exec(item.str)) !== null) {
-          const num = cleanNumeric(m[1]);
-          const flag = (m[2] || '').toUpperCase();
-          if (num > 0) {
-            const hasPlusSign = m[1].includes('+') || flag === '+';
-            const hasMinusSign = m[1].includes('-') || flag === '-';
-            const hasCR = flag === 'CR' || item.str.toUpperCase().includes('CR');
-            const hasDR = flag === 'DR' || item.str.toUpperCase().includes('DR');
-
-            amountMatches.push({
-              str: m[0],
-              amount: num,
-              x: item.x,
-              isCR: hasPlusSign || hasCR,
-              isDR: hasMinusSign || hasDR
-            });
+        line.items.forEach((item) => {
+          const itemMidX = item.x + (item.width || 0) / 2;
+          const matchedZone = detectedZones.find((z) => itemMidX >= z.minX && itemMidX < z.maxX);
+          if (matchedZone) {
+            cellMap[matchedZone.key].push(item.str.trim());
+          } else {
+            // Fallback to closest zone center
+            let closest = detectedZones[0];
+            let minDist = Math.abs(itemMidX - closest.centerX);
+            for (let i = 1; i < detectedZones.length; i++) {
+              const d = Math.abs(itemMidX - detectedZones[i].centerX);
+              if (d < minDist) {
+                minDist = d;
+                closest = detectedZones[i];
+              }
+            }
+            cellMap[closest.key].push(item.str.trim());
           }
+        });
+
+        const rowDateStr = cellMap.date.join(' ').trim();
+        const rowRefStr = cellMap.ref.join(' ').trim();
+        const rowDescStr = cellMap.description.join(' ').trim();
+        const rowDebitStr = cellMap.debit.join(' ').trim();
+        const rowCreditStr = cellMap.credit.join(' ').trim();
+        const rowBalanceStr = cellMap.balance.join(' ').trim();
+
+        // Check if this row is a transaction row:
+        const hasDate = DATE_REGEX.test(rowDateStr) || (dateMatch && !rowDescStr.toLowerCase().includes('statement'));
+        const debitParsed = parseCleanFinancialAmount(rowDebitStr);
+        const creditParsed = parseCleanFinancialAmount(rowCreditStr);
+        const balanceParsed = parseCleanFinancialAmount(rowBalanceStr);
+
+        if (hasDate && (debitParsed.amount > 0 || creditParsed.amount > 0 || balanceParsed.amount > 0)) {
+          const validDate = normalizeDateUniversal(rowDateStr || (dateMatch ? dateMatch[0] : ''));
+
+          let amount = 0;
+          let txType: TransactionType = 'expense';
+
+          if (creditParsed.amount > 0) {
+            amount = creditParsed.amount;
+            txType = 'income';
+          } else if (debitParsed.amount > 0) {
+            amount = debitParsed.amount;
+            txType = 'expense';
+          } else if (balanceParsed.amount > 0 && creditParsed.isCR) {
+            amount = balanceParsed.amount;
+            txType = 'income';
+          }
+
+          // Build clean title
+          let title = rowDescStr;
+          if (rowRefStr && !title.includes(rowRefStr)) {
+            title = `${rowRefStr} ${title}`.trim();
+          }
+          if (!title || title.length < 2) {
+            title = txType === 'income' ? `Inward Bank Transfer (${validDate})` : `Bank Payment (${validDate})`;
+          }
+
+          // Determine category
+          let category: CategoryKey = 'General';
+          if (txType === 'income') {
+            category = 'Salary';
+          } else {
+            category = detectCategoryFromTitle(title);
+            if (category === 'General') unrecognizedCount++;
+          }
+
+          const runningBalance = balanceParsed.amount > 0 ? balanceParsed.amount : undefined;
+
+          // Push raw row for user-assisted Column Mapper
+          extractedRawRows.push([
+            rowDateStr || (dateMatch ? dateMatch[0] : ''),
+            rowRefStr,
+            rowDescStr,
+            rowDebitStr,
+            rowCreditStr,
+            rowBalanceStr
+          ]);
+
+          parsedList.push({
+            id: `pdf-${Date.now()}-${parsedList.length}`,
+            date: validDate,
+            title,
+            amount,
+            type: txType,
+            category,
+            isRecurring: false,
+            note: `PDF e-Statement (${file.name})`,
+            source: file.name,
+            runningBalance
+          });
+          return;
         }
-      });
 
-      if (amountMatches.length === 0) return;
-
-      // Extract transaction date
-      const date = normalizeDate(dateMatch[0]);
-
-      // Determine whether line represents an Income (Deposit) or Expense (Withdrawal)
-      const hasDepositKeyword = DEPOSIT_KEYWORDS.some((kw) => lowerLineText.includes(kw));
-      const hasWithdrawalKeyword = WITHDRAWAL_KEYWORDS.some((kw) => lowerLineText.includes(kw));
-
-      // Choose transaction amount:
-      // If there are multiple amounts (e.g. Tx Amount + Running Balance), filter out the balance column if known
-      let candidateAmounts = amountMatches;
-      if (balanceColX && amountMatches.length > 1) {
-        // Exclude the amount closest to balance column
-        const nonBalance = amountMatches.filter((a) => Math.abs(a.x - (balanceColX || 0)) > 40);
-        if (nonBalance.length > 0) {
-          candidateAmounts = nonBalance;
+        // Multi-line narration continuation:
+        // If line has no date, but has text in description and no amounts, attach to previous transaction title
+        if (!hasDate && rowDescStr && parsedList.length > 0 && debitParsed.amount === 0 && creditParsed.amount === 0) {
+          const lastTx = parsedList[parsedList.length - 1];
+          if (!lastTx.title.includes(rowDescStr) && rowDescStr.length > 2 && !rowDescStr.toLowerCase().includes('page')) {
+            lastTx.title = `${lastTx.title} ${rowDescStr}`.trim();
+          }
+          return;
         }
       }
 
-      const primaryAmtObj = candidateAmounts[0];
-      const amount = primaryAmtObj.amount;
+      // 3. Fallback Heuristic Line Parser (for PDFs where column headers were not detectable)
+      if (!dateMatch) return;
 
-      // Determine Type (Income vs Expense) via robust multi-tier heuristic:
+      // Extract all potential monetary amounts in this line
+      const amountsFound: { raw: string; amount: number; isCR: boolean; isDR: boolean; x: number }[] = [];
+      line.items.forEach((item) => {
+        const itemStr = item.str.trim();
+        const parsed = parseCleanFinancialAmount(itemStr);
+        if (parsed.amount > 0) {
+          amountsFound.push({
+            raw: itemStr,
+            amount: parsed.amount,
+            isCR: parsed.isCR,
+            isDR: parsed.isDR,
+            x: item.x
+          });
+        }
+      });
+
+      if (amountsFound.length === 0) return;
+
+      const date = normalizeDateUniversal(dateMatch[0]);
+
+      // If multiple amounts, the last one (rightmost X) is typically the running balance
+      amountsFound.sort((a, b) => a.x - b.x);
+      let runningBalance: number | undefined;
+      let txAmountObj = amountsFound[0];
+
+      if (amountsFound.length >= 2) {
+        runningBalance = amountsFound[amountsFound.length - 1].amount;
+        // Transaction amount is the one before running balance
+        txAmountObj = amountsFound[amountsFound.length - 2];
+      }
+
+      const amount = txAmountObj.amount;
+      const lowerLineText = fullLineText.toLowerCase();
+
+      const hasDepositKeyword = DEPOSIT_KEYWORDS.some((kw) => lowerLineText.includes(kw));
+      const hasWithdrawalKeyword = WITHDRAWAL_KEYWORDS.some((kw) => lowerLineText.includes(kw));
+
       let isIncome = false;
-
-      // Strongest Priority: Title Sentiment Overrides Column Ambiguity
       if (hasWithdrawalKeyword && !hasDepositKeyword) {
         isIncome = false;
       } else if (hasDepositKeyword && !hasWithdrawalKeyword) {
         isIncome = true;
-      }
-      // Signal 1: Explicit sign / CR / DR flag
-      else if (primaryAmtObj.isCR && !primaryAmtObj.isDR) {
+      } else if (txAmountObj.isCR && !txAmountObj.isDR) {
         isIncome = true;
-      } else if (primaryAmtObj.isDR) {
+      } else if (txAmountObj.isDR) {
         isIncome = false;
-      }
-      // Signal 2: Header X-coordinate column boundaries
-      else if (debitColX !== null && depositColX !== null) {
-        if (depositColX > debitColX) {
-          // Standard: Debit on Left, Deposit on Right
-          // Right-aligned numbers under Debit can reach up to (depositColX - 25)
-          isIncome = primaryAmtObj.x >= (depositColX - 20);
-        } else {
-          // Deposit on Left, Debit on Right
-          isIncome = primaryAmtObj.x < (debitColX - 20);
-        }
-      } else if (hasDepositKeyword) {
-        isIncome = true;
       }
 
       const txType: TransactionType = isIncome ? 'income' : 'expense';
 
-      // Clean description: remove dates and numeric matches
+      // Clean description without destroying numbers
       let description = fullLineText.replace(dateMatch[0], '');
-      amountMatches.forEach((a) => {
-        description = description.replace(a.str, '');
+      amountsFound.forEach((a) => {
+        description = description.replace(a.raw, '');
       });
 
       description = description
-        .replace(/SGD|USD|INR|EUR|GBP|JPY|AUD|CAD|MYR|CNY|₹|€|£|¥|\$|RM|CR|DR|Balance|Transfer/gi, '')
+        .replace(/SGD|USD|INR|EUR|GBP|JPY|AUD|CAD|MYR|CNY|₹|€|£|¥|\$|RM/gi, '')
+        .replace(/\((?:CR|DR|\+|-)\)/gi, '')
+        .replace(/\b(?:CR|DR)\b/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
 
@@ -253,16 +364,10 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         description = isIncome ? `Inward Bank Transfer (${date})` : `Bank Payment (${date})`;
       }
 
-      // Categorize
-      let category: CategoryKey = 'General';
-      if (txType === 'income') {
-        category = 'Salary';
-      } else {
-        category = detectCategoryFromTitle(description);
-        if (category === 'General') {
-          unrecognizedCount++;
-        }
-      }
+      let category: CategoryKey = isIncome ? 'Salary' : detectCategoryFromTitle(description);
+      if (category === 'General') unrecognizedCount++;
+
+      extractedRawRows.push([date, '', description, isIncome ? '' : String(amount), isIncome ? String(amount) : '', runningBalance ? String(runningBalance) : '']);
 
       parsedList.push({
         id: `pdf-${Date.now()}-${parsedList.length}`,
@@ -273,7 +378,8 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         category,
         isRecurring: false,
         note: `PDF e-Statement (${file.name})`,
-        source: file.name
+        source: file.name,
+        runningBalance
       });
     });
   }
@@ -285,7 +391,6 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
   }
 
   // Holistic Batch Anomaly Detection
-  // Count how many known expense keywords were tagged as 'income'
   let expenseKeywordCount = 0;
   let expenseKeywordAsIncomeCount = 0;
 
@@ -297,7 +402,6 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
     }
   });
 
-  // If > 40% of known expense merchants were tagged as income, auto-invert the entire batch!
   if (expenseKeywordCount > 0 && expenseKeywordAsIncomeCount / expenseKeywordCount > 0.4) {
     parsedList.forEach((t) => {
       const newType: TransactionType = t.type === 'income' ? 'expense' : 'income';
@@ -310,6 +414,9 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
     });
   }
 
+  // Reconcile balances sequentially
+  const { discrepancyCount } = reconcileRunningBalances(parsedList);
+
   // Calculate final totals
   parsedList.forEach((t) => {
     if (t.type === 'income') totalIncome += t.amount;
@@ -321,7 +428,9 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
     transactions: parsedList,
     totalIncome,
     totalExpense,
-    unrecognizedCount
+    unrecognizedCount,
+    rawColumns: rawColumnLabels,
+    rawRows: extractedRawRows,
+    balanceDiscrepancyCount: discrepancyCount
   };
 }
-

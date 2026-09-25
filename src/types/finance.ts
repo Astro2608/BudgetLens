@@ -25,6 +25,9 @@ export interface Transaction {
   source?: string;
   tags?: string[];
   loanAllocations?: Record<string, number>; // loanId -> allocated amount
+  runningBalance?: number;
+  balanceMismatch?: boolean;
+  expectedBalance?: number;
 }
 
 export interface CategoryRunway {
