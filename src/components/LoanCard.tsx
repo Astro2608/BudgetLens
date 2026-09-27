@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Loan, Transaction } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -8,9 +8,10 @@ interface LoanCardProps {
   transactions: Transaction[];
   allLoans?: Loan[];
   onDelete?: (id: string) => void;
+  onLinkTransactions?: (transactionIds: string[], loan: Loan) => void;
 }
 
-export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans = [], onDelete }) => {
+export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans = [], onDelete, onLinkTransactions }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
   const [expanded, setExpanded] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -138,6 +139,85 @@ export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans
     return data;
   }, [loan, monthlyRate, monthlyTargetPayment]);
 
+  // Smart match detection: find untagged previous expense transactions matching this loan's monthly installment (±$2.00)
+  const [dismissedTxIds, setDismissedTxIds] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(`budgetlens_loan_dismissed_${loan.id}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+
+  const matchingCandidates = useMemo(() => {
+    if (!monthlyTargetPayment || monthlyTargetPayment <= 0) return [];
+
+    return transactions.filter(tx => {
+      if (tx.type !== 'expense') return false;
+
+      // Skip if already tagged or allocated to this loan
+      const hasTag = tx.tags?.some(t => t.toLowerCase() === loan.linkedTag.toLowerCase());
+      const hasAlloc = tx.loanAllocations && tx.loanAllocations[loan.id] !== undefined;
+      if (hasTag || hasAlloc) return false;
+
+      // Skip if explicitly dismissed
+      if (dismissedTxIds.includes(tx.id)) return false;
+
+      // Check amount within +/- 2 units
+      const diff = Math.abs(tx.amount - monthlyTargetPayment);
+      if (diff > 2.00) return false;
+
+      // Check date: if loan was started in the past, filter tx.date >= loan.startDate
+      if (loan.startDate && !loan.isReverseEstimated) {
+        const start = new Date(loan.startDate);
+        const now = new Date();
+        // If start date is more than 7 days in the past, respect start date boundary
+        if ((now.getTime() - start.getTime()) > 7 * 24 * 60 * 60 * 1000) {
+          if (new Date(tx.date) < start) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [transactions, loan, monthlyTargetPayment, dismissedTxIds]);
+
+  // Keep selected candidates synced when matching candidates change
+  useEffect(() => {
+    setSelectedCandidateIds(matchingCandidates.map(c => c.id));
+  }, [matchingCandidates.length]);
+
+  const handleToggleCandidate = (id: string) => {
+    setSelectedCandidateIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedCandidateIds.length === matchingCandidates.length) {
+      setSelectedCandidateIds([]);
+    } else {
+      setSelectedCandidateIds(matchingCandidates.map(c => c.id));
+    }
+  };
+
+  const handleApproveSelected = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (selectedCandidateIds.length === 0 || !onLinkTransactions) return;
+    onLinkTransactions(selectedCandidateIds, loan);
+  };
+
+  const handleDismissMatches = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const allIds = matchingCandidates.map(c => c.id);
+    const nextDismissed = Array.from(new Set([...dismissedTxIds, ...allIds]));
+    setDismissedTxIds(nextDismissed);
+    try {
+      localStorage.setItem(`budgetlens_loan_dismissed_${loan.id}`, JSON.stringify(nextDismissed));
+    } catch {}
+  };
+
   return (
     <div
       style={{
@@ -225,6 +305,192 @@ export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans
           <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(monthlyTargetPayment)}/mo</span>
         </div>
       </div>
+
+      {/* Smart Match Suggestions Section (Only appears if untagged matches are found) */}
+      {matchingCandidates.length > 0 && (
+        <div
+          style={{
+            backgroundColor: '#f8fafc',
+            border: '1.5px solid #c7d2fe',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            marginTop: '8px',
+            marginBottom: '10px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.08)'
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
+                backgroundColor: '#e0e7ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#4f46e5',
+                flexShrink: 0
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_awesome</span>
+              </div>
+              <div>
+                <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#1e1b4b' }}>
+                  Smart Match: {matchingCandidates.length} Untagged Payment{matchingCandidates.length > 1 ? 's' : ''} Found
+                </div>
+                <div style={{ fontSize: '11px', color: '#4338ca', lineHeight: 1.3 }}>
+                  Matches ~{formatCurrency(monthlyTargetPayment)} (±$2.00). Are these payments for this loan?
+                </div>
+              </div>
+            </div>
+            
+            <button
+              type="button"
+              onClick={handleDismissMatches}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                fontSize: '11px',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px'
+              }}
+              title="Dismiss suggestions"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+              Dismiss
+            </button>
+          </div>
+
+          {/* Selection Bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '11px',
+            padding: '4px 0',
+            borderTop: '1px solid #e0e7ff',
+            borderBottom: '1px solid #e0e7ff'
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 700, color: '#312e81' }}>
+              <input
+                type="checkbox"
+                checked={selectedCandidateIds.length === matchingCandidates.length && matchingCandidates.length > 0}
+                onChange={handleToggleSelectAll}
+                style={{ cursor: 'pointer', accentColor: '#4f46e5' }}
+              />
+              Select All ({matchingCandidates.length})
+            </label>
+            <span style={{ color: '#6366f1', fontWeight: 600 }}>
+              {selectedCandidateIds.length} of {matchingCandidates.length} selected
+            </span>
+          </div>
+
+          {/* Transaction List */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            maxHeight: '160px',
+            overflowY: 'auto',
+            paddingRight: '4px'
+          }}>
+            {matchingCandidates.map(tx => {
+              const isSelected = selectedCandidateIds.includes(tx.id);
+              return (
+                <div
+                  key={tx.id}
+                  onClick={() => handleToggleCandidate(tx.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    backgroundColor: isSelected ? '#eef2ff' : '#ffffff',
+                    border: `1px solid ${isSelected ? '#c7d2fe' : '#e2e8f0'}`,
+                    cursor: 'pointer',
+                    fontSize: '11.5px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}} // handled by row click
+                      style={{ cursor: 'pointer', accentColor: '#4f46e5' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <span style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {tx.title}
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#64748b' }}>
+                        {tx.date} • #{tx.category}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ fontWeight: 800, color: '#dc2626', flexShrink: 0 }}>
+                    {formatCurrency(tx.amount)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Action Bar */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '2px' }}>
+            <button
+              type="button"
+              onClick={handleDismissMatches}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                color: '#64748b',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Ignore
+            </button>
+            <button
+              type="button"
+              disabled={selectedCandidateIds.length === 0}
+              onClick={handleApproveSelected}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: selectedCandidateIds.length === 0 ? '#cbd5e1' : '#4f46e5',
+                color: '#ffffff',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: selectedCandidateIds.length === 0 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: selectedCandidateIds.length > 0 ? '0 2px 4px rgba(79, 70, 229, 0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>check</span>
+              Approve & Tag ({selectedCandidateIds.length})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Expanded Details Section */}
       {expanded && (

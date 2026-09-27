@@ -286,6 +286,33 @@ const AppContent: React.FC = () => {
     });
   };
 
+  const handleLinkTransactionsToLoan = (transactionIds: string[], loan: Loan) => {
+    const updatedList = transactions.map(tx => {
+      if (!transactionIds.includes(tx.id)) return tx;
+      const existingTags = tx.tags || [];
+      const newTags = existingTags.includes(loan.linkedTag)
+        ? existingTags
+        : [...existingTags, loan.linkedTag];
+      const newAllocations = {
+        ...(tx.loanAllocations || {}),
+        [loan.id]: tx.amount
+      };
+      return {
+        ...tx,
+        tags: newTags,
+        loanAllocations: newAllocations
+      };
+    });
+    setTransactions(updatedList);
+    saveAppData(STORAGE_KEY_TXS, updatedList).catch(e => console.error(e));
+    showToast(
+      `Linked ${transactionIds.length} payment${transactionIds.length > 1 ? 's' : ''} to ${loan.name}`,
+      0,
+      'expense',
+      `#${loan.linkedTag}`
+    );
+  };
+
   const handleResetDefaults = () => {
     setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
     setInitialBalance(0);
@@ -511,6 +538,7 @@ const AppContent: React.FC = () => {
                 transactions={transactions}
                 onAddLoanClick={() => setIsAddLoanModalOpen(true)}
                 onDeleteLoan={handleDeleteLoan}
+                onLinkTransactions={handleLinkTransactionsToLoan}
               />
 
               {/* Predictive Runway Simulation Widget */}

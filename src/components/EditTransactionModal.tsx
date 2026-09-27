@@ -105,6 +105,25 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
   };
   const currentTotalAmount = parseFloat(amount) || 0;
 
+  // Smart suggestion: detect if entered expense matches any loan's monthly installment (±$2.00)
+  const suggestedLoan = useMemo(() => {
+    if (type !== 'expense' || !currentTotalAmount || loans.length === 0) return null;
+    return loans.find(l => {
+      if (selectedLoanIds.includes(l.id)) return false;
+      const monthlyRate = ((l.interestRate || 0) / 100) / 12;
+      const target = l.fixedMonthlyPayment && l.fixedMonthlyPayment > 0
+        ? l.fixedMonthlyPayment
+        : (() => {
+            const term = l.termMonths || 12;
+            if (monthlyRate === 0) return l.initialPrincipal / term;
+            const factor = Math.pow(1 + monthlyRate, term);
+            const pmt = (l.initialPrincipal * monthlyRate * factor) / (factor - 1);
+            return isNaN(pmt) || !isFinite(pmt) ? l.initialPrincipal / term : pmt;
+          })();
+      return Math.abs(currentTotalAmount - target) <= 2;
+    });
+  }, [type, currentTotalAmount, loans, selectedLoanIds]);
+
   // Toggle a loan selection
   const handleToggleLoan = (loanId: string) => {
     const toggledLoan = loans.find(l => l.id === loanId);
@@ -415,6 +434,50 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Smart Loan Match Suggestion Prompt */}
+          {suggestedLoan && (
+            <div
+              style={{
+                backgroundColor: '#f5f3ff',
+                border: '1.5px solid #ddd6fe',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#7c3aed', fontSize: '18px' }}>auto_awesome</span>
+                <span style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 600 }}>
+                  Amount matches <strong>{suggestedLoan.name}</strong> monthly payment (~{formatCurrency(suggestedLoan.fixedMonthlyPayment || currentTotalAmount)}). Tag to loan?
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleLoan(suggestedLoan.id)}
+                style={{
+                  backgroundColor: '#7c3aed',
+                  color: 'white',
+                  border: 'none',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                Link to {suggestedLoan.name}
+              </button>
+            </div>
+          )}
 
           {/* Title */}
           <div>

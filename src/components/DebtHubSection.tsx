@@ -7,13 +7,15 @@ interface DebtHubSectionProps {
   transactions: Transaction[];
   onAddLoanClick: () => void;
   onDeleteLoan: (id: string) => void;
+  onLinkTransactions?: (transactionIds: string[], loan: Loan) => void;
 }
 
 export const DebtHubSection: React.FC<DebtHubSectionProps> = ({
   loans,
   transactions,
   onAddLoanClick,
-  onDeleteLoan
+  onDeleteLoan,
+  onLinkTransactions
 }) => {
   return (
     <div
@@ -150,6 +152,7 @@ export const DebtHubSection: React.FC<DebtHubSectionProps> = ({
               transactions={transactions}
               allLoans={loans}
               onDelete={onDeleteLoan}
+              onLinkTransactions={onLinkTransactions}
             />
           ))}
         </div>
