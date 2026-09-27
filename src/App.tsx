@@ -279,7 +279,11 @@ const AppContent: React.FC = () => {
   };
 
   const handleDeleteLoan = (id: string) => {
-    setLoans((prev) => prev.filter(l => l.id !== id));
+    setLoans((prev) => {
+      const updated = prev.filter(l => l.id !== id);
+      saveAppData(STORAGE_KEY_LOANS, updated).catch(e => console.error(e));
+      return updated;
+    });
   };
 
   const handleResetDefaults = () => {

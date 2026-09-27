@@ -82,4 +82,5 @@ export interface Loan {
   termMonths: number;       // e.g. 60 months
   linkedTag: string;        // e.g. "edu-loan" (matches transaction tags)
   fixedMonthlyPayment?: number; 
+  isReverseEstimated?: boolean; // Reverse estimated from monthly payment
 }

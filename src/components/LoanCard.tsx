@@ -13,6 +13,7 @@ interface LoanCardProps {
 export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans = [], onDelete }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
   const [expanded, setExpanded] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   // Smart calculation of total payments received for this loan
   const totalPaid = useMemo(() => {
@@ -160,9 +161,31 @@ export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans
               {loan.name}
             </h3>
           </div>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
-            #{loan.linkedTag}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
+              #{loan.linkedTag}
+            </span>
+            {loan.isReverseEstimated && (
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  color: '#1d4ed8',
+                  backgroundColor: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}
+                title="Estimated initial cost reverse-calculated from monthly payment & interest rate"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#2563eb' }}>auto_awesome</span>
+                Reverse estimation cost
+              </span>
+            )}
+          </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
@@ -268,6 +291,12 @@ export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans
                 <span style={{ fontWeight: 800, color: '#0f172a' }}>{formatCurrency(totalPaid)}</span>
               </div>
 
+              {loan.isReverseEstimated && (
+                <div style={{ fontSize: '11px', color: '#1e3a8a', backgroundColor: '#eff6ff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe', marginTop: '4px', lineHeight: 1.3 }}>
+                  ℹ️ <strong>Reverse estimation cost:</strong> Created without exact initial details. Reverse estimated based on monthly payment of {formatCurrency(loan.fixedMonthlyPayment || monthlyTargetPayment)}/mo at {loan.interestRate}% p.a.
+                </div>
+              )}
+
               <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.3 }}>
                 💡 Tip: Tagging or allocating your expense transactions automatically reduces your balance and updates this projection.
               </div>
@@ -276,33 +305,43 @@ export const LoanCard: React.FC<LoanCardProps> = ({ loan, transactions, allLoans
             {/* Remove Loan Button */}
             {onDelete && (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (window.confirm(`Are you sure you want to remove ${loan.name}?`)) {
+                  if (!isConfirmingDelete) {
+                    setIsConfirmingDelete(true);
+                    setTimeout(() => setIsConfirmingDelete(false), 3500);
+                  } else {
                     onDelete(loan.id);
                   }
                 }}
                 style={{
-                  backgroundColor: '#fee2e2',
-                  color: '#ef4444',
-                  border: '1px solid #fecdd3',
-                  padding: '7px 12px',
+                  backgroundColor: isConfirmingDelete ? '#dc2626' : '#fee2e2',
+                  color: isConfirmingDelete ? '#ffffff' : '#ef4444',
+                  border: isConfirmingDelete ? '1px solid #b91c1c' : '1px solid #fecdd3',
+                  padding: '8px 12px',
                   borderRadius: '8px',
-                  fontSize: '11px',
+                  fontSize: '11.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '4px',
-                  marginTop: '4px',
+                  marginTop: '6px',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseOver={e => e.currentTarget.style.backgroundColor = '#fecaca'}
-                onMouseOut={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
+                onMouseOver={e => {
+                  if (!isConfirmingDelete) e.currentTarget.style.backgroundColor = '#fecaca';
+                }}
+                onMouseOut={e => {
+                  if (!isConfirmingDelete) e.currentTarget.style.backgroundColor = '#fee2e2';
+                }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>delete</span>
-                Remove Loan
+                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+                  {isConfirmingDelete ? 'warning' : 'delete'}
+                </span>
+                {isConfirmingDelete ? 'Click Again to Confirm Delete' : 'Remove Loan'}
               </button>
             )}
           </div>
