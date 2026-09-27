@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TransactionType, CategoryKey, Transaction, CategoryConfig, Loan } from '../types/finance';
 import { DEFAULT_CATEGORY_CONFIGS } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
