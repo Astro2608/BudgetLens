@@ -1,3 +1,11 @@
+/**
+ * @summary QuickLog component for rapid, single-click outflow and income category logging.
+ * Retains entered amounts persistently across sessions for frictionless batch or repeat entries.
+ *
+ * @ai-directive Preserve modularity and keep local storage persistence lightweight and fast.
+ * Adhere to SOLID and DRY principles; avoid combining quick logging with external modal flows.
+ */
+
 import React, { useState } from 'react';
 import { CategoryKey, CategoryConfig } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
@@ -8,22 +16,36 @@ interface QuickAddOutflowsProps {
   categoryConfigs: Record<CategoryKey, CategoryConfig>;
 }
 
+const STORAGE_KEY_AMOUNTS = 'budgetlens_quicklog_amounts';
+
 export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
   onQuickAdd,
   categoryConfigs
 }) => {
   const { currencyInfo } = useCurrency();
-  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [amounts, setAmounts] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_AMOUNTS);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [justAddedKey, setJustAddedKey] = useState<string | null>(null);
   const [selectedTagsMap, setSelectedTagsMap] = useState<Record<string, string[]>>({});
-  const [customTagInputMap, setCustomTagInputMap] = useState<Record<string, string>>({});
 
   const categories = Object.values(categoryConfigs);
 
   const handleAmountChange = (key: string, val: string) => {
     // Only allow valid numeric / decimal values
     if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
-      setAmounts((prev) => ({ ...prev, [key]: val }));
+      setAmounts((prev) => {
+        const next = { ...prev, [key]: val };
+        try {
+          localStorage.setItem(STORAGE_KEY_AMOUNTS, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
     }
   };
 
@@ -44,24 +66,14 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
     if (isNaN(num) || num <= 0) return;
 
     const presetSelected = selectedTagsMap[cat.key] || [];
-    const customInput = customTagInputMap[cat.key] || '';
-    const customParsed = customInput
-      .split(/[,;\s]+/)
-      .map((s) => s.trim().toLowerCase().replace(/^#/, ''))
-      .filter(Boolean);
 
-    const merged = Array.from(new Set([...presetSelected, ...customParsed]));
+    onQuickAdd(cat.label, num, cat.key, presetSelected.length > 0 ? presetSelected : undefined);
 
-    onQuickAdd(cat.label, num, cat.key, merged.length > 0 ? merged : undefined);
-
-    // Clear input and show feedback
-    setAmounts((prev) => ({ ...prev, [cat.key]: '' }));
-    setSelectedTagsMap((prev) => ({ ...prev, [cat.key]: [] }));
-    setCustomTagInputMap((prev) => ({ ...prev, [cat.key]: '' }));
+    // Keep the entered amount intact for rapid repeat entries!
     setJustAddedKey(cat.key);
     setTimeout(() => {
-      setJustAddedKey(null);
-    }, 1500);
+      setJustAddedKey((current) => (current === cat.key ? null : current));
+    }, 1200);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, cat: CategoryConfig) => {
@@ -220,7 +232,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
                   <button
                     type="button"
                     onClick={() => handleCommit(cat)}
-                    disabled={!hasVal && !isSuccess}
+                    disabled={!hasVal}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -241,12 +253,12 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
                       transition: 'all 150ms ease',
                       minWidth: '52px'
                     }}
-                    title={hasVal ? `Log ${currencyInfo.prefix}${currentVal} to ${cat.label}` : 'Enter an amount to log'}
+                    title={hasVal ? `Log ${currencyInfo.prefix}${currentVal} to ${cat.label} (click repeatedly to log multiples)` : 'Enter an amount to log'}
                   >
                     {isSuccess ? (
                       <>
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
-                        <span>Added</span>
+                        <span>Logged</span>
                       </>
                     ) : (
                       <>

@@ -1,3 +1,11 @@
+/**
+ * @summary DailyLogEntryBar component providing 1-liner keyboard-first transaction recording.
+ * Supports date selection, dynamic category color accents, and inline tag assignments.
+ *
+ * @ai-directive Keep this bar focused on single-line daily log entries with rapid keyboard UX.
+ * Maintain SOLID & DRY principles; do not blend multi-category batch logic into this single-line bar.
+ */
+
 import React, { useState, useRef } from 'react';
 import { Transaction, CategoryKey, CategoryConfig } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
@@ -67,8 +75,8 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
       type: activeConfig.type || 'expense',
       category: selectedCategory,
       isRecurring: false,
-      note: finalDesc || 'Quick Entry',
-      source: 'Quick Entry Bar',
+      note: finalDesc || 'Daily Entry',
+      source: 'Daily Log Entry',
       tags: selectedTags.length > 0 ? selectedTags : undefined
     });
 
@@ -124,7 +132,7 @@ export const QuickEntryBar: React.FC<QuickEntryBarProps> = ({
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>bolt</span>
           </span>
           <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-main)' }}>
-            Quick Log Entry
+            Daily Log Entry
           </span>
           <span
             style={{

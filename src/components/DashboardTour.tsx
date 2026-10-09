@@ -45,7 +45,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetSelector: '.tour-quick-entry',
     badge: 'Step 2 of 5 • Fast Data Entry',
-    title: '⚡ 1-Liner Quick Log Bar',
+    title: '⚡ 1-Liner Daily Log Bar',
     description: 'Log daily expenses or income in seconds without leaving your keyboard.',
     keyPoints: [
       {
