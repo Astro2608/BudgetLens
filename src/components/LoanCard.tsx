@@ -7,36 +7,43 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Loan, Transaction } from '../types/finance';
+import { Loan, Transaction, CategoryKey, CategoryConfig } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import {
   calculateLoanAmortization,
   calculateMonthlyTargetPayment,
-  generateBurndownData
+  generateBurndownData,
+  detectMissingLoanMonths
 } from '../utils/loanAmortization';
 import { LoanEducationDrawer } from './LoanEducationDrawer';
 import { LoanSmartMatchBanner } from './LoanSmartMatchBanner';
+import { LoanBacktrackModal } from './LoanBacktrackModal';
 
 interface LoanCardProps {
   loan: Loan;
   transactions: Transaction[];
   allLoans?: Loan[];
+  categoryConfigs?: Record<CategoryKey, CategoryConfig>;
   onDelete?: (id: string) => void;
   onLinkTransactions?: (transactionIds: string[], loan: Loan) => void;
+  onAddBatchTransactions?: (txs: Omit<Transaction, 'id'>[]) => void;
 }
 
 export const LoanCard: React.FC<LoanCardProps> = ({
   loan,
   transactions,
   allLoans = [],
+  categoryConfigs = {},
   onDelete,
-  onLinkTransactions
+  onLinkTransactions,
+  onAddBatchTransactions
 }) => {
   const { formatCurrency, currencyInfo } = useCurrency();
   const [expanded, setExpanded] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [showEducation, setShowEducation] = useState(false);
+  const [isBacktrackModalOpen, setIsBacktrackModalOpen] = useState(false);
 
   // Target monthly payment
   const monthlyTargetPayment = useMemo(() => {
@@ -76,6 +83,11 @@ export const LoanCard: React.FC<LoanCardProps> = ({
   const chartData = useMemo(() => {
     return generateBurndownData(loan, monthlyTargetPayment);
   }, [loan, monthlyTargetPayment]);
+
+  // Detect unrecorded historical months for catch-up
+  const missingProposals = useMemo(() => {
+    return detectMissingLoanMonths(loan, transactions, monthlyTargetPayment);
+  }, [loan, transactions, monthlyTargetPayment]);
 
   // Smart match candidate detection
   const [dismissedTxIds, setDismissedTxIds] = useState<string[]>(() => {
@@ -263,6 +275,74 @@ export const LoanCard: React.FC<LoanCardProps> = ({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Historical Catch-Up Suggestion Banner */}
+            {missingProposals.length > 0 && onAddBatchTransactions && (
+              <div
+                style={{
+                  backgroundColor: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '12px',
+                  boxShadow: '0 2px 8px rgba(22, 163, 74, 0.08)'
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      backgroundColor: '#dcfce7',
+                      color: '#16a34a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>history_toggle_off</span>
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#14532d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      Catch Up Historical Payments ({missingProposals.length} Missing Month{missingProposals.length > 1 ? 's' : ''})
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#166534', lineHeight: 1.3 }}>
+                      Started {loan.startDate}. Missing ~{formatCurrency(missingProposals.length * monthlyTargetPayment)} across past unrecorded months.
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsBacktrackModalOpen(true)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#16a34a',
+                    color: '#ffffff',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    flexShrink: 0,
+                    boxShadow: '0 2px 4px rgba(22, 163, 74, 0.25)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>auto_mode</span>
+                  Review & Catch Up
+                </button>
+              </div>
+            )}
+
             {/* Burndown Amortization Chart */}
             <div style={{ width: '100%', height: '140px' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -427,6 +507,18 @@ export const LoanCard: React.FC<LoanCardProps> = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* Loan Backtrack Catch-Up Modal */}
+      {isBacktrackModalOpen && onAddBatchTransactions && (
+        <LoanBacktrackModal
+          isOpen={isBacktrackModalOpen}
+          onClose={() => setIsBacktrackModalOpen(false)}
+          loan={loan}
+          proposals={missingProposals}
+          categoryConfigs={categoryConfigs}
+          onConfirmBacktrack={onAddBatchTransactions}
+        />
       )}
     </div>
   );

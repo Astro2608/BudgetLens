@@ -1,3 +1,11 @@
+/**
+ * @summary Root BudgetLens cockpit orchestrating dashboard state, financial summaries, and data syncing.
+ * Manages reactive ledger state, dynamic categories, offline vault persistence, and sub-views.
+ *
+ * @ai-directive Strictly avoid God-class sprawl; delegate state logic and complex rendering to modular components.
+ * Adhere to SOLID and DRY principles; keep root handlers clean and lean without inline business math.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { calculateFinanceSummary, formatSGD } from './utils/financeCalculator';
 import { Transaction, CategoryKey, CategoryConfig, Loan } from './types/finance';
@@ -241,6 +249,18 @@ const AppContent: React.FC = () => {
     setTransactions((prev) => upgradeExistingTransactionsWithRecurring([...importedTxs, ...prev]));
     const totalAmt = importedTxs.reduce((s, t) => s + t.amount, 0);
     showToast(`Imported ${importedTxs.length} Transactions`, totalAmt, 'income', 'e-Statement Batch');
+  };
+
+  const handleAddBatchTransactions = (newTxs: Omit<Transaction, 'id'>[]) => {
+    if (newTxs.length === 0) return;
+    const timestamp = Date.now();
+    const created: Transaction[] = newTxs.map((t, idx) => ({
+      ...t,
+      id: `tx-backtrack-${timestamp}-${idx}`
+    }));
+    setTransactions((prev) => [...created, ...prev]);
+    const totalAmt = created.reduce((sum, t) => sum + t.amount, 0);
+    showToast(`Logged ${created.length} Historical Payments`, totalAmt, 'expense', 'Loan Catch-Up');
   };
 
   const handleQuickAdd = (title: string, amount: number, category: CategoryKey, tags?: string[]) => {
@@ -536,9 +556,11 @@ const AppContent: React.FC = () => {
               <DebtHubSection
                 loans={loans}
                 transactions={transactions}
+                categoryConfigs={categoryConfigs}
                 onAddLoanClick={() => setIsAddLoanModalOpen(true)}
                 onDeleteLoan={handleDeleteLoan}
                 onLinkTransactions={handleLinkTransactionsToLoan}
+                onAddBatchTransactions={handleAddBatchTransactions}
               />
 
               {/* Predictive Runway Simulation Widget */}

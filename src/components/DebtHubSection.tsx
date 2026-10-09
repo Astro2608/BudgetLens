@@ -7,23 +7,27 @@
  */
 
 import React from 'react';
-import { Loan, Transaction } from '../types/finance';
+import { Loan, Transaction, CategoryKey, CategoryConfig } from '../types/finance';
 import { LoanCard } from './LoanCard';
 
 interface DebtHubSectionProps {
   loans: Loan[];
   transactions: Transaction[];
+  categoryConfigs?: Record<CategoryKey, CategoryConfig>;
   onAddLoanClick: () => void;
   onDeleteLoan: (id: string) => void;
   onLinkTransactions?: (transactionIds: string[], loan: Loan) => void;
+  onAddBatchTransactions?: (txs: Omit<Transaction, 'id'>[]) => void;
 }
 
 export const DebtHubSection: React.FC<DebtHubSectionProps> = ({
   loans,
   transactions,
+  categoryConfigs = {},
   onAddLoanClick,
   onDeleteLoan,
-  onLinkTransactions
+  onLinkTransactions,
+  onAddBatchTransactions
 }) => {
   return (
     <div
@@ -159,8 +163,10 @@ export const DebtHubSection: React.FC<DebtHubSectionProps> = ({
               loan={loan}
               transactions={transactions}
               allLoans={loans}
+              categoryConfigs={categoryConfigs}
               onDelete={onDeleteLoan}
               onLinkTransactions={onLinkTransactions}
+              onAddBatchTransactions={onAddBatchTransactions}
             />
           ))}
         </div>

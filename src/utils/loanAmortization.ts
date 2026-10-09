@@ -246,3 +246,79 @@ export function generateBurndownData(
 
   return data;
 }
+
+export interface BacktrackMonthProposal {
+  yearMonth: string; // YYYY-MM
+  date: string;      // YYYY-MM-DD
+  monthLabel: string; // e.g. "Aug 2022"
+  amount: number;
+}
+
+/**
+ * Detects historical months between loan startDate and the current month that have no recorded payments.
+ */
+export function detectMissingLoanMonths(
+  loan: Loan,
+  transactions: Transaction[],
+  installmentAmount: number
+): BacktrackMonthProposal[] {
+  if (!loan.startDate || installmentAmount <= 0) return [];
+
+  const startD = new Date(loan.startDate);
+  if (isNaN(startD.getTime())) return [];
+
+  const now = new Date();
+  if (startD >= now) return [];
+
+  // Find all transactions already associated with this loan
+  const matchingTxs = transactions.filter(tx => {
+    if (tx.type !== 'expense') return false;
+    const hasAlloc = tx.loanAllocations?.[loan.id] !== undefined && (tx.loanAllocations[loan.id] || 0) > 0;
+    const hasTag = Boolean(loan.linkedTag && tx.tags?.some(t => t.toLowerCase() === loan.linkedTag.toLowerCase()));
+    return hasAlloc || hasTag;
+  });
+
+  // Map of YYYY-MM that already have payments logged
+  const loggedMonths = new Set<string>();
+  matchingTxs.forEach(tx => {
+    if (tx.date && tx.date.length >= 7) {
+      loggedMonths.add(tx.date.slice(0, 7));
+    }
+  });
+
+  const missing: BacktrackMonthProposal[] = [];
+  const startYear = startD.getFullYear();
+  const startMonth = startD.getMonth(); // 0-indexed
+  const startDay = startD.getDate();
+
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth();
+
+  // Iterate chronologically through all months
+  const iterDate = new Date(startYear, startMonth, 1);
+  const endDate = new Date(curYear, curMonth, 1);
+
+  while (iterDate <= endDate) {
+    const y = iterDate.getFullYear();
+    const m = iterDate.getMonth();
+    const ymStr = `${y}-${String(m + 1).padStart(2, '0')}`;
+
+    if (!loggedMonths.has(ymStr)) {
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const targetDay = Math.min(startDay, daysInMonth);
+      const dateStr = `${ymStr}-${String(targetDay).padStart(2, '0')}`;
+      const monthLabel = iterDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+
+      missing.push({
+        yearMonth: ymStr,
+        date: dateStr,
+        monthLabel,
+        amount: installmentAmount
+      });
+    }
+
+    iterDate.setMonth(iterDate.getMonth() + 1);
+  }
+
+  return missing;
+}
