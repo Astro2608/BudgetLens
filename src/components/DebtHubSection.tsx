@@ -1,3 +1,11 @@
+/**
+ * @summary Debt & Liabilities hub section rendering loan portfolio cards and empty states.
+ * Serves as the high-level container for managing loans and initiating creation modals.
+ *
+ * @ai-directive Keep this container modular and thin; do not embed business math or state management.
+ * Adhere to SOLID and DRY principles by delegating loan specifics to LoanCard and utility modules.
+ */
+
 import React from 'react';
 import { Loan, Transaction } from '../types/finance';
 import { LoanCard } from './LoanCard';

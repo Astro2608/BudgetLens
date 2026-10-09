@@ -1,3 +1,11 @@
+/**
+ * @summary Modal dialog for configuring new loans, supporting principal/term entry or reverse estimation.
+ * Captures loan parameters, linked tags, and scheduled monthly payment targets.
+ *
+ * @ai-directive Strictly avoid God-class patterns; keep modal behavior focused on input validation and submission.
+ * Preserve SOLID and DRY principles; delegate shared financial math to dedicated utility helpers.
+ */
+
 import React, { useState, useMemo } from 'react';
 import { Loan } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
