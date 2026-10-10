@@ -1,31 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import {
   checkOllamaStatus,
-  pullModelStream,
-  getLocalAiConfig,
   saveLocalAiConfig,
-  OllamaModel,
-  PullProgress
+  OllamaModel
 } from '../utils/localAiService';
 import {
   Brain,
   Sparkles,
   CheckCircle2,
-  Download,
   RefreshCw,
   AlertCircle,
   X,
   ShieldCheck,
   Layers,
-  ExternalLink,
   Check,
-  Loader2
+  Loader2,
+  Zap,
+  Play
 } from 'lucide-react';
 
 interface LocalAIInstallerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onActivated: (modelName: string) => void;
+}
+
+interface StreamEvent {
+  step: number;
+  stage: string;
+  title?: string;
+  message?: string;
+  percent?: number;
+  completed?: number;
+  total?: number;
+  model?: string;
+  success?: boolean;
+  error?: string;
 }
 
 export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
@@ -37,31 +47,59 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
   const [isConnected, setIsConnected] = useState(false);
   const [models, setModels] = useState<OllamaModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('gemma4:e4b');
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState<PullProgress | null>(null);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [installSuccess, setInstallSuccess] = useState(false);
 
-  // Poll Ollama status on mount or when modal opens
+  // Automated 1-Click setup states
+  const [isAutomating, setIsAutomating] = useState(false);
+  const [autoStep, setAutoStep] = useState<number>(1);
+  const [autoTitle, setAutoTitle] = useState<string>('Initializing...');
+  const [autoMessage, setAutoMessage] = useState<string>('');
+  const [autoPercent, setAutoPercent] = useState<number | null>(null);
+  const [autoError, setAutoError] = useState<string | null>(null);
+
+  // Poll status from backend
   const verifyConnection = async () => {
     setIsChecking(true);
+    setAutoError(null);
     try {
-      const status = await checkOllamaStatus();
-      setIsConnected(status.isConnected);
-      setModels(status.models);
+      // 1. Check via Vite backend automation status endpoint
+      const res = await fetch('/api/local-ai/status');
+      if (res.ok) {
+        const data = await res.json();
+        const connected = Boolean(data.isRunning);
+        setIsConnected(connected);
 
-      const config = getLocalAiConfig();
-      const active = config.selectedModel || status.recommendedModel;
-      setSelectedModel(active);
+        if (data.models && data.models.length > 0) {
+          const mappedModels: OllamaModel[] = data.models.map((name: string) => ({
+            name,
+            size: 0,
+            modified_at: ''
+          }));
+          setModels(mappedModels);
+        }
 
-      // If an existing vision model exists
-      const hasExisting = status.models.some((m) =>
-        m.name.toLowerCase().includes('gemma4') ||
-        m.name.toLowerCase().includes('qwen') ||
-        m.name.toLowerCase().includes('vision')
-      );
-      if (status.isConnected && hasExisting) {
-        setInstallSuccess(true);
+        const active = data.recommendedModel || 'gemma4:e4b';
+        setSelectedModel(active);
+
+        if (connected && data.hasVisionModel) {
+          setInstallSuccess(true);
+        }
+      } else {
+        // Fallback to direct client-side check
+        const clientStatus = await checkOllamaStatus();
+        setIsConnected(clientStatus.isConnected);
+        setModels(clientStatus.models);
+        if (clientStatus.recommendedModel) {
+          setSelectedModel(clientStatus.recommendedModel);
+        }
+        const hasExisting = clientStatus.models.some((m) =>
+          m.name.toLowerCase().includes('gemma4') ||
+          m.name.toLowerCase().includes('qwen') ||
+          m.name.toLowerCase().includes('vision')
+        );
+        if (clientStatus.isConnected && hasExisting) {
+          setInstallSuccess(true);
+        }
       }
     } catch {
       setIsConnected(false);
@@ -73,43 +111,57 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       verifyConnection();
-      // Auto-poll every 3s in case user launches Ollama while looking at the screen
-      const interval = setInterval(async () => {
-        if (!isConnected && !isDownloading) {
-          const status = await checkOllamaStatus();
-          if (status.isConnected) {
-            setIsConnected(true);
-            setModels(status.models);
-            if (status.recommendedModel) {
-              setSelectedModel(status.recommendedModel);
-            }
-          }
-        }
-      }, 3000);
-      return () => clearInterval(interval);
     }
-  }, [isOpen, isConnected, isDownloading]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleStartPull = async (modelToPull: string) => {
-    setIsDownloading(true);
-    setDownloadError(null);
-    setDownloadProgress({ status: 'Starting automated 1-click download...' });
+  // Run 1-Click automated background setup
+  const handleRunAutomatedSetup = () => {
+    setIsAutomating(true);
+    setAutoError(null);
+    setAutoStep(1);
+    setAutoTitle('Starting Setup Engine...');
+    setAutoMessage('Connecting to local installation pipeline...');
+    setAutoPercent(null);
 
-    try {
-      await pullModelStream(modelToPull, (progress) => {
-        setDownloadProgress(progress);
-      });
-      setInstallSuccess(true);
-      setSelectedModel(modelToPull);
-      saveLocalAiConfig({ enabled: true, selectedModel: modelToPull });
-      await verifyConnection();
-    } catch (err: any) {
-      setDownloadError(err?.message || 'Failed to download model');
-    } finally {
-      setIsDownloading(false);
-    }
+    const eventSource = new EventSource('/api/local-ai/setup-stream');
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data: StreamEvent = JSON.parse(event.data);
+
+        if (data.error) {
+          setAutoError(data.error);
+          setIsAutomating(false);
+          eventSource.close();
+          return;
+        }
+
+        if (data.step) setAutoStep(data.step);
+        if (data.title) setAutoTitle(data.title);
+        if (data.message) setAutoMessage(data.message);
+        if (data.percent !== undefined) setAutoPercent(data.percent);
+
+        if (data.stage === 'completed' || data.success) {
+          setInstallSuccess(true);
+          setIsConnected(true);
+          if (data.model) setSelectedModel(data.model);
+          saveLocalAiConfig({ enabled: true, selectedModel: data.model || selectedModel });
+          setIsAutomating(false);
+          eventSource.close();
+          verifyConnection();
+        }
+      } catch (err: any) {
+        console.error('Error parsing SSE event:', err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      setIsAutomating(false);
+      verifyConnection();
+    };
   };
 
   const handleFinishAndActivate = () => {
@@ -137,7 +189,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
         animation: 'fadeIn 0.2s ease-out'
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget && !isDownloading) onClose();
+        if (e.target === e.currentTarget && !isAutomating) onClose();
       }}
     >
       <div
@@ -209,7 +261,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
             </div>
           </div>
 
-          {!isDownloading && (
+          {!isAutomating && (
             <button
               onClick={onClose}
               style={{
@@ -251,7 +303,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                   width: '24px',
                   height: '24px',
                   borderRadius: '999px',
-                  backgroundColor: isConnected ? '#10b981' : '#0ea5e9',
+                  backgroundColor: isConnected ? '#10b981' : isAutomating && autoStep === 1 ? '#0ea5e9' : '#cbd5e1',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
@@ -276,7 +328,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                   width: '24px',
                   height: '24px',
                   borderRadius: '999px',
-                  backgroundColor: installSuccess ? '#10b981' : isConnected ? '#0ea5e9' : '#cbd5e1',
+                  backgroundColor: installSuccess ? '#10b981' : isAutomating && autoStep === 2 ? '#0ea5e9' : isConnected ? '#0ea5e9' : '#cbd5e1',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
@@ -316,8 +368,8 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
             </div>
           </div>
 
-          {/* Loading Indicator */}
-          {isChecking && !isConnected && (
+          {/* Loading initial status */}
+          {isChecking && !isConnected && !isAutomating && (
             <div
               style={{
                 display: 'flex',
@@ -330,17 +382,75 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
               }}
             >
               <Loader2 size={20} className="animate-spin" style={{ color: '#0ea5e9' }} />
-              <span>Checking for local AI engine on your device...</span>
+              <span>Verifying local AI engine status...</span>
             </div>
           )}
 
-          {/* Scenario A: Ollama Not Found - Zero Technical Jargon, 1-Click Action */}
-          {!isConnected && !isChecking && (
+          {/* Automated Setup In Progress Card */}
+          {isAutomating && (
             <div
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '1rem',
+                gap: '12px',
+                padding: '1.25rem',
+                borderRadius: '12px',
+                backgroundColor: '#f0f9ff',
+                border: '1px solid #bae6fd'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Loader2 size={20} className="animate-spin" style={{ color: '#0284c7' }} />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0369a1' }}>
+                      {autoTitle}
+                    </h4>
+                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#0284c7' }}>
+                      {autoMessage}
+                    </p>
+                  </div>
+                </div>
+                {autoPercent !== null && (
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#0284c7' }}>
+                    {autoPercent}%
+                  </span>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              <div
+                style={{
+                  height: '8px',
+                  borderRadius: '999px',
+                  backgroundColor: '#e0f2fe',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  style={{
+                    height: '100%',
+                    width: autoPercent !== null ? `${autoPercent}%` : '50%',
+                    backgroundColor: '#0284c7',
+                    borderRadius: '999px',
+                    transition: 'width 0.3s ease'
+                  }}
+                />
+              </div>
+
+              <span style={{ fontSize: '11px', color: '#0369a1', opacity: 0.85 }}>
+                Automated installation is in progress. Please keep this window open.
+              </span>
+            </div>
+          )}
+
+          {/* Scenario A: Engine Not Ready Yet (1-Click Automated Action) */}
+          {!isConnected && !isChecking && !isAutomating && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.25rem',
                 padding: '1.25rem',
                 borderRadius: '12px',
                 backgroundColor: '#f8fafc',
@@ -350,9 +460,9 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                 <div
                   style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '10px',
                     backgroundColor: '#e0f2fe',
                     color: '#0284c7',
                     display: 'flex',
@@ -361,104 +471,81 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                     flexShrink: 0
                   }}
                 >
-                  <Download size={20} />
+                  <Zap size={22} />
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                    1-Click Setup: Local AI Engine
+                    1-Click Automated AI Setup
                   </h4>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
-                    To scan bank statements 100% offline with zero cloud fees and full privacy, download and run the installer.
+                    BudgetLens will automatically detect, launch, and configure the local offline AI engine on your computer. Zero command line or manual configuration required.
                   </p>
                 </div>
               </div>
 
-              {/* 1-Click Big Action Button */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
-                <a
-                  href="https://ollama.com/download/OllamaSetup.exe"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '12px 20px',
-                    borderRadius: '10px',
-                    backgroundColor: '#0ea5e9',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '14px',
-                    textDecoration: 'none',
-                    boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)',
-                    transition: 'all 0.2s ease',
-                    textAlign: 'center'
-                  }}
-                >
-                  <Download size={18} />
-                  Download 1-Click Installer (Windows)
-                </a>
+              {/* Big 1-Click Action Button */}
+              <button
+                type="button"
+                onClick={handleRunAutomatedSetup}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '14px 24px',
+                  borderRadius: '12px',
+                  backgroundColor: '#0ea5e9',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Play size={18} fill="#ffffff" />
+                Start 1-Click Automated Setup
+              </button>
 
-                <div
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#f1f5f9',
+                  fontSize: '11px',
+                  color: '#64748b'
+                }}
+              >
+                <span>Already running Ollama in your system tray?</span>
+                <button
+                  type="button"
+                  onClick={verifyConnection}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: '#f1f5f9',
-                    fontSize: '11px',
-                    color: '#64748b'
+                    gap: '4px',
+                    background: 'none',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                    borderRadius: '4px'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Loader2 size={13} className="animate-spin" style={{ color: '#0ea5e9' }} />
-                    <span>Auto-detecting... Once installed, this page connects automatically.</span>
-                  </div>
-                  <button
-                    onClick={verifyConnection}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      background: 'none',
-                      border: 'none',
-                      color: '#0284c7',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      padding: '2px 6px',
-                      borderRadius: '4px'
-                    }}
-                  >
-                    <RefreshCw size={12} />
-                    Check Now
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
-                <a
-                  href="https://ollama.com/download"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    fontSize: '11px',
-                    color: '#64748b',
-                    textDecoration: 'underline',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  Using Mac or Linux? Download here <ExternalLink size={10} />
-                </a>
+                  <RefreshCw size={12} />
+                  Check Now
+                </button>
               </div>
             </div>
           )}
 
-          {/* Scenario B: Ollama Connected! */}
-          {isConnected && (
+          {/* Scenario B: Connected & Ready */}
+          {isConnected && !isAutomating && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Status Banner */}
               <div
@@ -522,7 +609,6 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
-                  disabled={isDownloading}
                   style={{
                     padding: '9px 12px',
                     borderRadius: '8px',
@@ -535,11 +621,11 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                 >
                   {models.map((m) => (
                     <option key={m.name} value={m.name}>
-                      {m.name} ({(m.size / (1024 * 1024 * 1024)).toFixed(1)} GB)
+                      {m.name}
                     </option>
                   ))}
-                  {!models.some((m) => m.name.includes('qwen2.5-vl:3b')) && (
-                    <option value="qwen2.5-vl:3b">qwen2.5-vl:3b (Recommended 2.5 GB - Click to Install)</option>
+                  {!models.some((m) => m.name.includes('gemma4:e4b')) && (
+                    <option value="gemma4:e4b">gemma4:e4b (Recommended)</option>
                   )}
                 </select>
 
@@ -554,75 +640,25 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                   </span>
                 </p>
               </div>
+            </div>
+          )}
 
-              {/* Download / Progress Bar */}
-              {isDownloading && (
-                <div
-                  style={{
-                    padding: '14px',
-                    borderRadius: '12px',
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
-                      {downloadProgress?.status || 'Downloading model files...'}
-                    </span>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0ea5e9' }}>
-                      {downloadProgress?.percent !== undefined ? `${downloadProgress.percent}%` : '...'}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      height: '8px',
-                      borderRadius: '999px',
-                      backgroundColor: '#e2e8f0',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${downloadProgress?.percent || 15}%`,
-                        backgroundColor: '#0ea5e9',
-                        borderRadius: '999px',
-                        transition: 'width 0.3s ease'
-                      }}
-                    />
-                  </div>
-
-                  {downloadProgress?.total ? (
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      {((downloadProgress.completed || 0) / (1024 * 1024)).toFixed(0)} MB /{' '}
-                      {((downloadProgress.total || 0) / (1024 * 1024)).toFixed(0)} MB
-                    </span>
-                  ) : null}
-                </div>
-              )}
-
-              {downloadError && (
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    backgroundColor: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    color: '#b91c1c',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <AlertCircle size={16} />
-                  <span>Error: {downloadError}</span>
-                </div>
-              )}
+          {autoError && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '8px',
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#b91c1c',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <AlertCircle size={16} />
+              <span>Error: {autoError}</span>
             </div>
           )}
         </div>
@@ -641,7 +677,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            disabled={isDownloading}
+            disabled={isAutomating}
             style={{
               padding: '8px 16px',
               borderRadius: '8px',
@@ -649,7 +685,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
               backgroundColor: 'transparent',
               fontSize: '13px',
               fontWeight: 600,
-              cursor: isDownloading ? 'not-allowed' : 'pointer',
+              cursor: isAutomating ? 'not-allowed' : 'pointer',
               color: 'var(--text-muted, #64748b)'
             }}
           >
@@ -657,54 +693,28 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
           </button>
 
           {isConnected && (
-            <div>
-              {!isModelAlreadyInstalled ? (
-                <button
-                  type="button"
-                  onClick={() => handleStartPull(selectedModel)}
-                  disabled={isDownloading}
-                  style={{
-                    padding: '8px 20px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: '#0ea5e9',
-                    color: '#ffffff',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: isDownloading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(14, 165, 233, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <Download size={15} />
-                  {isDownloading ? 'Installing Model...' : `Install ${selectedModel} (1-Click)`}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleFinishAndActivate}
-                  style={{
-                    padding: '9px 22px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: '#16a34a',
-                    color: '#ffffff',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 2px 4px rgba(22, 163, 74, 0.3)'
-                  }}
-                >
-                  <CheckCircle2 size={16} />
-                  Activate Local AI Parser
-                </button>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={handleFinishAndActivate}
+              disabled={isAutomating}
+              style={{
+                padding: '9px 22px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: '#16a34a',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 4px rgba(22, 163, 74, 0.3)'
+              }}
+            >
+              <CheckCircle2 size={16} />
+              Activate Local AI Parser
+            </button>
           )}
         </div>
       </div>
