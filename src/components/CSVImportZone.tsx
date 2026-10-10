@@ -14,7 +14,6 @@ import { LocalAIInstallerModal } from './LocalAIInstallerModal';
 import {
   parsePdfWithLocalAi,
   checkOllamaStatus,
-  getLocalAiConfig,
   saveLocalAiConfig
 } from '../utils/localAiService';
 import {
@@ -65,23 +64,14 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [isColumnMapperOpen, setIsColumnMapperOpen] = useState(false);
   const [parserMode, setParserMode] = useState<'standard' | 'local_ai'>('standard');
   const [isLocalAiModalOpen, setIsLocalAiModalOpen] = useState(false);
-  const [localAiReady, setLocalAiReady] = useState(false);
   const [localAiModel, setLocalAiModel] = useState('gemma4:e4b');
   const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
 
   const [localCatConfigs, setLocalCatConfigs] = useState<Record<CategoryKey, CategoryConfig>>(categoryConfigs);
 
   useEffect(() => {
-    const config = getLocalAiConfig();
-    if (config.enabled) {
-      setParserMode('local_ai');
-    }
-    checkOllamaStatus().then((res) => {
-      setLocalAiReady(res.isConnected);
-      if (res.recommendedModel) {
-        setLocalAiModel(res.recommendedModel);
-      }
-    });
+    // Default to Standard while Local AI is Coming Soon
+    setParserMode('standard');
   }, []);
 
   useEffect(() => {
@@ -615,65 +605,40 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
 
           <button
             type="button"
-            onClick={() => {
-              setParserMode('local_ai');
-              saveLocalAiConfig({ enabled: true });
-              if (!localAiReady) {
-                setIsLocalAiModalOpen(true);
-              }
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '5px 12px',
-              borderRadius: '8px',
-              border: parserMode === 'local_ai' ? '1px solid #6366f1' : '1px solid transparent',
-              backgroundColor: parserMode === 'local_ai' ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
-              color: parserMode === 'local_ai' ? '#4f46e5' : 'var(--text-muted, #64748b)',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Sparkles size={15} style={{ color: parserMode === 'local_ai' ? '#4f46e5' : 'inherit' }} />
-            <span>Local AI Assistant (100% Private)</span>
-          </button>
-        </div>
-
-        {/* AI Status Badge & Config Modal Trigger */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => setIsLocalAiModalOpen(true)}
+            disabled={true}
+            title="Local AI parsing is currently in development and coming soon."
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '4px 10px',
+              padding: '5px 12px',
               borderRadius: '8px',
-              border: '1px solid var(--border-subtle, #cbd5e1)',
-              backgroundColor: '#fff',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--text-main, #334155)',
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-xs)'
+              border: '1px solid var(--border-subtle, #e2e8f0)',
+              backgroundColor: 'var(--bg-subtle, #f1f5f9)',
+              color: 'var(--text-muted, #94a3b8)',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'not-allowed',
+              opacity: 0.75,
+              transition: 'all 0.15s ease'
             }}
-            title="Configure Local AI Engine & Vision Models"
           >
+            <Sparkles size={14} style={{ color: '#94a3b8' }} />
+            <span>Local AI Parsing</span>
             <span
               style={{
-                width: '8px',
-                height: '8px',
+                fontSize: '9px',
+                fontWeight: 800,
+                padding: '1px 6px',
                 borderRadius: '999px',
-                backgroundColor: localAiReady ? '#10b981' : '#f59e0b'
+                backgroundColor: '#e2e8f0',
+                color: '#64748b',
+                border: '1px solid #cbd5e1',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
               }}
-            />
-            <span>{localAiReady ? `Ollama Ready (${localAiModel})` : 'Setup Local AI'}</span>
-            <span className="material-symbols-outlined" style={{ fontSize: '15px', color: '#64748b' }}>
-              settings
+            >
+              Coming Soon
             </span>
           </button>
         </div>
@@ -2244,7 +2209,6 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
         onClose={() => setIsLocalAiModalOpen(false)}
         onActivated={(modelName) => {
           setLocalAiModel(modelName);
-          setLocalAiReady(true);
           setParserMode('local_ai');
         }}
       />
