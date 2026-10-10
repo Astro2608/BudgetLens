@@ -179,7 +179,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
     if (diff < 0) {
       return {
         type: 'saved',
-        text: `📉 -${formatCurrency(Math.abs(diff))} (-${pct}%) vs ${expenseData.priorLabel} (Saved more)`,
+        text: `-${formatCurrency(Math.abs(diff))} (-${pct}%) vs ${expenseData.priorLabel} (Saved more)`,
         bg: '#ecfdf5',
         color: '#047857',
         border: '#a7f3d0'
@@ -187,7 +187,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
     } else if (diff > 0) {
       return {
         type: 'spent_more',
-        text: `📈 +${formatCurrency(diff)} (+${pct}%) vs ${expenseData.priorLabel}`,
+        text: `+${formatCurrency(diff)} (+${pct}%) vs ${expenseData.priorLabel}`,
         bg: '#fff1f2',
         color: '#be123c',
         border: '#fecdd3'

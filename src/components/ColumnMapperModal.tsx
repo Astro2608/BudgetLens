@@ -515,15 +515,15 @@ export const ColumnMapperModal: React.FC<ColumnMapperModalProps> = ({
                             cursor: 'pointer'
                           }}
                         >
-                          <option value="ignore">❌ Ignore / Skip</option>
-                          <option value="date">📅 Date (Required)</option>
-                          <option value="description">📝 Description / Narration</option>
-                          <option value="ref">🔖 Ref / Cheque No</option>
-                          <option value="debit">🔻 Debit / Withdrawal (-)</option>
-                          <option value="credit">🟢 Credit / Deposit (+)</option>
-                          <option value="amount">💰 Single Amount Column</option>
-                          <option value="type">🏷️ CR/DR Type Flag</option>
-                          <option value="balance">🏦 Running Balance</option>
+                          <option value="ignore">Ignore / Skip</option>
+                          <option value="date">Date (Required)</option>
+                          <option value="description">Description / Narration</option>
+                          <option value="ref">Ref / Cheque No</option>
+                          <option value="debit">Debit / Withdrawal (-)</option>
+                          <option value="credit">Credit / Deposit (+)</option>
+                          <option value="amount">Single Amount Column</option>
+                          <option value="type">Type Flag (CR/DR)</option>
+                          <option value="balance">Running Balance</option>
                         </select>
                       </div>
                     </th>

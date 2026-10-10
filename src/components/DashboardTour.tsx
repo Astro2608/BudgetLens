@@ -21,7 +21,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetSelector: '.tour-hero',
     badge: 'Step 1 of 5 • Money Summary',
-    title: '💰 Bank Balance & Live Cash Status',
+    title: 'Bank Balance & Live Cash Status',
     description: 'Provides an accurate, real-time summary of your current bank balance and overall cashflow.',
     keyPoints: [
       {
@@ -45,7 +45,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetSelector: '.tour-quick-entry',
     badge: 'Step 2 of 5 • Fast Data Entry',
-    title: '⚡ 1-Liner Daily Log Bar',
+    title: '1-Liner Daily Log Bar',
     description: 'Log daily expenses or income in seconds without leaving your keyboard.',
     keyPoints: [
       {
@@ -69,7 +69,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetSelector: '.tour-chart',
     badge: 'Step 3 of 5 • Visual Trends',
-    title: '📊 Cash Flow Activity Chart',
+    title: 'Cash Flow Activity Chart',
     description: 'Visual breakdown showing how your money moves over days, weeks, and months.',
     keyPoints: [
       {
@@ -88,7 +88,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetSelector: '.tour-donut',
     badge: 'Step 4 of 5 • Spending Breakdown',
-    title: '🍩 Category Distribution Donut Chart',
+    title: 'Category Distribution Donut Chart',
     description: 'Visual breakdown showing which categories account for your largest expenditures.',
     keyPoints: [
       {
@@ -107,7 +107,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetSelector: 'center',
     badge: 'Step 5 of 5 • Extra Tools',
-    title: '🌟 Dashboard Tools & Privacy Features',
+    title: 'Dashboard Tools & Privacy Features',
     description: 'BudgetLens is 100% offline and browser-based to keep your data private.',
     keyPoints: [
       {
@@ -122,7 +122,7 @@ const TOUR_STEPS: TourStep[] = [
       },
       {
         icon: 'info',
-        title: 'Info Tooltips (ℹ️)',
+        title: 'Info Tooltips',
         text: 'Click the info button on any header to learn how metrics are calculated.'
       },
       {

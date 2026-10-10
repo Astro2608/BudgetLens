@@ -15,6 +15,7 @@ import {
   cleanTransactionTitle,
   detectBankTemplateByKeywords
 } from './bankTemplates';
+import { smartCleanBankTitle } from './localAiService';
 
 // Attach to globalThis so PDF.js fake worker fallback ALWAYS succeeds without network fetch
 if (typeof globalThis !== 'undefined') {
@@ -62,8 +63,8 @@ const WITHDRAWAL_KEYWORDS = [
   'upi/dr', 'pos purchase'
 ];
 
-// Date matcher regex
-const DATE_REGEX = /\b(\d{1,2}[\s/-][a-zA-Z]{3}(?:[\s/-]\d{2,4})?|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})\b/i;
+// Strict Date matcher regex (DD/MM/YYYY, DD-MM-YYYY, DD Mon YYYY, YYYY-MM-DD)
+const DATE_REGEX = /\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2})\b/i;
 
 export async function parseBankPDF(file: File): Promise<CSVParseResult> {
   const arrayBuffer = await file.arrayBuffer();
@@ -244,8 +245,20 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         const rowCreditStr = cellMap.credit.join(' ').trim();
         const rowBalanceStr = cellMap.balance.join(' ').trim();
 
+        const combinedRowText = `${rowDateStr} ${rowRefStr} ${rowDescStr}`.toLowerCase();
+        // Ignore balance headers, summaries, or footers
+        if (
+          combinedRowText.includes('balance brought forward') ||
+          combinedRowText.includes('balance carried forward') ||
+          combinedRowText.includes('total balance carried forward') ||
+          combinedRowText.includes('account summary') ||
+          combinedRowText.includes('summary of currency')
+        ) {
+          return;
+        }
+
         // Check if this row is a transaction row:
-        const hasDate = DATE_REGEX.test(rowDateStr) || (dateMatch && !rowDescStr.toLowerCase().includes('statement'));
+        const hasDate = DATE_REGEX.test(rowDateStr);
         const debitParsed = parseCleanFinancialAmount(rowDebitStr);
         const creditParsed = parseCleanFinancialAmount(rowCreditStr);
         const amountParsed = parseCleanFinancialAmount(rowAmountStr);
@@ -285,6 +298,9 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
           let title = rowDescStr || rowRefStr;
           const originalTitle = title;
           
+          // Apply smart bank title cleaner
+          title = smartCleanBankTitle(title);
+
           // Apply Smart Bank Template Rules if detected
           if (matchedTemplate && matchedTemplate.titleExtractors) {
              title = cleanTransactionTitle(title, matchedTemplate.titleExtractors);
@@ -448,30 +464,6 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
     throw new Error(
       'Could not detect structured transaction tables in this PDF. Please ensure the statement is an official digital bank e-statement (not a scanned image).'
     );
-  }
-
-  // Holistic Batch Anomaly Detection
-  let expenseKeywordCount = 0;
-  let expenseKeywordAsIncomeCount = 0;
-
-  parsedList.forEach((t) => {
-    const lower = t.title.toLowerCase();
-    if (WITHDRAWAL_KEYWORDS.some((kw) => lower.includes(kw))) {
-      expenseKeywordCount++;
-      if (t.type === 'income') expenseKeywordAsIncomeCount++;
-    }
-  });
-
-  if (expenseKeywordCount > 0 && expenseKeywordAsIncomeCount / expenseKeywordCount > 0.4) {
-    parsedList.forEach((t) => {
-      const newType: TransactionType = t.type === 'income' ? 'expense' : 'income';
-      t.type = newType;
-      if (newType === 'income') {
-        t.category = 'Salary';
-      } else if (t.category === 'Salary') {
-        t.category = detectCategoryFromTitle(t.title);
-      }
-    });
   }
 
   // Reconcile balances sequentially

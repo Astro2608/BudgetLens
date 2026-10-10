@@ -454,12 +454,12 @@ export const LoanCard: React.FC<LoanCardProps> = ({
 
               {loan.isReverseEstimated && (
                 <div style={{ fontSize: '11px', color: '#1e3a8a', backgroundColor: '#eff6ff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe', marginTop: '2px', lineHeight: 1.3 }}>
-                  ℹ️ <strong>Reverse estimation cost:</strong> Created without exact initial details. Reverse estimated based on monthly payment of {formatCurrency(loan.fixedMonthlyPayment || monthlyTargetPayment)}/mo at {loan.interestRate}% p.a.
+                  <strong>Note: Reverse estimation cost —</strong> Created without exact initial details. Reverse estimated based on monthly payment of {formatCurrency(loan.fixedMonthlyPayment || monthlyTargetPayment)}/mo at {loan.interestRate}% p.a.
                 </div>
               )}
 
               <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.3 }}>
-                💡 Tip: Tagging or allocating your expense transactions automatically reduces your balance and updates this projection.
+                Tip: Tagging or allocating your expense transactions automatically reduces your balance and updates this projection.
               </div>
             </div>
 

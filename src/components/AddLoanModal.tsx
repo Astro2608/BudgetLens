@@ -302,7 +302,7 @@ export const AddLoanModal: React.FC<AddLoanModalProps> = ({
               }}
             />
             <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#64748b' }}>
-              💡 Know what you pay monthly? Enter it here to estimate unknown fields.
+              Know what you pay monthly? Enter it here to estimate unknown fields.
             </p>
           </div>
 
@@ -325,7 +325,7 @@ export const AddLoanModal: React.FC<AddLoanModalProps> = ({
                 Estimated Initial Principal: <strong>{formatCurrency(calculation.effectivePrincipal)}</strong> (based on {formatCurrency(calculation.effectivePayment)}/mo at {calculation.effectiveRate}% p.a. over {calculation.effectiveTerm} months).
               </div>
               <div style={{ fontSize: '11.5px', color: '#2563eb', fontWeight: 700, marginTop: '2px' }}>
-                🏷️ Tagged as: "Reverse estimation cost" since unknown details were left blank.
+                Tagged as: "Reverse estimation cost" since unknown details were left blank.
               </div>
             </div>
           )}

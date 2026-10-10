@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Lightbulb } from 'lucide-react';
 
 interface SectionInfoButtonProps {
   title: string;
@@ -132,8 +133,9 @@ export const SectionInfoButton: React.FC<SectionInfoButtonProps> = ({
               gap: '2px'
             }}
           >
-            <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-primary-hover)' }}>
-              💡 Example
+            <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-primary-hover)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Lightbulb size={12} />
+              <span>Example</span>
             </span>
             <p style={{ fontSize: '11px', color: '#134e4a', lineHeight: 1.35, margin: 0 }}>
               {example}

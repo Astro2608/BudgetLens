@@ -174,7 +174,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
             )}
             {(browser.installMethod === 'prompt') && (
               <div style={{ background: 'rgba(16,185,129,0.08)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(16,185,129,0.2)' }}>
-                <p style={{ color: '#10b981', fontSize: '13px', fontWeight: 700, margin: '0 0 6px' }}>🖥️ Chrome / Edge Install</p>
+                <p style={{ color: '#10b981', fontSize: '13px', fontWeight: 700, margin: '0 0 6px' }}>Chrome / Edge Install</p>
                 <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>
                   Look for the <strong style={{ color: '#fff' }}>install icon (⊕)</strong> in the address bar, or go to the browser menu → <strong style={{ color: '#fff' }}>Install BudgetLens</strong>. A desktop shortcut will be created automatically.
                 </p>
@@ -182,7 +182,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
             )}
             {browser.installMethod === 'none' && (
               <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(245,158,11,0.2)' }}>
-                <p style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 700, margin: '0 0 6px' }}>ℹ️ Firefox Note</p>
+                <p style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 700, margin: '0 0 6px' }}>Firefox Note</p>
                 <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>
                   Firefox doesn't support PWA install to desktop. BudgetLens still works fully in the browser — just bookmark it! For the desktop shortcut experience, open in <strong style={{ color: '#fff' }}>Chrome or Edge</strong>.
                 </p>
@@ -190,7 +190,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
             )}
             {browser.installMethod === 'safari-mac' && (
               <div style={{ background: 'rgba(99,102,241,0.12)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(99,102,241,0.2)' }}>
-                <p style={{ color: '#a5b4fc', fontSize: '13px', fontWeight: 700, margin: '0 0 6px' }}>🍎 Safari (macOS) Install</p>
+                <p style={{ color: '#a5b4fc', fontSize: '13px', fontWeight: 700, margin: '0 0 6px' }}>Safari (macOS) Install</p>
                 <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>
                   Go to <strong style={{ color: '#fff' }}>File → Add to Dock</strong> to install BudgetLens as a native-looking macOS app.
                 </p>
@@ -218,7 +218,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', marginBottom: '8px' }}>
               {[
-                { num: '1', text: 'Go to ⚙️ Settings → set your opening cash balance' },
+                { num: '1', text: 'Go to Settings → set your opening cash balance' },
                 { num: '2', text: 'Add a transaction manually or drag in a bank CSV' },
                 { num: '3', text: 'Watch your runway update in real time' },
               ].map(({ num, text }) => (

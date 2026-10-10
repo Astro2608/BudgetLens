@@ -281,9 +281,9 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
                 : simulatedRunwayMonths > 12
                 ? 'Based on initial spend trends'
                 : runwayDelta > 0
-                ? `🎉 +${runwayDelta} Mo extended!`
+                ? `+${runwayDelta} Mo extended`
                 : runwayDelta < 0
-                ? `⚠️ ${runwayDelta} Mo shorter`
+                ? `${runwayDelta} Mo shorter`
                 : 'Matches rolling baseline'}
             </span>
           </div>

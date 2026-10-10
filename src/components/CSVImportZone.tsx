@@ -10,6 +10,25 @@ import { SectionInfoButton } from './SectionInfoButton';
 import { detectRecurringTransactions } from '../utils/recurringDetector';
 import { ColumnMapperModal } from './ColumnMapperModal';
 import { parseCleanFinancialAmount, normalizeDateUniversal } from '../utils/bankTemplates';
+import { LocalAIInstallerModal } from './LocalAIInstallerModal';
+import {
+  parsePdfWithLocalAi,
+  checkOllamaStatus,
+  getLocalAiConfig,
+  saveLocalAiConfig
+} from '../utils/localAiService';
+import {
+  Sparkles,
+  Zap,
+  Calendar,
+  Calculator,
+  Plane,
+  AlertTriangle,
+  AlertCircle,
+  Pencil,
+  ArrowDownLeft,
+  ArrowUpRight
+} from 'lucide-react';
 
 interface CSVImportZoneProps {
   onImportTransactions: (newTxs: Transaction[]) => void;
@@ -44,8 +63,26 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [editingDateValue, setEditingDateValue] = useState<string>('');
   const [isColumnMapperOpen, setIsColumnMapperOpen] = useState(false);
+  const [parserMode, setParserMode] = useState<'standard' | 'local_ai'>('standard');
+  const [isLocalAiModalOpen, setIsLocalAiModalOpen] = useState(false);
+  const [localAiReady, setLocalAiReady] = useState(false);
+  const [localAiModel, setLocalAiModel] = useState('gemma4:e4b');
+  const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
 
   const [localCatConfigs, setLocalCatConfigs] = useState<Record<CategoryKey, CategoryConfig>>(categoryConfigs);
+
+  useEffect(() => {
+    const config = getLocalAiConfig();
+    if (config.enabled) {
+      setParserMode('local_ai');
+    }
+    checkOllamaStatus().then((res) => {
+      setLocalAiReady(res.isConnected);
+      if (res.recommendedModel) {
+        setLocalAiModel(res.recommendedModel);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (categoryConfigs && Object.keys(categoryConfigs).length > 0) {
@@ -88,11 +125,25 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
 
     setIsParsing(true);
     setErrorMsg(null);
+    setAiProgressMessage(null);
 
     try {
       let result: CSVParseResult;
       if (isPDF) {
-        result = await parseBankPDF(file);
+        if (parserMode === 'local_ai') {
+          const status = await checkOllamaStatus();
+          if (!status.isConnected) {
+            setIsLocalAiModalOpen(true);
+            setIsParsing(false);
+            return;
+          }
+          result = await parsePdfWithLocalAi(file, {
+            modelName: localAiModel,
+            onProgress: (msg) => setAiProgressMessage(msg)
+          });
+        } else {
+          result = await parseBankPDF(file);
+        }
       } else if (isMD) {
         result = await parseMarkdownTable(file);
       } else {
@@ -116,6 +167,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
       setErrorMsg(err?.message || 'Failed to parse file. Please verify it is a valid PDF, CSV, or Markdown table.');
     } finally {
       setIsParsing(false);
+      setAiProgressMessage(null);
     }
   };
 
@@ -518,6 +570,115 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
         )}
       </div>
 
+      {/* Parsing Engine Selector */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          padding: '8px 12px',
+          backgroundColor: 'var(--bg-subtle, #f8fafc)',
+          borderRadius: 'var(--radius-lg, 12px)',
+          border: '1px solid var(--border-subtle, #e2e8f0)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Engine:
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setParserMode('standard');
+              saveLocalAiConfig({ enabled: false });
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '5px 12px',
+              borderRadius: '8px',
+              border: parserMode === 'standard' ? '1px solid var(--color-primary, #0d9488)' : '1px solid transparent',
+              backgroundColor: parserMode === 'standard' ? 'var(--color-primary-light, #f0fdfa)' : 'transparent',
+              color: parserMode === 'standard' ? 'var(--color-primary, #0d9488)' : 'var(--text-muted, #64748b)',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>bolt</span>
+            Standard (Built-in)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setParserMode('local_ai');
+              saveLocalAiConfig({ enabled: true });
+              if (!localAiReady) {
+                setIsLocalAiModalOpen(true);
+              }
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '5px 12px',
+              borderRadius: '8px',
+              border: parserMode === 'local_ai' ? '1px solid #6366f1' : '1px solid transparent',
+              backgroundColor: parserMode === 'local_ai' ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+              color: parserMode === 'local_ai' ? '#4f46e5' : 'var(--text-muted, #64748b)',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Sparkles size={15} style={{ color: parserMode === 'local_ai' ? '#4f46e5' : 'inherit' }} />
+            <span>Local AI Assistant (100% Private)</span>
+          </button>
+        </div>
+
+        {/* AI Status Badge & Config Modal Trigger */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setIsLocalAiModalOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-subtle, #cbd5e1)',
+              backgroundColor: '#fff',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: 'var(--text-main, #334155)',
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-xs)'
+            }}
+            title="Configure Local AI Engine & Vision Models"
+          >
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '999px',
+                backgroundColor: localAiReady ? '#10b981' : '#f59e0b'
+              }}
+            />
+            <span>{localAiReady ? `Ollama Ready (${localAiModel})` : 'Setup Local AI'}</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '15px', color: '#64748b' }}>
+              settings
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* Drag and Drop Zone */}
       <div
         onClick={() => fileInputRef.current?.click()}
@@ -525,8 +686,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         style={{
-          border: isDragging ? '2px dashed var(--color-primary)' : '2px dashed #99f6e4',
-          backgroundColor: isDragging ? 'rgba(204, 251, 241, 0.6)' : 'rgba(240, 253, 250, 0.5)',
+          border: isDragging ? '2px dashed var(--color-primary)' : parserMode === 'local_ai' ? '2px dashed #a5b4fc' : '2px dashed #99f6e4',
+          backgroundColor: isDragging ? 'rgba(204, 251, 241, 0.6)' : parserMode === 'local_ai' ? 'rgba(238, 242, 255, 0.45)' : 'rgba(240, 253, 250, 0.5)',
           borderRadius: 'var(--radius-xl)',
           padding: '1.5rem',
           display: 'flex',
@@ -544,32 +705,43 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
             width: '44px',
             height: '44px',
             borderRadius: '9999px',
-            backgroundColor: 'var(--color-primary-light)',
-            color: 'var(--color-primary)',
+            backgroundColor: parserMode === 'local_ai' ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-primary-light)',
+            color: parserMode === 'local_ai' ? '#4f46e5' : 'var(--color-primary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: 'var(--shadow-xs)'
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-            {isParsing ? 'sync' : 'upload_file'}
-          </span>
+          {parserMode === 'local_ai' ? (
+            <Sparkles size={22} style={{ color: '#4f46e5' }} />
+          ) : (
+            <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+              {isParsing ? 'sync' : 'upload_file'}
+            </span>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
             {isParsing ? (
-              'Extracting transactions from file (100% Offline)...'
+              aiProgressMessage || 'Extracting transactions from file (100% Offline)...'
             ) : (
               <>
                 Drop your bank <strong>PDF, CSV statement, or Obsidian Markdown (.md) table</strong> here, or{' '}
-                <span style={{ color: 'var(--color-primary-hover)', textDecoration: 'underline' }}>browse files</span>
+                <span style={{ color: parserMode === 'local_ai' ? '#4f46e5' : 'var(--color-primary-hover)', textDecoration: 'underline' }}>browse files</span>
               </>
             )}
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '3px' }}>
-            Supports: DBS, POSB, OCBC, UOB, HSBC, Citibank e-Statements & Markdown Budget Tables
+          <span style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            {parserMode === 'local_ai' ? (
+              <>
+                <Zap size={12} style={{ color: '#4f46e5' }} />
+                <span>Local Vision AI ({localAiModel}): High-precision visual extraction for complex statements</span>
+              </>
+            ) : (
+              'Supports: DBS, POSB, OCBC, UOB, HSBC, Citibank e-Statements & Markdown Budget Tables'
+            )}
           </span>
         </div>
       </div>
@@ -593,10 +765,14 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                 border: '1px solid #cbd5e1',
                 backgroundColor: '#fff',
                 cursor: 'pointer',
-                color: 'var(--text-main)'
+                color: 'var(--text-main)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              📅 Date & Category
+              <Calendar size={12} style={{ color: '#0d9488' }} />
+              <span>Date & Category</span>
             </button>
             <button
               type="button"
@@ -608,10 +784,14 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                 border: '1px solid #cbd5e1',
                 backgroundColor: '#fff',
                 cursor: 'pointer',
-                color: 'var(--text-main)'
+                color: 'var(--text-main)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              🧮 Ledger Math (+/-)
+              <Calculator size={12} style={{ color: '#6366f1' }} />
+              <span>Ledger Math (+/-)</span>
             </button>
             <button
               type="button"
@@ -623,10 +803,14 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                 border: '1px solid #cbd5e1',
                 backgroundColor: '#fff',
                 cursor: 'pointer',
-                color: 'var(--text-main)'
+                color: 'var(--text-main)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              ✈️ Trip Budget
+              <Plane size={12} style={{ color: '#0284c7' }} />
+              <span>Trip Budget</span>
             </button>
           </div>
         </div>
@@ -776,8 +960,9 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
       </div>
 
       {errorMsg && (
-        <div style={{ padding: '0.75rem', borderRadius: '8px', backgroundColor: '#fff1f2', border: '1px solid #fecdd3', color: '#be123c', fontSize: '12px', fontWeight: 600 }}>
-          ⚠️ {errorMsg}
+        <div style={{ padding: '0.75rem', borderRadius: '8px', backgroundColor: '#fff1f2', border: '1px solid #fecdd3', color: '#be123c', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -1268,7 +1453,9 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                       <th style={{ padding: '9px 10px', fontWeight: 700, width: '95px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <span>Date</span>
-                          <span style={{ fontSize: '9px', color: '#94a3b8' }} title="Double-click date to edit">✏️</span>
+                          <span title="Double-click date to edit" style={{ display: 'inline-flex' }}>
+                            <Pencil size={10} style={{ color: '#94a3b8' }} />
+                          </span>
                         </div>
                       </th>
                       <th style={{ padding: '9px 10px', fontWeight: 700, width: '22%' }}>
@@ -1285,12 +1472,13 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                               border: '1px solid var(--color-primary-border)',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '2px',
+                              gap: '4px',
                               whiteSpace: 'nowrap'
                             }}
                             title="Double-click any transaction title below to edit it inline"
                           >
-                            ✏️ Double-click to Edit
+                            <Pencil size={9} />
+                            <span>Double-click to Edit</span>
                           </span>
                         </div>
                       </th>
@@ -1308,11 +1496,15 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                               padding: '1px 5px',
                               borderRadius: '4px',
                               border: '1px solid var(--color-primary-border)',
-                              whiteSpace: 'nowrap'
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
                             }}
                             title="Double-click any transaction amount below to edit it inline"
                           >
-                            ✏️ Edit
+                            <Pencil size={9} />
+                            <span>Edit</span>
                           </span>
                           <span>Amount</span>
                         </div>
@@ -1465,11 +1657,15 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                                       color: '#b45309',
                                       border: '1px solid #fde68a',
                                       whiteSpace: 'nowrap',
-                                      flexShrink: 0
+                                      flexShrink: 0,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px'
                                     }}
                                     title="Matches date and amount with an existing transaction in ledger"
                                   >
-                                    ⚠️ Duplicate
+                                    <AlertCircle size={10} style={{ color: '#b45309' }} />
+                                    <span>Duplicate</span>
                                   </span>
                                 )}
                               </div>
@@ -1826,8 +2022,9 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                     fontSize: '12px'
                   }}
                 >
-                  <span style={{ color: '#92400e', fontWeight: 700 }}>
-                    ⚠️ {duplicateCount} duplicate transaction(s) detected. Are you sure you want to add them?
+                  <span style={{ color: '#92400e', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangle size={15} style={{ color: '#d97706', flexShrink: 0 }} />
+                    <span>{duplicateCount} duplicate transaction(s) detected. Are you sure you want to add them?</span>
                   </span>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -1952,15 +2149,16 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
             </div>
 
             {/* Warning Message */}
-            <div style={{ padding: '0.875rem 1rem', borderRadius: '10px', backgroundColor: '#fffbeb', border: '1px solid #fcd34d', fontSize: '13px', color: '#92400e', lineHeight: 1.5 }}>
-              ⚠️ Bank e-Statements can occasionally list expenses under deposits or vice versa. Please verify that your <strong>Income</strong> and <strong>Expense</strong> totals match your expectations before importing.
+            <div style={{ padding: '0.875rem 1rem', borderRadius: '10px', backgroundColor: '#fffbeb', border: '1px solid #fcd34d', fontSize: '13px', color: '#92400e', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <AlertTriangle size={18} style={{ color: '#d97706', flexShrink: 0, marginTop: '2px' }} />
+              <span>Bank e-Statements can occasionally list expenses under deposits or vice versa. Please verify that your <strong>Income</strong> and <strong>Expense</strong> totals match your expectations before importing.</span>
             </div>
 
             {/* Summary Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div style={{ padding: '0.875rem', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
-                  📥 Total Inflow ({incomeCount} items)
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <ArrowDownLeft size={14} /> Total Inflow ({incomeCount} items)
                 </span>
                 <span style={{ fontSize: '1.125rem', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
                   {formatCurrency(computedTotalIncome)}
@@ -1968,8 +2166,8 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
               </div>
 
               <div style={{ padding: '0.875rem', borderRadius: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecdd3', display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>
-                  📤 Total Outflow ({expenseCount} items)
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <ArrowUpRight size={14} /> Total Outflow ({expenseCount} items)
                 </span>
                 <span style={{ fontSize: '1.125rem', fontWeight: 800, color: '#b91c1c', marginTop: '4px' }}>
                   {formatCurrency(computedTotalExpense)}
@@ -2039,6 +2237,17 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
           }}
         />
       )}
+
+      {/* Private Local AI Setup & Model Installer Modal */}
+      <LocalAIInstallerModal
+        isOpen={isLocalAiModalOpen}
+        onClose={() => setIsLocalAiModalOpen(false)}
+        onActivated={(modelName) => {
+          setLocalAiModel(modelName);
+          setLocalAiReady(true);
+          setParserMode('local_ai');
+        }}
+      />
     </div>
   );
 };

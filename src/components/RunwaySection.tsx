@@ -2,6 +2,7 @@ import React from 'react';
 import { CategoryRunway } from '../types/finance';
 import { useCurrency } from '../context/CurrencyContext';
 import { SectionInfoButton } from './SectionInfoButton';
+import { Lightbulb } from 'lucide-react';
 
 interface RunwaySectionProps {
   totalBalance: number;
@@ -124,8 +125,9 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
             <p style={{ fontSize: '12px', color: '#b45309', marginTop: '4px', lineHeight: 1.4 }}>
               Your ledger currently spans <strong>{daysRecorded} day(s)</strong>. To calculate statistically sound monthly burn rates and avoid skewed projections, longevity forecasts will automatically unlock once at least 30 days of data is recorded.
             </p>
-            <p style={{ fontSize: '11px', color: '#92400e', marginTop: '6px', fontWeight: 600 }}>
-              💡 <em>Formula: Runway (Months) = Total Liquid Balance ÷ Historical Monthly Spend</em>
+            <p style={{ fontSize: '11px', color: '#92400e', marginTop: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Lightbulb size={12} />
+              <em>Formula: Runway (Months) = Total Liquid Balance ÷ Historical Monthly Spend</em>
             </p>
           </div>
         </div>
