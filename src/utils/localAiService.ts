@@ -60,16 +60,15 @@ export async function checkOllamaStatus(customEndpoint?: string): Promise<{
 }> {
   const baseUrls = [
     customEndpoint,
-    getLocalAiConfig().endpoint,
     '/ollama',
-    'http://localhost:11434',
-    'http://127.0.0.1:11434'
+    'http://127.0.0.1:11434',
+    'http://localhost:11434'
   ].filter(Boolean) as string[];
 
   for (const base of baseUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const res = await fetch(`${base}/api/tags`, {
         signal: controller.signal

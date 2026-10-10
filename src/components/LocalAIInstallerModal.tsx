@@ -7,7 +7,20 @@ import {
   OllamaModel,
   PullProgress
 } from '../utils/localAiService';
-import { Sparkles } from 'lucide-react';
+import {
+  Brain,
+  Sparkles,
+  CheckCircle2,
+  Download,
+  RefreshCw,
+  AlertCircle,
+  X,
+  ShieldCheck,
+  Layers,
+  ExternalLink,
+  Check,
+  Loader2
+} from 'lucide-react';
 
 interface LocalAIInstallerModalProps {
   isOpen: boolean;
@@ -28,30 +41,33 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
   const [downloadProgress, setDownloadProgress] = useState<PullProgress | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [installSuccess, setInstallSuccess] = useState(false);
-  const [copiedCmd, setCopiedCmd] = useState(false);
 
   // Poll Ollama status on mount or when modal opens
   const verifyConnection = async () => {
     setIsChecking(true);
-    const status = await checkOllamaStatus();
-    setIsConnected(status.isConnected);
-    setModels(status.models);
+    try {
+      const status = await checkOllamaStatus();
+      setIsConnected(status.isConnected);
+      setModels(status.models);
 
-    const config = getLocalAiConfig();
-    const active = config.selectedModel || status.recommendedModel;
-    setSelectedModel(active);
+      const config = getLocalAiConfig();
+      const active = config.selectedModel || status.recommendedModel;
+      setSelectedModel(active);
 
-    // If an existing vision model exists
-    const hasExisting = status.models.some((m) =>
-      m.name.toLowerCase().includes('gemma4') ||
-      m.name.toLowerCase().includes('qwen') ||
-      m.name.toLowerCase().includes('vision')
-    );
-    if (status.isConnected && hasExisting) {
-      setInstallSuccess(true);
+      // If an existing vision model exists
+      const hasExisting = status.models.some((m) =>
+        m.name.toLowerCase().includes('gemma4') ||
+        m.name.toLowerCase().includes('qwen') ||
+        m.name.toLowerCase().includes('vision')
+      );
+      if (status.isConnected && hasExisting) {
+        setInstallSuccess(true);
+      }
+    } catch {
+      setIsConnected(false);
+    } finally {
+      setIsChecking(false);
     }
-
-    setIsChecking(false);
   };
 
   useEffect(() => {
@@ -64,6 +80,9 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
           if (status.isConnected) {
             setIsConnected(true);
             setModels(status.models);
+            if (status.recommendedModel) {
+              setSelectedModel(status.recommendedModel);
+            }
           }
         }
       }, 3000);
@@ -76,7 +95,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
   const handleStartPull = async (modelToPull: string) => {
     setIsDownloading(true);
     setDownloadError(null);
-    setDownloadProgress({ status: 'Starting automated download...' });
+    setDownloadProgress({ status: 'Starting automated 1-click download...' });
 
     try {
       await pullModelStream(modelToPull, (progress) => {
@@ -97,12 +116,6 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
     saveLocalAiConfig({ enabled: true, selectedModel });
     onActivated(selectedModel);
     onClose();
-  };
-
-  const handleCopyWinget = () => {
-    navigator.clipboard.writeText('winget install Ollama.Ollama');
-    setCopiedCmd(true);
-    setTimeout(() => setCopiedCmd(false), 2000);
   };
 
   const isModelAlreadyInstalled = models.some(
@@ -166,9 +179,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                 boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)'
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-                psychology
-              </span>
+              <Brain size={22} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -183,14 +194,17 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                     borderRadius: '999px',
                     backgroundColor: '#dcfce7',
                     color: '#15803d',
-                    border: '1px solid #bbf7d0'
+                    border: '1px solid #bbf7d0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  100% OFFLINE
+                  <ShieldCheck size={11} /> 100% OFFLINE
                 </span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted, #64748b)' }}>
-                Zero data leaves your device. Powered by local hardware.
+                Zero bank statements leave your device. Powered entirely by your local computer.
               </p>
             </div>
           </div>
@@ -203,11 +217,15 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                 border: 'none',
                 cursor: 'pointer',
                 color: 'var(--text-muted, #94a3b8)',
-                padding: '4px',
-                borderRadius: '6px'
+                padding: '6px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
+              title="Close"
             >
-              <span className="material-symbols-outlined">close</span>
+              <X size={18} />
             </button>
           )}
         </div>
@@ -245,7 +263,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                 {isConnected ? '✓' : '1'}
               </div>
               <span style={{ fontSize: '12px', fontWeight: 700 }}>
-                {isConnected ? 'Engine Ready' : 'Detect Engine'}
+                {isConnected ? 'Engine Ready' : '1. Connect Engine'}
               </span>
             </div>
 
@@ -270,7 +288,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                 {installSuccess ? '✓' : '2'}
               </div>
               <span style={{ fontSize: '12px', fontWeight: 700 }}>
-                {installSuccess ? 'Model Ready' : 'Setup AI Model'}
+                {installSuccess ? 'Model Ready' : '2. Setup Model'}
               </span>
             </div>
 
@@ -294,11 +312,29 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
               >
                 {installSuccess ? '✓' : '3'}
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 700 }}>Start</span>
+              <span style={{ fontSize: '12px', fontWeight: 700 }}>3. Ready</span>
             </div>
           </div>
 
-          {/* Scenario A: Ollama Not Found */}
+          {/* Loading Indicator */}
+          {isChecking && !isConnected && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                padding: '2rem 1rem',
+                color: 'var(--text-muted, #64748b)',
+                fontSize: '13px'
+              }}
+            >
+              <Loader2 size={20} className="animate-spin" style={{ color: '#0ea5e9' }} />
+              <span>Checking for local AI engine on your device...</span>
+            </div>
+          )}
+
+          {/* Scenario A: Ollama Not Found - Zero Technical Jargon, 1-Click Action */}
           {!isConnected && !isChecking && (
             <div
               style={{
@@ -307,28 +343,63 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                 gap: '1rem',
                 padding: '1.25rem',
                 borderRadius: '12px',
-                backgroundColor: '#fffbeb',
-                border: '1px solid #fef3c7'
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '24px' }}>
-                  info
-                </span>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '8px',
+                    backgroundColor: '#e0f2fe',
+                    color: '#0284c7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  <Download size={20} />
+                </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#92400e' }}>
-                    Ollama Local Service Not Detected
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                    1-Click Setup: Local AI Engine
                   </h4>
-                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#b45309', lineHeight: 1.5 }}>
-                    To run AI models 100% offline on your device for free, Ollama must be running in the background.
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
+                    To scan bank statements 100% offline with zero cloud fees and full privacy, download and run the installer.
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#78350f' }}>
-                  Quick 1-Minute Automated Installation:
-                </span>
+              {/* 1-Click Big Action Button */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+                <a
+                  href="https://ollama.com/download/OllamaSetup.exe"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '12px 20px',
+                    borderRadius: '10px',
+                    backgroundColor: '#0ea5e9',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)',
+                    transition: 'all 0.2s ease',
+                    textAlign: 'center'
+                  }}
+                >
+                  <Download size={18} />
+                  Download 1-Click Installer (Windows)
+                </a>
+
                 <div
                   style={{
                     display: 'flex',
@@ -336,59 +407,52 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                     justifyContent: 'space-between',
                     padding: '8px 12px',
                     borderRadius: '8px',
-                    backgroundColor: '#1e293b',
-                    color: '#f8fafc',
-                    fontFamily: 'monospace',
-                    fontSize: '12px'
+                    backgroundColor: '#f1f5f9',
+                    fontSize: '11px',
+                    color: '#64748b'
                   }}
                 >
-                  <span>winget install Ollama.Ollama</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Loader2 size={13} className="animate-spin" style={{ color: '#0ea5e9' }} />
+                    <span>Auto-detecting... Once installed, this page connects automatically.</span>
+                  </div>
                   <button
-                    onClick={handleCopyWinget}
+                    onClick={verifyConnection}
                     style={{
-                      background: 'rgba(255,255,255,0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: 'none',
                       border: 'none',
-                      color: '#fff',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '11px',
-                      cursor: 'pointer'
+                      color: '#0284c7',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: '2px 6px',
+                      borderRadius: '4px'
                     }}
                   >
-                    {copiedCmd ? 'Copied!' : 'Copy'}
+                    <RefreshCw size={12} />
+                    Check Now
                   </button>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
                 <a
                   href="https://ollama.com/download"
                   target="_blank"
                   rel="noreferrer"
                   style={{
-                    fontSize: '12px',
-                    color: '#0ea5e9',
+                    fontSize: '11px',
+                    color: '#64748b',
                     textDecoration: 'underline',
-                    fontWeight: 700
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  Or download from official website (ollama.com) →
+                  Using Mac or Linux? Download here <ExternalLink size={10} />
                 </a>
-                <button
-                  onClick={verifyConnection}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    backgroundColor: '#d97706',
-                    color: '#fff',
-                    border: 'none',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Check Again
-                </button>
               </div>
             </div>
           )}
@@ -408,15 +472,13 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                   border: '1px solid #bbf7d0'
                 }}
               >
-                <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '28px' }}>
-                  check_circle
-                </span>
+                <CheckCircle2 size={24} style={{ color: '#16a34a', flexShrink: 0 }} />
                 <div>
                   <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#15803d' }}>
-                    Local AI Engine Connected
+                    Local AI Engine Connected & Active
                   </h4>
                   <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#166534' }}>
-                    Ollama is running on your machine with <strong>{models.length}</strong> model(s) available.
+                    Running securely on your device with <strong>{models.length}</strong> installed model(s).
                   </p>
                 </div>
               </div>
@@ -429,12 +491,14 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                   padding: '14px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '10px'
+                  gap: '10px',
+                  backgroundColor: 'var(--bg-subtle, #f8fafc)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-                    Active Vision AI Model:
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main, #0f172a)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Layers size={14} style={{ color: '#0ea5e9' }} />
+                    Active Local AI Model:
                   </label>
                   {isModelAlreadyInstalled && (
                     <span
@@ -444,10 +508,13 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                         padding: '2px 8px',
                         borderRadius: '999px',
                         backgroundColor: '#dbeafe',
-                        color: '#1d4ed8'
+                        color: '#1d4ed8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}
                     >
-                      Installed & Ready
+                      <Check size={11} /> Installed & Ready
                     </span>
                   )}
                 </div>
@@ -457,7 +524,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                   onChange={(e) => setSelectedModel(e.target.value)}
                   disabled={isDownloading}
                   style={{
-                    padding: '8px 12px',
+                    padding: '9px 12px',
                     borderRadius: '8px',
                     border: '1px solid var(--border-subtle, #cbd5e1)',
                     backgroundColor: 'var(--bg-card, #fff)',
@@ -476,14 +543,14 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                   )}
                 </select>
 
-                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted, #64748b)', lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted, #64748b)', lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <Sparkles size={13} style={{ color: '#0ea5e9', flexShrink: 0 }} />
                   <span>
                     {selectedModel.includes('gemma4')
-                      ? 'Gemma 4 Vision Model: High accuracy multi-line statement reading.'
+                      ? 'Gemma 4 Vision: High precision bank statement reader and title summarizer.'
                       : selectedModel.includes('qwen')
-                      ? 'Qwen 2.5 Vision: World-class document & table extraction precision.'
-                      : 'Standard local model for text/statement generation.'}
+                      ? 'Qwen 2.5 Vision: World-class table extraction accuracy.'
+                      : 'Standard offline AI model for financial transaction analysis.'}
                   </span>
                 </p>
               </div>
@@ -546,10 +613,14 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                     backgroundColor: '#fef2f2',
                     border: '1px solid #fecaca',
                     color: '#b91c1c',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                 >
-                  Error: {downloadError}
+                  <AlertCircle size={16} />
+                  <span>Error: {downloadError}</span>
                 </div>
               )}
             </div>
@@ -601,17 +672,21 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                     fontSize: '13px',
                     fontWeight: 700,
                     cursor: isDownloading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(14, 165, 233, 0.3)'
+                    boxShadow: '0 2px 4px rgba(14, 165, 233, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
-                  {isDownloading ? 'Installing Model...' : `Install ${selectedModel}`}
+                  <Download size={15} />
+                  {isDownloading ? 'Installing Model...' : `Install ${selectedModel} (1-Click)`}
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handleFinishAndActivate}
                   style={{
-                    padding: '8px 22px',
+                    padding: '9px 22px',
                     borderRadius: '8px',
                     border: 'none',
                     backgroundColor: '#16a34a',
@@ -625,9 +700,7 @@ export const LocalAIInstallerModal: React.FC<LocalAIInstallerModalProps> = ({
                     boxShadow: '0 2px 4px rgba(22, 163, 74, 0.3)'
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                    check
-                  </span>
+                  <CheckCircle2 size={16} />
                   Activate Local AI Parser
                 </button>
               )}
