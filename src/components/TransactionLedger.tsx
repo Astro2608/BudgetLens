@@ -29,7 +29,36 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReceiptTx, setSelectedReceiptTx] = useState<Transaction | null>(null);
   const [expandedRecurringGroups, setExpandedRecurringGroups] = useState<Set<string>>(new Set());
-  const itemsPerPage = 8;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(100);
+  const [itemsPerPageInput, setItemsPerPageInput] = useState<string>('100');
+
+  const handleItemsPerPageChange = (valStr: string) => {
+    setItemsPerPageInput(valStr);
+    const parsed = parseInt(valStr, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      setItemsPerPage(Math.min(parsed, 1000));
+      setCurrentPage(1);
+    }
+  };
+
+  const handleItemsPerPageBlur = () => {
+    const parsed = parseInt(itemsPerPageInput, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      setItemsPerPage(100);
+      setItemsPerPageInput('100');
+      setCurrentPage(1);
+    } else {
+      const clamped = Math.min(Math.max(1, parsed), 1000);
+      setItemsPerPage(clamped);
+      setItemsPerPageInput(String(clamped));
+    }
+  };
+
+  const handleSelectPreset = (preset: number) => {
+    setItemsPerPage(preset);
+    setItemsPerPageInput(String(preset));
+    setCurrentPage(1);
+  };
 
   // Extract all unique tags present across transactions in the ledger
   const allAvailableTags = useMemo(() => {
@@ -183,7 +212,7 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
     }
     const startIdx = (currentPage - 1) * itemsPerPage;
     return filtered.slice(startIdx, startIdx + itemsPerPage);
-  }, [filtered, isArchiveOpen, currentPage]);
+  }, [filtered, isArchiveOpen, currentPage, itemsPerPage]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
 
@@ -1076,122 +1105,228 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
           fontSize: '12px'
         }}
       >
-        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
-          {activeFilter === 'recurring'
-            ? `${recurringGroups.length} recurring merchant${recurringGroups.length !== 1 ? 's' : ''} detected — click any row to expand`
-            : isArchiveOpen
-              ? `Showing page ${currentPage} of ${totalPages} (${filtered.length} filtered items)`
-              : `Showing recent 6 of ${filtered.length} filtered transactions`}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+            {activeFilter === 'recurring'
+              ? `${recurringGroups.length} recurring merchant${recurringGroups.length !== 1 ? 's' : ''} detected — click any row to expand`
+              : isArchiveOpen
+                ? filtered.length === 0
+                  ? '0 transactions found'
+                  : `Showing ${Math.min((currentPage - 1) * itemsPerPage + 1, filtered.length)}–${Math.min(currentPage * itemsPerPage, filtered.length)} of ${filtered.length} filtered items (Page ${currentPage} of ${totalPages})`
+                : `Showing recent ${Math.min(6, filtered.length)} of ${filtered.length} filtered transactions`}
+          </span>
 
-        {/* Pagination when Archive is open (not in recurring view) */}
-        {activeFilter !== 'recurring' && isArchiveOpen && totalPages > 1 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--bg-canvas-subtle)',
-                border: '1px solid var(--border-subtle)',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: currentPage === 1 ? '#cbd5e1' : 'var(--text-main)',
-                cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>chevron_left</span>
-              <span>Prev</span>
-            </button>
-
-            {(() => {
-              const pages: (number | string)[] = [];
-              if (totalPages <= 7) {
-                for (let i = 1; i <= totalPages; i++) pages.push(i);
-              } else {
-                if (currentPage <= 4) {
-                  pages.push(1, 2, 3, 4, 5, '...', totalPages);
-                } else if (currentPage >= totalPages - 3) {
-                  pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-                } else {
-                  pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-                }
-              }
-
-              return pages.map((item, idx) => {
-                if (typeof item === 'string') {
-                  return (
-                    <span
-                      key={`ellipsis-${idx}`}
-                      style={{
-                        padding: '0 4px',
-                        color: 'var(--text-muted)',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        userSelect: 'none'
-                      }}
-                    >
-                      ...
-                    </span>
-                  );
-                }
-
-                const p = item as number;
-                return (
+          {/* User page size input when Archive is open */}
+          {activeFilter !== 'recurring' && isArchiveOpen && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <label
+                htmlFor="tx-per-page-input"
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary)' }}>density_medium</span>
+                <span>Load per page:</span>
+              </label>
+              <input
+                id="tx-per-page-input"
+                type="number"
+                min={1}
+                max={1000}
+                value={itemsPerPageInput}
+                onChange={(e) => handleItemsPerPageChange(e.target.value)}
+                onBlur={handleItemsPerPageBlur}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+                style={{
+                  width: '54px',
+                  padding: '2px 6px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-subtle)',
+                  backgroundColor: 'var(--bg-canvas-subtle)',
+                  color: 'var(--text-main)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  outline: 'none'
+                }}
+                title="Input how many transactions to load per page (e.g. 100)"
+              />
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                {[25, 50, 100].map((preset) => (
                   <button
-                    key={p}
+                    key={preset}
                     type="button"
-                    onClick={() => setCurrentPage(p)}
+                    onClick={() => handleSelectPreset(preset)}
                     style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '6px',
-                      border: currentPage === p ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-                      backgroundColor: currentPage === p ? 'var(--color-primary)' : 'var(--bg-canvas-subtle)',
-                      color: currentPage === p ? 'white' : 'var(--text-muted)',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
                       fontSize: '11px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
+                      fontWeight: itemsPerPage === preset ? 700 : 500,
+                      border: itemsPerPage === preset ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                      backgroundColor: itemsPerPage === preset ? 'var(--color-primary-light)' : 'var(--bg-canvas-subtle)',
+                      color: itemsPerPage === preset ? 'var(--color-primary)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
+                    title={`Load ${preset} transactions per page`}
                   >
-                    {p}
+                    {preset}
                   </button>
-                );
-              });
-            })()}
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination & Archive Toggle Controls */}
+        {activeFilter !== 'recurring' && isArchiveOpen ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: 'var(--bg-canvas-subtle)',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: currentPage === 1 ? '#cbd5e1' : 'var(--text-main)',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>chevron_left</span>
+                  <span>Prev</span>
+                </button>
+
+                {(() => {
+                  const pages: (number | string)[] = [];
+                  if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) pages.push(i);
+                  } else {
+                    if (currentPage <= 4) {
+                      pages.push(1, 2, 3, 4, 5, '...', totalPages);
+                    } else if (currentPage >= totalPages - 3) {
+                      pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+                    } else {
+                      pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                    }
+                  }
+
+                  return pages.map((item, idx) => {
+                    if (typeof item === 'string') {
+                      return (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          style={{
+                            padding: '0 4px',
+                            color: 'var(--text-muted)',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            userSelect: 'none'
+                          }}
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+
+                    const p = item as number;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setCurrentPage(p)}
+                        style={{
+                          width: '26px',
+                          height: '26px',
+                          borderRadius: '6px',
+                          border: currentPage === p ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                          backgroundColor: currentPage === p ? 'var(--color-primary)' : 'var(--bg-canvas-subtle)',
+                          color: currentPage === p ? 'white' : 'var(--text-muted)',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {p}
+                      </button>
+                    );
+                  });
+                })()}
+
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: 'var(--bg-canvas-subtle)',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: currentPage === totalPages ? '#cbd5e1' : 'var(--text-main)',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <span>Next</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>chevron_right</span>
+                </button>
+              </div>
+            )}
 
             <button
               type="button"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => {
+                setIsArchiveOpen(false);
+                setCurrentPage(1);
+              }}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '2px',
+                gap: '0.25rem',
                 padding: '4px 8px',
                 borderRadius: '6px',
-                backgroundColor: 'var(--bg-canvas-subtle)',
+                backgroundColor: 'transparent',
                 border: '1px solid var(--border-subtle)',
                 fontSize: '11px',
-                fontWeight: 700,
-                color: currentPage === totalPages ? '#cbd5e1' : 'var(--text-main)',
-                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
               }}
+              title="Collapse archive back to compact mode (Top 6)"
             >
-              <span>Next</span>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>chevron_right</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>unfold_less</span>
+              <span>Compact View</span>
             </button>
           </div>
         ) : (
           activeFilter !== 'recurring' && !isArchiveOpen && (
             <button
               type="button"
-              onClick={() => setIsArchiveOpen(true)}
+              onClick={() => {
+                setIsArchiveOpen(true);
+                setCurrentPage(1);
+              }}
               style={{
                 fontWeight: 700,
                 color: 'var(--color-primary)',
