@@ -218,7 +218,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
                         padding: '5px 6px 5px 18px',
                         borderRadius: '6px',
                         border: hasVal ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-                        backgroundColor: '#ffffff',
+                        backgroundColor: 'var(--bg-input)',
                         fontSize: '12px',
                         fontWeight: 700,
                         color: 'var(--text-main)',
@@ -248,8 +248,8 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
                         ? '#10b981'
                         : hasVal
                         ? 'var(--color-primary)'
-                        : '#e2e8f0',
-                      color: isSuccess || hasVal ? '#ffffff' : '#94a3b8',
+                        : 'var(--bg-card)',
+                      color: isSuccess || hasVal ? '#ffffff' : 'var(--text-subtle)',
                       transition: 'all 150ms ease',
                       minWidth: '52px'
                     }}
@@ -288,7 +288,7 @@ export const QuickAddOutflows: React.FC<QuickAddOutflowsProps> = ({
                           padding: '1px 6px',
                           borderRadius: '4px',
                           border: isActive ? `1px solid ${cat.color}` : '1px solid var(--border-subtle)',
-                          backgroundColor: isActive ? `${cat.color}20` : '#ffffff',
+                          backgroundColor: isActive ? `${cat.color}25` : 'var(--bg-card)',
                           color: isActive ? cat.color : 'var(--text-main)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'

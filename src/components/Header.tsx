@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useCurrency } from '../context/CurrencyContext';
 import { SUPPORTED_CURRENCIES } from '../config/currencyConfig';
+import { AccountSwitcher } from './AccountSwitcher';
+import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
   onResetWorkspace?: () => void;
@@ -14,24 +16,28 @@ export const Header: React.FC<HeaderProps> = ({ onResetWorkspace, onStartTour })
   return (
     <header className="top-header">
       <div className="header-main-bar">
-        {/* Left breadcrumb / page title */}
+        {/* Left breadcrumb / page title & Account Switcher */}
         <div className="header-title-group">
           <div className="header-title-badge">
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '22px' }}>
               space_dashboard
             </span>
             <span className="header-title-text">
-              Executive Financial Cockpit
+              Cockpit
             </span>
           </div>
+
           <span className="header-divider"></span>
-          <span className="header-subtitle">
-            Offline Vault Mode (Local Storage Only)
-          </span>
+
+          {/* Multi-Account Vault Switcher */}
+          <AccountSwitcher />
         </div>
 
         {/* Right Actions for Desktop */}
         <div className="header-desktop-actions">
+          {/* Dark / Light Theme Toggle */}
+          <ThemeToggle />
+
           {/* Currency Dropdown */}
           <div className="header-currency-selector">
             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>
@@ -131,6 +137,14 @@ export const Header: React.FC<HeaderProps> = ({ onResetWorkspace, onStartTour })
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Mobile Theme Toggle */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Appearance
+            </span>
+            <ThemeToggle />
           </div>
 
           {/* Mobile Action Buttons */}

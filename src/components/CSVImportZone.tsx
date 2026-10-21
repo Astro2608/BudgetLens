@@ -6,6 +6,7 @@ import { parseMarkdownTable } from '../utils/mdParser';
 import { parseFreeformText, parseFreeformSync } from '../utils/freeformParser';
 import { CATEGORY_LIST } from '../config/categoryConfig';
 import { useCurrency } from '../context/CurrencyContext';
+import { useAccounts } from '../context/AccountContext';
 import { SectionInfoButton } from './SectionInfoButton';
 import { detectRecurringTransactions } from '../utils/recurringDetector';
 import { ColumnMapperModal } from './ColumnMapperModal';
@@ -44,6 +45,7 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
   onUpdateCategoryConfigs,
   onClose
 }) => {
+  const { activeAccount } = useAccounts();
   const { formatCurrency, autoDetectCurrency } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -541,9 +543,36 @@ export const CSVImportZone: React.FC<CSVImportZoneProps> = ({
                 MD Table
               </span>
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              100% private, offline parsing for bank PDFs, CSVs, and Markdown tables with duplicate protection
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                100% private, offline parsing with duplicate protection
+              </p>
+              <span style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>•</span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
+                  backgroundColor: 'var(--bg-canvas-subtle)',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  border: `1px solid ${activeAccount.color}40`
+                }}
+              >
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: activeAccount.color
+                  }}
+                />
+                Target: {activeAccount.name} ({activeAccount.currency})
+              </span>
+            </div>
           </div>
         </div>
 

@@ -2,7 +2,7 @@ import { Transaction } from '../types/finance';
 import { formatSGD } from './financeCalculator';
 import { getSmartTags } from './tagUtils';
 
-export const exportToCSV = (transactions: Transaction[]) => {
+export const exportToCSV = (transactions: Transaction[], customFilename?: string) => {
   const headers = ['Date', 'Title', 'Description', 'Amount', 'Type', 'Category', 'Source', 'Tags', 'Note', 'Recurring'];
   const rows = transactions.map(t => {
     const smartTags = getSmartTags(t).join('; ');
@@ -25,11 +25,11 @@ export const exportToCSV = (transactions: Transaction[]) => {
   // Include UTF-8 BOM so Excel and Chromium browsers properly read character set & formatting
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   
-  const filename = `budgetlens_export_${new Date().toISOString().split('T')[0]}.csv`;
+  const filename = customFilename || `budgetlens_export_${new Date().toISOString().split('T')[0]}.csv`;
   downloadBlob(blob, filename);
 };
 
-export function exportToMarkdown(transactions: Transaction[], currencyCode?: string) {
+export function exportToMarkdown(transactions: Transaction[], currencyCode?: string, customFilename?: string) {
   if (transactions.length === 0) return;
 
   const headers = [
@@ -45,7 +45,7 @@ export function exportToMarkdown(transactions: Transaction[], currencyCode?: str
   const mdContent = `# BudgetLens Export\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}\n`;
   
   const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
-  const filename = `budgetlens_export_${new Date().toISOString().split('T')[0]}.md`;
+  const filename = customFilename || `budgetlens_export_${new Date().toISOString().split('T')[0]}.md`;
   downloadBlob(blob, filename);
 }
 

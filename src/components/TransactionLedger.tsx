@@ -796,8 +796,8 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                                   style={{
                                     width: '26px', height: '26px', borderRadius: '7px',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: '#7c3aed', backgroundColor: '#f5f3ff',
-                                    border: '1px solid #ddd6fe', cursor: 'pointer'
+                                    color: '#a78bfa', backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                                    border: '1px solid rgba(139, 92, 246, 0.25)', cursor: 'pointer'
                                   }}
                                   title="Edit this occurrence"
                                 >
@@ -1041,21 +1041,13 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#7c3aed',
-                          backgroundColor: '#f5f3ff',
-                          border: '1px solid #ddd6fe',
+                          color: '#a78bfa',
+                          backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                          border: '1px solid rgba(139, 92, 246, 0.25)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}
                         title="Edit Transaction Details"
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.backgroundColor = '#ede9fe';
-                          e.currentTarget.style.borderColor = '#c4b5fd';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f5f3ff';
-                          e.currentTarget.style.borderColor = '#ddd6fe';
-                        }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>edit</span>
                       </button>
@@ -1071,9 +1063,9 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#ef4444',
-                          backgroundColor: '#fee2e2',
-                          border: '1px solid #fecdd3',
+                          color: '#f87171',
+                          backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}

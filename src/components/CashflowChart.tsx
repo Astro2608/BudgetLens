@@ -276,11 +276,11 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
             }}
           >
             {/* Horizontal Dotted Gridlines at scale positions */}
-            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 - (scaleMax / domainMax) * 50}%`, borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
-            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 - (scaleHalf / domainMax) * 50}%`, borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
-            <div style={{ position: 'absolute', inset: 'auto 0', top: '50%', borderBottom: '2px solid #cbd5e1', zIndex: 1 }}></div>
-            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 + (scaleHalf / domainMax) * 50}%`, borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
-            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 + (scaleMax / domainMax) * 50}%`, borderBottom: '1px dotted rgba(203, 213, 225, 0.85)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 - (scaleMax / domainMax) * 50}%`, borderBottom: '1px dotted var(--border-subtle)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 - (scaleHalf / domainMax) * 50}%`, borderBottom: '1px dotted var(--border-subtle)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: '50%', borderBottom: '2px solid var(--border-card)', zIndex: 1 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 + (scaleHalf / domainMax) * 50}%`, borderBottom: '1px dotted var(--border-subtle)', zIndex: 0 }}></div>
+            <div style={{ position: 'absolute', inset: 'auto 0', top: `${50 + (scaleMax / domainMax) * 50}%`, borderBottom: '1px dotted var(--border-subtle)', zIndex: 0 }}></div>
 
             {/* Background Linear Profit/Deficit Overlay Graph */}
             {overlayData && (

@@ -34,6 +34,9 @@ import { EditTransactionModal } from './components/EditTransactionModal';
 import { getFileHandle, verifyPermission, writeToFile, saveAppData, getAppData } from './utils/fileSystem';
 import { exportToMarkdown, exportToCSV } from './utils/exportUtils';
 import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { AccountProvider, useAccounts, getScopedKey } from './context/AccountContext';
+import { DEFAULT_VAULT_ID } from './types/account';
 import { upgradeExistingTransactionsWithRecurring } from './utils/recurringDetector';
 
 const WELCOME_KEY = 'budgetlens_welcome_done';
@@ -49,7 +52,8 @@ const LEGACY_STORAGE_KEY_BALANCE = 'BudgetLens_initial_balance';
 const LEGACY_STORAGE_KEY_TXS = 'BudgetLens_transactions';
 
 const AppContent: React.FC = () => {
-  const { formatCurrency, autoDetectCurrency } = useCurrency();
+  const { activeAccount, isAccountDataLoaded } = useAccounts();
+  const { formatCurrency, autoDetectCurrency, setCurrencyCode } = useCurrency();
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -84,13 +88,21 @@ const AppContent: React.FC = () => {
   // File System state (optional background sync)
   const [rawFileHandle, setRawFileHandle] = useState<FileSystemFileHandle | null>(null);
 
-  // 1. Load from IndexedDB on mount with automatic healing & migration
+  // 1. Load from IndexedDB whenever activeAccount changes with automatic healing & migration
   useEffect(() => {
+    if (!isAccountDataLoaded) return;
+
+    let isMounted = true;
     const loadData = async () => {
       try {
-        let savedTxs = await getAppData(STORAGE_KEY_TXS);
-        if (!savedTxs) {
-          savedTxs = await getAppData(LEGACY_STORAGE_KEY_TXS);
+        const txsKey = getScopedKey('txs', activeAccount.id);
+        const loansKey = getScopedKey('loans', activeAccount.id);
+        const balKey = getScopedKey('bal', activeAccount.id);
+        const confKey = getScopedKey('conf', activeAccount.id);
+
+        let savedTxs = await getAppData(txsKey);
+        if (!savedTxs && activeAccount.id === DEFAULT_VAULT_ID) {
+          savedTxs = await getAppData(STORAGE_KEY_TXS) || await getAppData(LEGACY_STORAGE_KEY_TXS);
         }
 
         if (savedTxs && savedTxs.length > 0) {
@@ -112,65 +124,75 @@ const AppContent: React.FC = () => {
 
           // Retroactively detect and flag recurring transactions across existing records
           const upgradedTxs = upgradeExistingTransactionsWithRecurring(healedTxs);
-          setTransactions(upgradedTxs);
+          if (isMounted) setTransactions(upgradedTxs);
         } else {
-          setTransactions([]);
+          if (isMounted) setTransactions([]);
         }
 
-        let savedLoans = await getAppData(STORAGE_KEY_LOANS);
-        if (savedLoans && Array.isArray(savedLoans)) {
-          setLoans(savedLoans);
-        } else {
-          setLoans([]);
+        let savedLoans = await getAppData(loansKey);
+        if (!savedLoans && activeAccount.id === DEFAULT_VAULT_ID) {
+          savedLoans = await getAppData(STORAGE_KEY_LOANS);
+        }
+        if (isMounted) {
+          setLoans(savedLoans && Array.isArray(savedLoans) ? savedLoans : []);
         }
 
-        let savedBal = await getAppData(STORAGE_KEY_BALANCE);
-        if (savedBal === undefined || savedBal === null) {
-          savedBal = await getAppData(LEGACY_STORAGE_KEY_BALANCE);
+        let savedBal = await getAppData(balKey);
+        if ((savedBal === undefined || savedBal === null) && activeAccount.id === DEFAULT_VAULT_ID) {
+          savedBal = await getAppData(STORAGE_KEY_BALANCE) ?? await getAppData(LEGACY_STORAGE_KEY_BALANCE);
         }
-        if (savedBal !== undefined && savedBal !== null) {
-          setInitialBalance(Number(savedBal));
+        if (isMounted) {
+          setInitialBalance(savedBal !== undefined && savedBal !== null ? Number(savedBal) : 0);
         }
 
-        let savedConf = await getAppData(STORAGE_KEY_CONFIGS);
-        if (!savedConf) {
-          savedConf = await getAppData(LEGACY_STORAGE_KEY_CONFIGS);
+        let savedConf = await getAppData(confKey);
+        if (!savedConf && activeAccount.id === DEFAULT_VAULT_ID) {
+          savedConf = await getAppData(STORAGE_KEY_CONFIGS) || await getAppData(LEGACY_STORAGE_KEY_CONFIGS);
         }
         if (savedConf) {
           // Merge with DEFAULT_CATEGORY_CONFIGS to ensure General Expenses exists
           const mergedConf = { ...DEFAULT_CATEGORY_CONFIGS, ...savedConf };
           // Migrate old default colors if they were untouched defaults
           if (mergedConf.Salary && (mergedConf.Salary.color === '#3b82f6' || !mergedConf.Salary.color)) {
-            mergedConf.Salary.color = '#10b981'; // Standardized Green
+            mergedConf.Salary.color = '#10b981';
           }
           if (mergedConf.Transport && mergedConf.Transport.color === '#10b981') {
-            mergedConf.Transport.color = '#0284c7'; // Standardized Sky Blue
+            mergedConf.Transport.color = '#0284c7';
           }
           if (mergedConf.Bills && !mergedConf.Bills.color) {
-            mergedConf.Bills.color = '#ef4444'; // Standardized Red
+            mergedConf.Bills.color = '#ef4444';
           }
-          setCategoryConfigs(ensureUniqueCategoryColors(mergedConf));
+          if (isMounted) setCategoryConfigs(ensureUniqueCategoryColors(mergedConf));
         } else {
-          setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
+          if (isMounted) setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
+        }
+
+        // Align global currency display to active account's currency
+        if (activeAccount.currency) {
+          setCurrencyCode(activeAccount.currency, false);
         }
 
         // Check if user previously connected a raw file handle for background sync
         const handle = await getFileHandle();
-        if (handle) {
+        if (handle && isMounted) {
           const hasPerm = await verifyPermission(handle, false);
           if (hasPerm) {
             setRawFileHandle(handle);
           }
         }
       } catch (e) {
-        console.error('Failed to load from IndexedDB', e);
-        setTransactions([]);
+        console.error('Failed to load scoped account data from IndexedDB', e);
+        if (isMounted) setTransactions([]);
       } finally {
-        setIsDataLoaded(true);
+        if (isMounted) setIsDataLoaded(true);
       }
     };
     loadData();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeAccount.id, isAccountDataLoaded]);
 
   // Subtle visual feedback toast notification state
   const [toast, setToast] = useState<{
@@ -193,12 +215,14 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // Sync to IndexedDB & raw file automatically
+  // Sync active account data to IndexedDB & raw file automatically
   useEffect(() => {
-    if (!isDataLoaded) return;
+    if (!isDataLoaded || !activeAccount.id) return;
 
-    saveAppData(STORAGE_KEY_TXS, transactions).catch(e => console.error(e));
-    saveAppData(STORAGE_KEY_LOANS, loans).catch(e => console.error(e));
+    const txsKey = getScopedKey('txs', activeAccount.id);
+    const loansKey = getScopedKey('loans', activeAccount.id);
+    saveAppData(txsKey, transactions).catch(e => console.error(e));
+    saveAppData(loansKey, loans).catch(e => console.error(e));
 
     // Auto save to raw MD file if user connected one
     const saveToRaw = async () => {
@@ -206,9 +230,9 @@ const AppContent: React.FC = () => {
         try {
           const headers = ['| Date | Title | Amount | Type | Category | Source | Note | Recurring |', '| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |'];
           const rows = transactions.map(t =>
-            `| ${t.date} | ${t.title.replace(/\|/g, '-')} | ${formatSGD(t.amount)} | ${t.type} | ${t.category} | ${(t.source || '').replace(/\|/g, '-')} | ${(t.note || '').replace(/\|/g, '-')} | ${t.isRecurring ? 'Yes' : 'No'} |`
+            `| ${t.date} | ${t.title.replace(/\|/g, '-')} | ${formatSGD(t.amount, false, activeAccount.currency)} | ${t.type} | ${t.category} | ${(t.source || '').replace(/\|/g, '-')} | ${(t.note || '').replace(/\|/g, '-')} | ${t.isRecurring ? 'Yes' : 'No'} |`
           );
-          const mdContent = `# BudgetLens Export\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}\n`;
+          const mdContent = `# BudgetLens Export (${activeAccount.name})\n\nGenerated on: ${new Date().toLocaleString()}\n\n${headers.join('\n')}\n${rows.join('\n')}\n`;
           await writeToFile(rawFileHandle, mdContent);
         } catch (e) {
           console.warn("Auto-save to raw file skipped:", e);
@@ -216,17 +240,19 @@ const AppContent: React.FC = () => {
       }
     };
     saveToRaw();
-  }, [transactions, rawFileHandle, isDataLoaded]);
+  }, [transactions, loans, rawFileHandle, isDataLoaded, activeAccount.id, activeAccount.currency, activeAccount.name]);
 
   useEffect(() => {
-    if (!isDataLoaded) return;
-    saveAppData(STORAGE_KEY_BALANCE, initialBalance).catch(e => console.error(e));
-  }, [initialBalance, isDataLoaded]);
+    if (!isDataLoaded || !activeAccount.id) return;
+    const balKey = getScopedKey('bal', activeAccount.id);
+    saveAppData(balKey, initialBalance).catch(e => console.error(e));
+  }, [initialBalance, isDataLoaded, activeAccount.id]);
 
   useEffect(() => {
-    if (!isDataLoaded) return;
-    saveAppData(STORAGE_KEY_CONFIGS, categoryConfigs).catch(e => console.error(e));
-  }, [categoryConfigs, isDataLoaded]);
+    if (!isDataLoaded || !activeAccount.id) return;
+    const confKey = getScopedKey('conf', activeAccount.id);
+    saveAppData(confKey, categoryConfigs).catch(e => console.error(e));
+  }, [categoryConfigs, isDataLoaded, activeAccount.id]);
 
   // Compute live financial summary using dynamic baseline & category configs
   const summary = calculateFinanceSummary(transactions, initialBalance, categoryConfigs);
@@ -324,7 +350,7 @@ const AppContent: React.FC = () => {
       };
     });
     setTransactions(updatedList);
-    saveAppData(STORAGE_KEY_TXS, updatedList).catch(e => console.error(e));
+    saveAppData(getScopedKey('txs', activeAccount.id), updatedList).catch(e => console.error(e));
     showToast(
       `Linked ${transactionIds.length} payment${transactionIds.length > 1 ? 's' : ''} to ${loan.name}`,
       0,
@@ -339,14 +365,14 @@ const AppContent: React.FC = () => {
     setTransactions([]);
     setLoans([]);
     try {
-      localStorage.removeItem(STORAGE_KEY_CONFIGS);
-      localStorage.removeItem(STORAGE_KEY_BALANCE);
-      localStorage.removeItem(STORAGE_KEY_TXS);
-      localStorage.removeItem(STORAGE_KEY_LOANS);
-      saveAppData(STORAGE_KEY_TXS, []);
-      saveAppData(STORAGE_KEY_LOANS, []);
-      saveAppData(STORAGE_KEY_BALANCE, 0);
-      saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS);
+      const txsKey = getScopedKey('txs', activeAccount.id);
+      const loansKey = getScopedKey('loans', activeAccount.id);
+      const balKey = getScopedKey('bal', activeAccount.id);
+      const confKey = getScopedKey('conf', activeAccount.id);
+      saveAppData(txsKey, []);
+      saveAppData(loansKey, []);
+      saveAppData(balKey, 0);
+      saveAppData(confKey, DEFAULT_CATEGORY_CONFIGS);
     } catch (e) { }
   };
 
@@ -359,13 +385,14 @@ const AppContent: React.FC = () => {
   const handleArchiveAndReset = (exportFormat: ExportFormatChoice) => {
     let exportedFileName = '';
     const dateStr = new Date().toISOString().split('T')[0];
+    const safeName = activeAccount.name.replace(/[^a-zA-Z0-9_-]/g, '_');
 
     if (exportFormat === 'csv' && transactions.length > 0) {
-      exportToCSV(transactions);
-      exportedFileName = `budgetlens_export_${dateStr}.csv`;
+      exportedFileName = `budgetlens_${safeName}_export_${dateStr}.csv`;
+      exportToCSV(transactions, exportedFileName);
     } else if (exportFormat === 'md' && transactions.length > 0) {
-      exportToMarkdown(transactions);
-      exportedFileName = `budgetlens_export_${dateStr}.md`;
+      exportedFileName = `budgetlens_${safeName}_export_${dateStr}.md`;
+      exportToMarkdown(transactions, activeAccount.currency, exportedFileName);
     }
 
     // Reset state to clean 0
@@ -375,10 +402,14 @@ const AppContent: React.FC = () => {
     setCategoryConfigs(DEFAULT_CATEGORY_CONFIGS);
 
     // Persist clean 0 state into storage
-    saveAppData(STORAGE_KEY_TXS, []).catch(e => console.error(e));
-    saveAppData(STORAGE_KEY_LOANS, []).catch(e => console.error(e));
-    saveAppData(STORAGE_KEY_BALANCE, 0).catch(e => console.error(e));
-    saveAppData(STORAGE_KEY_CONFIGS, DEFAULT_CATEGORY_CONFIGS).catch(e => console.error(e));
+    const txsKey = getScopedKey('txs', activeAccount.id);
+    const loansKey = getScopedKey('loans', activeAccount.id);
+    const balKey = getScopedKey('bal', activeAccount.id);
+    const confKey = getScopedKey('conf', activeAccount.id);
+    saveAppData(txsKey, []).catch(e => console.error(e));
+    saveAppData(loansKey, []).catch(e => console.error(e));
+    saveAppData(balKey, 0).catch(e => console.error(e));
+    saveAppData(confKey, DEFAULT_CATEGORY_CONFIGS).catch(e => console.error(e));
 
     setIsResetModalOpen(false);
 
@@ -387,7 +418,7 @@ const AppContent: React.FC = () => {
       format: exportFormat,
       fileName: exportedFileName
     });
-    showToast('Fresh Session Initialized', 0, 'income', 'Reset to fresh balance');
+    showToast(`${activeAccount.name} Initialized`, 0, 'income', 'Reset to fresh balance');
   };
 
   // Show a themed loading splash while IndexedDB hydrates — prevents blank flash in all browsers
@@ -840,9 +871,13 @@ const AppContent: React.FC = () => {
 };
 
 export const App: React.FC = () => (
-  <CurrencyProvider>
-    <AppContent />
-  </CurrencyProvider>
+  <ThemeProvider>
+    <CurrencyProvider>
+      <AccountProvider>
+        <AppContent />
+      </AccountProvider>
+    </CurrencyProvider>
+  </ThemeProvider>
 );
 
 export default App;

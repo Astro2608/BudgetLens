@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAccounts } from '../context/AccountContext';
 
 interface SidebarProps {
   totalBalance?: number;
@@ -9,6 +10,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   onOpenSettings
 }) => {
+  const { activeAccount } = useAccounts();
 
   return (
     <aside className="sidebar">
@@ -62,31 +64,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
           margin: '0 0.75rem 1rem 0.75rem',
           padding: '0.625rem 0.875rem',
           borderRadius: 'var(--radius-md)',
-          backgroundColor: '#f8fafc',
-          border: '1px solid #e2e8f0',
+          backgroundColor: 'var(--bg-canvas-subtle)',
+          border: '1px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '0.5rem'
         }}
-        title="Local Vault Synced: 100% offline private storage"
+        title={`Active Vault: ${activeAccount.name} (${activeAccount.currency}) - 100% offline private storage`}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
           <span
             style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: '#10b981',
-              display: 'inline-block'
+              backgroundColor: activeAccount.color || '#10b981',
+              display: 'inline-block',
+              flexShrink: 0
             }}
           ></span>
-          <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-main)' }}>
-            Vault Synced
+          <span
+            style={{
+              fontSize: '11.5px',
+              fontWeight: 700,
+              color: 'var(--text-main)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {activeAccount.name}
           </span>
         </div>
-        <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-muted)' }}>
-          Offline
+        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', flexShrink: 0 }}>
+          {activeAccount.currency}
         </span>
       </div>
     </aside>

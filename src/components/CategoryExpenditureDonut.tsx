@@ -180,25 +180,25 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
       return {
         type: 'saved',
         text: `-${formatCurrency(Math.abs(diff))} (-${pct}%) vs ${expenseData.priorLabel} (Saved more)`,
-        bg: '#ecfdf5',
-        color: '#047857',
-        border: '#a7f3d0'
+        bg: 'rgba(16, 185, 129, 0.12)',
+        color: '#10b981',
+        border: 'rgba(16, 185, 129, 0.25)'
       };
     } else if (diff > 0) {
       return {
         type: 'spent_more',
         text: `+${formatCurrency(diff)} (+${pct}%) vs ${expenseData.priorLabel}`,
-        bg: '#fff1f2',
-        color: '#be123c',
-        border: '#fecdd3'
+        bg: 'rgba(239, 68, 68, 0.12)',
+        color: '#f87171',
+        border: 'rgba(239, 68, 68, 0.25)'
       };
     } else {
       return {
         type: 'equal',
         text: `● Matches ${expenseData.priorLabel} spend`,
-        bg: '#f8fafc',
-        color: '#64748b',
-        border: '#e2e8f0'
+        bg: 'var(--bg-canvas-subtle)',
+        color: 'var(--text-muted)',
+        border: 'var(--border-subtle)'
       };
     }
   }, [expenseData.totalOutflows, expenseData.priorTotal, expenseData.priorLabel, formatCurrency]);
@@ -596,9 +596,9 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                   border: 'none',
                   fontSize: '11px',
                   fontWeight: activeTab === 'outflows' ? 800 : 600,
-                  backgroundColor: activeTab === 'outflows' ? '#ffffff' : 'transparent',
-                  color: activeTab === 'outflows' ? '#be123c' : 'var(--text-muted)',
-                  boxShadow: activeTab === 'outflows' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  backgroundColor: activeTab === 'outflows' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'outflows' ? '#f87171' : 'var(--text-muted)',
+                  boxShadow: activeTab === 'outflows' ? 'var(--shadow-xs)' : 'none',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -617,9 +617,9 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                   border: 'none',
                   fontSize: '11px',
                   fontWeight: activeTab === 'inflows' ? 800 : 600,
-                  backgroundColor: activeTab === 'inflows' ? '#ffffff' : 'transparent',
-                  color: activeTab === 'inflows' ? '#047857' : 'var(--text-muted)',
-                  boxShadow: activeTab === 'inflows' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  backgroundColor: activeTab === 'inflows' ? 'var(--bg-card)' : 'transparent',
+                  color: activeTab === 'inflows' ? '#10b981' : 'var(--text-muted)',
+                  boxShadow: activeTab === 'inflows' ? 'var(--shadow-xs)' : 'none',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -651,10 +651,10 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                     onMouseEnter={() => setHoveredCategory({ ring: 'outer', key: item.key })}
                     onMouseLeave={() => setHoveredCategory(null)}
                     style={{
-                      backgroundColor: isHovered ? 'rgba(241, 245, 249, 0.9)' : '#f8fafc',
+                      backgroundColor: isHovered ? 'var(--bg-card)' : 'var(--bg-canvas-subtle)',
                       borderRadius: 'var(--radius-lg)',
                       padding: '0.625rem 0.875rem',
-                      border: isHovered ? `1.5px solid ${item.color}` : '1px solid #f1f5f9',
+                      border: isHovered ? `1.5px solid ${item.color}` : '1px solid var(--border-subtle)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '6px',
@@ -697,7 +697,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                     </div>
 
                     {/* Progress Bar */}
-                    <div style={{ width: '100%', height: '5px', backgroundColor: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+                    <div style={{ width: '100%', height: '5px', backgroundColor: 'var(--border-subtle)', borderRadius: '9999px', overflow: 'hidden' }}>
                       <div
                         style={{
                           width: `${Math.min(100, Math.max(4, item.percentage))}%`,
@@ -727,10 +727,10 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                     onMouseEnter={() => setHoveredCategory({ ring: 'inner', key: item.key })}
                     onMouseLeave={() => setHoveredCategory(null)}
                     style={{
-                      backgroundColor: isHovered ? 'rgba(236, 253, 245, 0.9)' : '#f8fafc',
+                      backgroundColor: isHovered ? 'var(--bg-card)' : 'var(--bg-canvas-subtle)',
                       borderRadius: 'var(--radius-lg)',
                       padding: '0.625rem 0.875rem',
-                      border: isHovered ? `1.5px solid ${item.color}` : '1px solid #f1f5f9',
+                      border: isHovered ? `1.5px solid ${item.color}` : '1px solid var(--border-subtle)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '6px',
@@ -773,7 +773,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                     </div>
 
                     {/* Progress Bar */}
-                    <div style={{ width: '100%', height: '5px', backgroundColor: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+                    <div style={{ width: '100%', height: '5px', backgroundColor: 'var(--border-subtle)', borderRadius: '9999px', overflow: 'hidden' }}>
                       <div
                         style={{
                           width: `${Math.min(100, Math.max(4, item.percentage))}%`,

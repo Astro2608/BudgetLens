@@ -165,11 +165,11 @@ export const LoanCard: React.FC<LoanCardProps> = ({
   return (
     <div
       style={{
-        backgroundColor: '#ffffff',
+        backgroundColor: 'var(--bg-card)',
         borderRadius: '16px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border-card)',
         padding: '18px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.04)',
+        boxShadow: 'var(--shadow-sm)',
         cursor: expanded ? 'default' : 'pointer',
         transition: 'all 0.2s ease',
         overflow: 'hidden'
@@ -180,13 +180,13 @@ export const LoanCard: React.FC<LoanCardProps> = ({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', gap: '12px' }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '20px', flexShrink: 0 }}>account_balance</span>
-            <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={loan.name}>
+            <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '20px', flexShrink: 0 }}>account_balance</span>
+            <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 800, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={loan.name}>
               {loan.name}
             </h3>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', backgroundColor: 'var(--bg-canvas-subtle)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '6px' }}>
               #{loan.linkedTag}
             </span>
             {loan.isReverseEstimated && (
@@ -194,9 +194,9 @@ export const LoanCard: React.FC<LoanCardProps> = ({
                 style={{
                   fontSize: '10.5px',
                   fontWeight: 700,
-                  color: '#1d4ed8',
-                  backgroundColor: '#eff6ff',
-                  border: '1px solid #bfdbfe',
+                  color: '#3b82f6',
+                  backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                  border: '1px solid rgba(37, 99, 235, 0.25)',
                   padding: '2px 8px',
                   borderRadius: '6px',
                   display: 'inline-flex',
@@ -205,17 +205,17 @@ export const LoanCard: React.FC<LoanCardProps> = ({
                 }}
                 title="Estimated initial cost reverse-calculated from monthly payment & interest rate"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#2563eb' }}>auto_awesome</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#3b82f6' }}>auto_awesome</span>
                 Reverse estimation cost
               </span>
             )}
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+          <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
             {formatCurrency(remainingPrincipal)}
           </div>
-          <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>Remaining Balance</div>
+          <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Remaining Balance</div>
         </div>
       </div>
 
@@ -223,9 +223,9 @@ export const LoanCard: React.FC<LoanCardProps> = ({
       <div style={{ marginBottom: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '6px', fontWeight: 700 }}>
           <span style={{ color: '#10b981' }}>{progressPercent.toFixed(1)}% Paid Off</span>
-          <span style={{ color: '#64748b' }}>Total: {formatCurrency(loan.initialPrincipal)}</span>
+          <span style={{ color: 'var(--text-muted)' }}>Total: {formatCurrency(loan.initialPrincipal)}</span>
         </div>
-        <div style={{ height: '7px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ height: '7px', backgroundColor: 'var(--bg-canvas-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
           <div
             style={{
               height: '100%',
@@ -240,13 +240,13 @@ export const LoanCard: React.FC<LoanCardProps> = ({
 
       {/* Quick Summary Pill Row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: expanded ? '14px' : '4px' }}>
-        <div style={{ backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-          <span style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Debt-Free Goal</span>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{projectedDebtFreeDate}</span>
+        <div style={{ backgroundColor: 'var(--bg-canvas-subtle)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+          <span style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Debt-Free Goal</span>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>{projectedDebtFreeDate}</span>
         </div>
-        <div style={{ backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-          <span style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Monthly Target</span>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(monthlyTargetPayment)}/mo</span>
+        <div style={{ backgroundColor: 'var(--bg-canvas-subtle)', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+          <span style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Monthly Target</span>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>{formatCurrency(monthlyTargetPayment)}/mo</span>
         </div>
       </div>
 
@@ -263,12 +263,12 @@ export const LoanCard: React.FC<LoanCardProps> = ({
 
       {/* Expanded Details Section */}
       {expanded && (
-        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '10px' }}>
+        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', marginTop: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>Payoff Projection & Breakdown</h4>
+            <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Payoff Projection & Breakdown</h4>
             <button
               onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '11px', fontWeight: 700 }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '11px', fontWeight: 700 }}
             >
               Close <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>expand_less</span>
             </button>
@@ -436,9 +436,9 @@ export const LoanCard: React.FC<LoanCardProps> = ({
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
-                  <span style={{ fontWeight: 700, color: '#334155' }}>Total Recorded Payments</span>
-                  <span style={{ fontWeight: 800, color: '#0f172a' }}>{formatCurrency(totalPaid)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', borderTop: '1px dashed var(--border-subtle)', paddingTop: '6px', marginTop: '2px' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Total Recorded Payments</span>
+                  <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{formatCurrency(totalPaid)}</span>
                 </div>
               </div>
 
