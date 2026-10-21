@@ -36,8 +36,8 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
         label: 'Frugal Pace (-15%)',
         badge: 'Frugal Mode (-15%)',
         color: '#10b981',
-        bg: '#ecfdf5',
-        border: '#a7f3d0',
+        bg: 'rgba(16, 185, 129, 0.12)',
+        border: 'rgba(16, 185, 129, 0.25)',
         desc: 'Simulates 15% budget reduction in daily dining & non-essential living costs.'
       };
     }
@@ -46,8 +46,8 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
         label: 'High Outflow (+25%)',
         badge: 'High Spending (+25%)',
         color: '#ef4444',
-        bg: '#fff1f2',
-        border: '#fecdd3',
+        bg: 'rgba(239, 68, 68, 0.12)',
+        border: 'rgba(239, 68, 68, 0.25)',
         desc: 'Simulates unplanned emergency medical, vehicle maintenance, or travel expenses.'
       };
     }
@@ -55,8 +55,8 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
       label: 'Current Baseline (100%)',
       badge: 'Standard Baseline',
       color: 'var(--color-primary)',
-      bg: '#f0fdfa',
-      border: 'var(--color-primary-border)',
+      bg: 'var(--bg-canvas-subtle)',
+      border: 'var(--border-subtle)',
       desc: 'Based on your actual historical monthly living spend.'
     };
   }, [sliderVal]);
@@ -97,8 +97,8 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
               width: '36px',
               height: '36px',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: '#ecfdf5',
-              color: '#047857',
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              color: 'var(--color-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -316,7 +316,7 @@ export const PredictiveRunwayWidget: React.FC<PredictiveRunwayWidgetProps> = ({
                     ~{formatCurrency(catMonthlyPace)}
                   </span>
                 </div>
-                <div style={{ width: '100%', height: '5px', backgroundColor: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+                <div style={{ width: '100%', height: '5px', backgroundColor: 'var(--border-subtle)', borderRadius: '9999px', overflow: 'hidden' }}>
                   <div
                     style={{
                       width: `${barWidth}%`,

@@ -248,7 +248,7 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
         {/* Header Right Actions: Timeframe Pills & Total Outflow Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
           {/* Timeframe Toggle Pills */}
-          <div style={{ display: 'inline-flex', backgroundColor: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-canvas-subtle)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
             {[
               { id: 'month', label: 'This Month' },
               { id: 'year', label: 'This Year' },
@@ -264,9 +264,9 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                   border: 'none',
                   fontSize: '11px',
                   fontWeight: timeframe === tab.id ? 800 : 600,
-                  backgroundColor: timeframe === tab.id ? '#ffffff' : 'transparent',
-                  color: timeframe === tab.id ? 'var(--color-primary-hover)' : 'var(--text-muted)',
-                  boxShadow: timeframe === tab.id ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  backgroundColor: timeframe === tab.id ? 'var(--bg-card)' : 'transparent',
+                  color: timeframe === tab.id ? 'var(--color-primary)' : 'var(--text-muted)',
+                  boxShadow: timeframe === tab.id ? 'var(--shadow-xs)' : 'none',
                   cursor: 'pointer',
                   transition: 'all 150ms ease'
                 }}
@@ -285,11 +285,11 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                 gap: '5px',
                 padding: '0.35rem 0.65rem',
                 borderRadius: '9999px',
-                backgroundColor: '#ecfdf5',
-                border: '1px solid #a7f3d0',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
                 fontSize: '11px',
                 fontWeight: 700,
-                color: '#065f46'
+                color: 'var(--color-primary)'
               }}
               title="Inner Ring: Total Income"
             >
@@ -304,11 +304,11 @@ export const CategoryExpenditureDonut: React.FC<CategoryExpenditureDonutProps> =
                 gap: '5px',
                 padding: '0.35rem 0.65rem',
                 borderRadius: '9999px',
-                backgroundColor: '#fff1f2',
-                border: '1px solid #fecdd3',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
                 fontSize: '11px',
                 fontWeight: 700,
-                color: '#be123c'
+                color: '#ef4444'
               }}
               title="Outer Ring: Total Outflows & Allocations"
             >

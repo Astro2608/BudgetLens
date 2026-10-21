@@ -43,12 +43,12 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
     >
       <div
         style={{
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: 'var(--radius-2xl)',
           width: '100%',
           maxWidth: '500px',
           boxShadow: 'var(--shadow-xl)',
-          border: '1px solid var(--border-subtle)',
+          border: '1px solid var(--border-card)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column'
@@ -58,11 +58,11 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
         <div
           style={{
             padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid #f1f5f9',
+            borderBottom: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#ffffff'
+            backgroundColor: 'var(--bg-card)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -71,12 +71,12 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
                 width: '38px',
                 height: '38px',
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: '#fee2e2',
-                color: '#dc2626',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                color: '#ef4444',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid #fecdd3'
+                border: '1px solid rgba(239, 68, 68, 0.3)'
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
@@ -117,17 +117,17 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
             style={{
               padding: '0.875rem 1rem',
               borderRadius: 'var(--radius-lg)',
-              backgroundColor: '#fffbeb',
-              border: '1px solid #fde68a',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
               display: 'flex',
               gap: '0.75rem'
             }}
           >
-            <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '20px', flexShrink: 0, marginTop: '2px' }}>
+            <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '20px', flexShrink: 0, marginTop: '2px' }}>
               security
             </span>
-            <div style={{ fontSize: '12px', color: '#92400e', lineHeight: 1.5 }}>
-              <strong style={{ color: '#78350f', display: 'block', marginBottom: '2px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-main)', lineHeight: 1.5 }}>
+              <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '2px' }}>
                 Automated Backup & Archival
               </strong>
               Your <strong>{transactionsCount} recorded transactions</strong> ({formatCurrency(totalBalance)}) can be exported before resetting so you never lose financial history.
@@ -228,8 +228,8 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
         <div
           style={{
             padding: '1rem 1.5rem',
-            borderTop: '1px solid #f1f5f9',
-            backgroundColor: '#f8fafc',
+            borderTop: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-canvas-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',

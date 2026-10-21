@@ -674,7 +674,7 @@ const AppContent: React.FC = () => {
         >
           <div
             style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--bg-card)',
               borderRadius: 'var(--radius-xl)',
               maxWidth: '500px',
               width: '100%',
@@ -683,7 +683,7 @@ const AppContent: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               gap: '1.25rem',
-              border: '1px solid var(--border-subtle)'
+              border: '1px solid var(--border-card)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -693,8 +693,8 @@ const AppContent: React.FC = () => {
                   width: '42px',
                   height: '42px',
                   borderRadius: '12px',
-                  backgroundColor: '#d1fae5',
-                  color: '#059669',
+                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  color: 'var(--color-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -718,14 +718,14 @@ const AppContent: React.FC = () => {
                 style={{
                   padding: '1rem',
                   borderRadius: '10px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'var(--bg-canvas-subtle)',
+                  border: '1px solid var(--border-subtle)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '8px'
                 }}
               >
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#10b981' }}>download_done</span>
                   Backup Export Downloaded:
                 </span>
@@ -733,23 +733,23 @@ const AppContent: React.FC = () => {
                   style={{
                     fontSize: '12px',
                     fontWeight: 700,
-                    color: '#0f172a',
-                    backgroundColor: '#ffffff',
+                    color: 'var(--text-main)',
+                    backgroundColor: 'var(--bg-card)',
                     padding: '6px 10px',
                     borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid var(--border-subtle)',
                     wordBreak: 'break-all',
                     fontFamily: 'monospace'
                   }}
                 >
                   {postResetNotice.fileName}
                 </code>
-                <span style={{ fontSize: '11.5px', color: '#64748b', lineHeight: 1.45 }}>
+                <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.45 }}>
                   📂 <strong>Saved Directory Location:</strong> Check your browser's default <strong>Downloads folder</strong> (e.g. <code>Downloads/</code>). You can copy or move this file anywhere for safekeeping.
                 </span>
               </div>
             ) : (
-              <div style={{ padding: '0.875rem 1rem', borderRadius: '10px', backgroundColor: '#f1f5f9', fontSize: '12.5px', color: '#475569' }}>
+              <div style={{ padding: '0.875rem 1rem', borderRadius: '10px', backgroundColor: 'var(--bg-canvas-subtle)', fontSize: '12.5px', color: 'var(--text-muted)' }}>
                 Your financial dashboard has been reset directly to 0.00 balance without creating a file export.
               </div>
             )}
@@ -821,10 +821,10 @@ const AppContent: React.FC = () => {
             alignItems: 'center',
             gap: '10px',
             padding: '10px 16px',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-card)',
             borderRadius: 'var(--radius-xl)',
-            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1)',
-            border: '1px solid var(--border-subtle)',
+            boxShadow: 'var(--shadow-xl)',
+            border: '1px solid var(--border-card)',
             animation: 'toastSlideUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
             pointerEvents: 'none'
           }}
@@ -834,8 +834,8 @@ const AppContent: React.FC = () => {
               width: '28px',
               height: '28px',
               borderRadius: '50%',
-              backgroundColor: toast.type === 'income' ? '#d1fae5' : '#fee2e2',
-              color: toast.type === 'income' ? '#047857' : '#ef4444',
+              backgroundColor: toast.type === 'income' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: toast.type === 'income' ? 'var(--color-primary)' : '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

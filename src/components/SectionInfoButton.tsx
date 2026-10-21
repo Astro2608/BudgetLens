@@ -67,10 +67,10 @@ export const SectionInfoButton: React.FC<SectionInfoButtonProps> = ({
             right: 0,
             width: '320px',
             maxWidth: '90vw',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-card)',
             borderRadius: 'var(--radius-lg)',
             padding: '1rem 1.125rem',
-            boxShadow: '0 12px 30px -4px rgba(15, 23, 42, 0.18), 0 4px 10px -2px rgba(15, 23, 42, 0.08)',
+            boxShadow: 'var(--shadow-xl)',
             border: '1.5px solid var(--color-primary-border)',
             zIndex: 100,
             display: 'flex',
@@ -81,7 +81,7 @@ export const SectionInfoButton: React.FC<SectionInfoButtonProps> = ({
           }}
         >
           {/* Popover Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>
                 help
@@ -124,7 +124,7 @@ export const SectionInfoButton: React.FC<SectionInfoButtonProps> = ({
           {/* Concrete Example */}
           <div
             style={{
-              backgroundColor: '#f0fdfa',
+              backgroundColor: 'var(--bg-canvas-subtle)',
               border: '1px solid var(--color-primary-border)',
               borderRadius: 'var(--radius-md)',
               padding: '0.5rem 0.75rem',
@@ -133,11 +133,11 @@ export const SectionInfoButton: React.FC<SectionInfoButtonProps> = ({
               gap: '2px'
             }}
           >
-            <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-primary-hover)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <Lightbulb size={12} />
               <span>Example</span>
             </span>
-            <p style={{ fontSize: '11px', color: '#134e4a', lineHeight: 1.35, margin: 0 }}>
+            <p style={{ fontSize: '11px', color: 'var(--text-main)', lineHeight: 1.35, margin: 0 }}>
               {example}
             </p>
           </div>

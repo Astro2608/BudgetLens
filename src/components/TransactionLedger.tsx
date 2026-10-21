@@ -1358,18 +1358,19 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
         >
           <div
             style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--bg-card)',
               borderRadius: 'var(--radius-xl)',
               padding: '1.5rem',
               width: '100%',
               maxWidth: '420px',
               boxShadow: 'var(--shadow-xl)',
+              border: '1px solid var(--border-card)',
               display: 'flex',
               flexDirection: 'column',
               gap: '1rem'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '22px' }}>receipt_long</span>
                 <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>Transaction Receipt</h4>
@@ -1427,9 +1428,9 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                         fontWeight: 700,
                         padding: '2px 6px',
                         borderRadius: '4px',
-                        backgroundColor: '#f1f5f9',
-                        color: '#475569',
-                        border: '1px solid #cbd5e1'
+                        backgroundColor: 'var(--bg-canvas-subtle)',
+                        color: 'var(--text-muted)',
+                        border: '1px solid var(--border-subtle)'
                       }}
                     >
                       {tag}
@@ -1442,9 +1443,9 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                 <span style={{ fontWeight: 700, color: '#10b981' }}>Verified & Cleared</span>
               </div>
               {(selectedReceiptTx.description || selectedReceiptTx.note) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px', paddingTop: '4px', borderTop: '1px dashed var(--border-subtle)' }}>
                   <span style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}>Description / Remarks:</span>
-                  <span style={{ fontStyle: 'italic', color: 'var(--text-main)', wordBreak: 'break-word', backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontStyle: 'italic', color: 'var(--text-main)', wordBreak: 'break-word', backgroundColor: 'var(--bg-canvas-subtle)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
                     {selectedReceiptTx.description || selectedReceiptTx.note}
                   </span>
                 </div>

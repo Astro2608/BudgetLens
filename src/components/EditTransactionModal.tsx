@@ -287,12 +287,13 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
     >
       <div
         style={{
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: '20px',
           padding: '1.75rem',
           width: '100%',
           maxWidth: '520px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          boxShadow: 'var(--shadow-xl)',
+          border: '1px solid var(--border-card)',
           display: 'flex',
           flexDirection: 'column',
           gap: '1.25rem',
@@ -308,21 +309,21 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 width: '38px',
                 height: '38px',
                 borderRadius: '10px',
-                backgroundColor: '#f5f3ff',
-                color: '#7c3aed',
+                backgroundColor: 'rgba(124, 58, 237, 0.15)',
+                color: '#a78bfa',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid #ddd6fe'
+                border: '1px solid rgba(124, 58, 237, 0.3)'
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit_note</span>
             </div>
             <div>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                 Edit Transaction
               </h3>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 Update title, amount, category, or loan payoff split
               </span>
             </div>
@@ -330,7 +331,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -342,7 +343,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
             style={{
               display: 'flex',
               padding: '0.25rem',
-              backgroundColor: '#f1f5f9',
+              backgroundColor: 'var(--bg-canvas-subtle)',
               borderRadius: '10px',
               gap: '0.25rem'
             }}
@@ -362,9 +363,9 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.375rem',
-                backgroundColor: type === 'expense' ? '#ffffff' : 'transparent',
-                color: type === 'expense' ? '#ef4444' : '#64748b',
-                boxShadow: type === 'expense' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                backgroundColor: type === 'expense' ? 'var(--bg-card)' : 'transparent',
+                color: type === 'expense' ? '#ef4444' : 'var(--text-muted)',
+                boxShadow: type === 'expense' ? 'var(--shadow-xs)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
@@ -386,9 +387,9 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.375rem',
-                backgroundColor: type === 'income' ? '#ffffff' : 'transparent',
-                color: type === 'income' ? '#10b981' : '#64748b',
-                boxShadow: type === 'income' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                backgroundColor: type === 'income' ? 'var(--bg-card)' : 'transparent',
+                color: type === 'income' ? 'var(--color-primary)' : 'var(--text-muted)',
+                boxShadow: type === 'income' ? 'var(--shadow-xs)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
@@ -399,7 +400,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
 
           {/* Amount Input */}
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Amount ({currencyCode})
             </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -426,10 +427,10 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                   fontSize: '1.25rem',
                   fontWeight: 800,
                   borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
+                  border: '1px solid var(--border-subtle)',
                   outline: 'none',
-                  color: '#0f172a',
-                  backgroundColor: '#ffffff'
+                  color: 'var(--text-main)',
+                  backgroundColor: 'var(--bg-input)'
                 }}
               />
             </div>
@@ -439,8 +440,8 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           {suggestedLoan && (
             <div
               style={{
-                backgroundColor: '#f5f3ff',
-                border: '1.5px solid #ddd6fe',
+                backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                border: '1.5px solid rgba(124, 58, 237, 0.25)',
                 borderRadius: '10px',
                 padding: '10px 14px',
                 display: 'flex',
@@ -450,8 +451,8 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="material-symbols-outlined" style={{ color: '#7c3aed', fontSize: '18px' }}>auto_awesome</span>
-                <span style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 600 }}>
+                <span className="material-symbols-outlined" style={{ color: '#a78bfa', fontSize: '18px' }}>auto_awesome</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 600 }}>
                   Amount matches <strong>{suggestedLoan.name}</strong> monthly payment (~{formatCurrency(suggestedLoan.fixedMonthlyPayment || currentTotalAmount)}). Tag to loan?
                 </span>
               </div>
@@ -459,7 +460,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 type="button"
                 onClick={() => handleToggleLoan(suggestedLoan.id)}
                 style={{
-                  backgroundColor: '#7c3aed',
+                  backgroundColor: 'var(--color-primary)',
                   color: 'white',
                   border: 'none',
                   padding: '5px 12px',
@@ -481,7 +482,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
 
           {/* Title */}
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Merchant / Title
             </label>
             <input
@@ -495,10 +496,10 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 padding: '0.625rem 0.875rem',
                 fontSize: '13px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-subtle)',
                 outline: 'none',
-                color: '#0f172a',
-                backgroundColor: '#ffffff'
+                color: 'var(--text-main)',
+                backgroundColor: 'var(--bg-input)'
               }}
             />
           </div>
@@ -506,7 +507,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
           {/* Category & Date */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Category
               </label>
               <select
@@ -517,10 +518,10 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                   padding: '0.625rem 0.875rem',
                   fontSize: '13px',
                   borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
+                  border: '1px solid var(--border-subtle)',
                   outline: 'none',
-                  backgroundColor: '#ffffff',
-                  color: '#0f172a',
+                  backgroundColor: 'var(--bg-input)',
+                  color: 'var(--text-main)',
                   fontWeight: 600
                 }}
               >
@@ -533,7 +534,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Date
               </label>
               <input
@@ -546,10 +547,10 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                   padding: '0.625rem 0.875rem',
                   fontSize: '13px',
                   borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
+                  border: '1px solid var(--border-subtle)',
                   outline: 'none',
-                  backgroundColor: '#ffffff',
-                  color: '#0f172a'
+                  backgroundColor: 'var(--bg-input)',
+                  color: 'var(--text-main)'
                 }}
               />
             </div>
@@ -563,8 +564,8 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               gap: '10px',
               padding: '10px 12px',
               borderRadius: '10px',
-              backgroundColor: isRecurring ? '#eff6ff' : '#f8fafc',
-              border: isRecurring ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+              backgroundColor: isRecurring ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-canvas-subtle)',
+              border: isRecurring ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid var(--border-subtle)',
               cursor: 'pointer',
               userSelect: 'none',
               transition: 'all 0.15s ease'
@@ -577,10 +578,10 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
               style={{ accentColor: 'var(--color-primary)', cursor: 'pointer', width: '16px', height: '16px' }}
             />
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: isRecurring ? '#1d4ed8' : '#0f172a' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: isRecurring ? '#60a5fa' : 'var(--text-main)' }}>
                 🔁 Recurring Transaction (Monthly / Subscription)
               </span>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 Flag this charge as regular repeating expense or scheduled income
               </span>
             </div>
@@ -588,11 +589,11 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
 
           {/* Smart Loan Allocation Section (If user has active loans) */}
           {loans.length > 0 && type === 'expense' && (
-            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px' }}>
+            <div style={{ backgroundColor: 'var(--bg-canvas-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '18px' }}>account_balance</span>
-                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '18px' }}>account_balance</span>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                     Link & Allocate to Loan(s)
                   </label>
                 </div>
@@ -605,9 +606,9 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                         fontSize: '11px',
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        border: '1px solid #bfdbfe',
-                        backgroundColor: '#eff6ff',
-                        color: '#1d4ed8',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                        color: '#60a5fa',
                         fontWeight: 700,
                         cursor: 'pointer'
                       }}
@@ -622,9 +623,9 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                         fontSize: '11px',
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        border: '1px solid #e2e8f0',
-                        backgroundColor: '#ffffff',
-                        color: '#475569',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: 'var(--bg-card)',
+                        color: 'var(--text-main)',
                         fontWeight: 700,
                         cursor: 'pointer'
                       }}
@@ -635,7 +636,7 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 )}
               </div>
 
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
                 Select the loan(s) this payment reduces. If a single payment covers multiple loans, assign each loan's portion below.
               </div>
 
@@ -747,22 +748,22 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 padding: '0.625rem 0.875rem',
                 fontSize: '13px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-subtle)',
                 outline: 'none',
-                color: '#0f172a',
-                backgroundColor: '#ffffff'
+                color: 'var(--text-main)',
+                backgroundColor: 'var(--bg-input)'
               }}
             />
           </div>
 
           {/* Custom Tags */}
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Tags & Labels (Optional)
             </label>
             {categoryPresetTags.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Preset Tags:</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>Preset Tags:</span>
                 {categoryPresetTags.map((tag) => {
                   const currentTags = tagsInput
                     .split(/[,;\s]+/)
@@ -779,9 +780,9 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                         fontWeight: 700,
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        border: isActive ? `1px solid ${catColor}` : '1px solid #cbd5e1',
-                        backgroundColor: isActive ? `${catColor}20` : '#f8fafc',
-                        color: isActive ? catColor : '#334155',
+                        border: isActive ? `1px solid ${catColor}` : '1px solid var(--border-subtle)',
+                        backgroundColor: isActive ? `${catColor}20` : 'var(--bg-canvas-subtle)',
+                        color: isActive ? catColor : 'var(--text-muted)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                         display: 'inline-flex',
@@ -805,10 +806,10 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 padding: '0.625rem 0.875rem',
                 fontSize: '13px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-subtle)',
                 outline: 'none',
-                color: '#0f172a',
-                backgroundColor: '#ffffff'
+                color: 'var(--text-main)',
+                backgroundColor: 'var(--bg-input)'
               }}
             />
           </div>
@@ -822,9 +823,9 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
                 flex: 1,
                 padding: '0.75rem',
                 borderRadius: '10px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#475569',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-canvas-subtle)',
+                color: 'var(--text-main)',
                 fontWeight: 700,
                 fontSize: '13px',
                 cursor: 'pointer'

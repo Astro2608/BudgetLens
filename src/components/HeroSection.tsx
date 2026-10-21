@@ -152,8 +152,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               width: '38px',
               height: '38px',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: '#ecfdf5',
-              color: '#047857',
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              color: 'var(--color-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -190,8 +190,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               width: '38px',
               height: '38px',
               borderRadius: 'var(--radius-md)',
-              backgroundColor: '#fee2e2',
-              color: '#b91c1c',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              color: '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'

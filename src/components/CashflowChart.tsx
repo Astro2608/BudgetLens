@@ -191,7 +191,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
       <div
         style={{
           position: 'relative',
-          backgroundColor: '#fafbfc',
+          backgroundColor: 'var(--bg-canvas-subtle)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
           padding: '1.25rem 1rem 2.25rem 1rem',
@@ -528,7 +528,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
         <div
           style={{
             marginTop: '1rem',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-card)',
             border: '1.5px solid var(--color-primary-border)',
             borderRadius: 'var(--radius-lg)',
             padding: '1.25rem',
@@ -536,7 +536,7 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
             animation: 'fadeIn 0.2s ease-in-out'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)', fontSize: '22px' }}>
                 analytics
@@ -574,12 +574,12 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
             {/* Inflows Card */}
-            <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   + Total Inflow
                 </span>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#15803d' }}>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-primary)' }}>
                   +{formatCurrency(activeBucket.totalInflow)}
                 </span>
               </div>
@@ -587,31 +587,31 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
               {activeBucket.inflowCategories.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {activeBucket.inflowCategories.map((cat, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-canvas-subtle)', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>
                         <span style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: cat.color }}></span>
                         {cat.category}
                       </span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#16a34a' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-primary)' }}>
                         +{formatCurrency(cat.amount)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ fontSize: '12px', color: '#86efac', fontStyle: 'italic', padding: '4px 0' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 0' }}>
                   No incoming cash recorded in this window.
                 </div>
               )}
             </div>
 
             {/* Outflows Card */}
-            <div style={{ backgroundColor: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+            <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   - Total Outflow
                 </span>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#be123c' }}>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: '#ef4444' }}>
                   -{formatCurrency(activeBucket.totalOutflow)}
                 </span>
               </div>
@@ -619,19 +619,19 @@ export const CashflowChart: React.FC<CashflowChartProps> = ({
               {activeBucket.outflowCategories.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {activeBucket.outflowCategories.map((cat, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #ffe4e6' }}>
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-canvas-subtle)', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>
                         <span style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: cat.color }}></span>
                         {cat.category}
                       </span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#e11d48' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444' }}>
                         -{formatCurrency(cat.amount)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ fontSize: '12px', color: '#fda4af', fontStyle: 'italic', padding: '4px 0' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 0' }}>
                   No outflows or expenses recorded in this window.
                 </div>
               )}

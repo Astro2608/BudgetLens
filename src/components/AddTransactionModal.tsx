@@ -193,12 +193,13 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     >
       <div
         style={{
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: 'var(--radius-2xl)',
           padding: '1.75rem',
           width: '100%',
           maxWidth: '480px',
-          boxShadow: 'var(--shadow-lg)',
+          boxShadow: 'var(--shadow-xl)',
+          border: '1px solid var(--border-card)',
           display: 'flex',
           flexDirection: 'column',
           gap: '1.25rem',
@@ -213,8 +214,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 width: '36px',
                 height: '36px',
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: type === 'expense' ? '#fee2e2' : '#d1fae5',
-                color: type === 'expense' ? '#ef4444' : '#059669',
+                backgroundColor: type === 'expense' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                color: type === 'expense' ? '#ef4444' : 'var(--color-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -272,9 +273,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.375rem',
-                backgroundColor: type === 'expense' ? '#ffffff' : 'transparent',
+                backgroundColor: type === 'expense' ? 'var(--bg-card)' : 'transparent',
                 color: type === 'expense' ? '#ef4444' : 'var(--text-muted)',
-                boxShadow: type === 'expense' ? 'var(--shadow-sm)' : 'none',
+                boxShadow: type === 'expense' ? 'var(--shadow-xs)' : 'none',
                 transition: 'all 150ms ease'
               }}
             >
@@ -299,9 +300,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.375rem',
-                backgroundColor: type === 'income' ? '#ffffff' : 'transparent',
-                color: type === 'income' ? '#10b981' : 'var(--text-muted)',
-                boxShadow: type === 'income' ? 'var(--shadow-sm)' : 'none',
+                backgroundColor: type === 'income' ? 'var(--bg-card)' : 'transparent',
+                color: type === 'income' ? 'var(--color-primary)' : 'var(--text-muted)',
+                boxShadow: type === 'income' ? 'var(--shadow-xs)' : 'none',
                 transition: 'all 150ms ease'
               }}
             >
@@ -502,9 +503,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         fontSize: '10.5px',
                         padding: '2px 6px',
                         borderRadius: '4px',
-                        border: '1px solid #bfdbfe',
-                        backgroundColor: '#eff6ff',
-                        color: '#1d4ed8',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                        color: '#60a5fa',
                         fontWeight: 700,
                         cursor: 'pointer'
                       }}
@@ -518,9 +519,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         fontSize: '10.5px',
                         padding: '2px 6px',
                         borderRadius: '4px',
-                        border: '1px solid #e2e8f0',
-                        backgroundColor: '#ffffff',
-                        color: '#475569',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: 'var(--bg-card)',
+                        color: 'var(--text-main)',
                         fontWeight: 700,
                         cursor: 'pointer'
                       }}

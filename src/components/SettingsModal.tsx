@@ -252,7 +252,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     >
       <div
         style={{
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           borderRadius: 'var(--radius-2xl)',
           width: '100%',
           maxWidth: '680px',
@@ -261,6 +261,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           display: 'flex',
           flexDirection: 'column',
           boxShadow: 'var(--shadow-xl)',
+          border: '1px solid var(--border-card)',
           overflow: 'hidden'
         }}
       >
@@ -272,7 +273,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-card)',
             flexShrink: 0
           }}
         >
@@ -426,7 +427,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     style={{
                       padding: '1rem',
                       borderRadius: 'var(--radius-lg)',
-                      backgroundColor: '#f8fafc',
+                      backgroundColor: 'var(--bg-canvas-subtle)',
                       border: '1px dashed var(--color-primary)',
                       display: 'flex',
                       flexDirection: 'column',
@@ -450,7 +451,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           fontSize: '12px',
                           fontWeight: 600,
                           outline: 'none',
-                          backgroundColor: '#ffffff'
+                          backgroundColor: 'var(--bg-input)',
+                          color: 'var(--text-main)'
                         }}
                       />
 
@@ -462,7 +464,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           borderRadius: '6px',
                           border: '1px solid var(--border-subtle)',
                           fontSize: '12px',
-                          backgroundColor: '#ffffff',
+                          backgroundColor: 'var(--bg-input)',
+                          color: 'var(--text-main)',
                           outline: 'none'
                         }}
                       >
@@ -479,7 +482,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             height: '32px',
                             borderRadius: '50%',
                             backgroundColor: newCatColor,
-                            border: '2px solid #ffffff',
+                            border: '2px solid var(--bg-card)',
                             boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
                             position: 'relative',
                             overflow: 'hidden',
@@ -527,7 +530,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             height: '28px',
                             borderRadius: '6px',
                             border: newCatIcon === icon ? '2px solid var(--color-primary)' : '1px solid var(--border-subtle)',
-                            backgroundColor: newCatIcon === icon ? 'var(--color-primary-light)' : '#ffffff',
+                            backgroundColor: newCatIcon === icon ? 'var(--color-primary-light)' : 'var(--bg-canvas-subtle)',
                             color: newCatIcon === icon ? 'var(--color-primary)' : 'var(--text-muted)',
                             display: 'flex',
                             alignItems: 'center',
@@ -633,7 +636,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             border: '1px solid var(--border-subtle)',
                             fontSize: '11px',
                             fontWeight: 600,
-                            backgroundColor: '#ffffff',
+                            backgroundColor: 'var(--bg-input)',
                             outline: 'none',
                             color: 'var(--text-main)'
                           }}
@@ -721,7 +724,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             padding: '2px 6px',
                             borderRadius: '4px',
                             border: '1px solid var(--border-subtle)',
-                            backgroundColor: '#ffffff',
+                            backgroundColor: 'var(--bg-input)',
+                            color: 'var(--text-main)',
                             width: '110px',
                             outline: 'none'
                           }}
@@ -809,18 +813,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       style={{
                         padding: '2rem 1rem',
                         textAlign: 'center',
-                        backgroundColor: '#f8fafc',
+                        backgroundColor: 'var(--bg-canvas-subtle)',
                         borderRadius: '10px',
-                        border: '1px dashed #cbd5e1',
-                        color: '#64748b',
+                        border: '1px dashed var(--border-subtle)',
+                        color: 'var(--text-muted)',
                         fontSize: '12.5px'
                       }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--text-subtle)', display: 'block', marginBottom: '6px' }}>
                         view_column
                       </span>
                       <strong>No Custom Bank Profiles Saved Yet</strong>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '11.5px', color: '#94a3b8' }}>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '11.5px', color: 'var(--text-muted)' }}>
                         When uploading bank statements, click <strong>[Map Columns] → Save as Bank Profile</strong> to store custom column layouts here for instant reuse!
                       </p>
                     </div>
@@ -832,12 +836,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           style={{
                             padding: '0.875rem 1rem',
                             borderRadius: '10px',
-                            border: '1px solid #e2e8f0',
-                            backgroundColor: '#ffffff',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'var(--bg-canvas-subtle)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                            boxShadow: 'var(--shadow-xs)'
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -911,18 +915,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         style={{
                           padding: '0.75rem 0.875rem',
                           borderRadius: '8px',
-                          border: '1px solid #e2e8f0',
-                          backgroundColor: '#f8fafc',
+                          border: '1px solid var(--border-subtle)',
+                          backgroundColor: 'var(--bg-canvas-subtle)',
                           fontSize: '11.5px'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <strong style={{ fontSize: '12px', color: 'var(--text-main)' }}>{tmpl.name}</strong>
-                          <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', backgroundColor: '#e0e7ff', color: '#3730a3' }}>
+                          <span style={{ fontSize: '9.5px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', backgroundColor: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' }}>
                             {tmpl.currency}
                           </span>
                         </div>
-                        <div style={{ color: '#64748b', fontSize: '10.5px' }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>
                           Auto-detects: {tmpl.signatureKeywords.slice(0, 3).join(', ')}...
                         </div>
                       </div>
@@ -938,7 +942,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             style={{
               padding: '1rem 1.5rem',
               borderTop: '1px solid var(--border-subtle)',
-              backgroundColor: '#fafbfc',
+              backgroundColor: 'var(--bg-card)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',

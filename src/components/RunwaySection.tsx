@@ -108,24 +108,24 @@ export const RunwaySection: React.FC<RunwaySectionProps> = ({
           style={{
             padding: '1rem 1.25rem',
             borderRadius: 'var(--radius-lg)',
-            backgroundColor: '#fffbeb',
-            border: '1px solid #fde68a',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
             display: 'flex',
             alignItems: 'flex-start',
             gap: '0.875rem'
           }}
         >
-          <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '24px', flexShrink: 0, marginTop: '2px' }}>
+          <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '24px', flexShrink: 0, marginTop: '2px' }}>
             hourglass_empty
           </span>
           <div>
-            <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#92400e', margin: 0 }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#f59e0b', margin: 0 }}>
               Feature requires minimum 1 month (30 days) of transaction data to be helpful
             </h4>
-            <p style={{ fontSize: '12px', color: '#b45309', marginTop: '4px', lineHeight: 1.4 }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.4 }}>
               Your ledger currently spans <strong>{daysRecorded} day(s)</strong>. To calculate statistically sound monthly burn rates and avoid skewed projections, longevity forecasts will automatically unlock once at least 30 days of data is recorded.
             </p>
-            <p style={{ fontSize: '11px', color: '#92400e', marginTop: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <p style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <Lightbulb size={12} />
               <em>Formula: Runway (Months) = Total Liquid Balance ÷ Historical Monthly Spend</em>
             </p>

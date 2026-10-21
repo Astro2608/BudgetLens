@@ -279,15 +279,15 @@ export const LoanCard: React.FC<LoanCardProps> = ({
             {missingProposals.length > 0 && onAddBatchTransactions && (
               <div
                 style={{
-                  backgroundColor: '#f0fdf4',
-                  border: '1.5px solid #86efac',
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  border: '1.5px solid rgba(16, 185, 129, 0.3)',
                   borderRadius: '12px',
                   padding: '12px 14px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   gap: '12px',
-                  boxShadow: '0 2px 8px rgba(22, 163, 74, 0.08)'
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)'
                 }}
                 onClick={e => e.stopPropagation()}
               >
@@ -366,12 +366,12 @@ export const LoanCard: React.FC<LoanCardProps> = ({
             </div>
 
             {/* Payment Distribution Card with Option A Educational Dropdown */}
-            <div style={{ backgroundColor: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ backgroundColor: 'var(--bg-canvas-subtle)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {/* Header with Education Toggle */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#334155' }}>pie_chart</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--text-muted)' }}>pie_chart</span>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
                     Payment Distribution To Date
                   </span>
                 </div>
@@ -390,16 +390,16 @@ export const LoanCard: React.FC<LoanCardProps> = ({
                     borderRadius: '6px',
                     fontSize: '11px',
                     fontWeight: 700,
-                    backgroundColor: showEducation ? '#eff6ff' : '#ffffff',
-                    color: showEducation ? '#2563eb' : '#475569',
-                    border: `1px solid ${showEducation ? '#93c5fd' : '#cbd5e1'}`,
+                    backgroundColor: showEducation ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-card)',
+                    color: showEducation ? '#3b82f6' : 'var(--text-muted)',
+                    border: `1px solid ${showEducation ? 'rgba(59, 130, 246, 0.3)' : 'var(--border-subtle)'}`,
                     cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    boxShadow: 'var(--shadow-xs)',
                     transition: 'all 0.15s ease'
                   }}
                   title="Learn how banks calculate daily interest and deduct it from your payment"
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#2563eb' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#3b82f6' }}>
                     school
                   </span>
                   <span>How Bank Interest Works</span>
@@ -453,12 +453,12 @@ export const LoanCard: React.FC<LoanCardProps> = ({
               )}
 
               {loan.isReverseEstimated && (
-                <div style={{ fontSize: '11px', color: '#1e3a8a', backgroundColor: '#eff6ff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe', marginTop: '2px', lineHeight: 1.3 }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-main)', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.25)', marginTop: '2px', lineHeight: 1.3 }}>
                   <strong>Note: Reverse estimation cost —</strong> Created without exact initial details. Reverse estimated based on monthly payment of {formatCurrency(loan.fixedMonthlyPayment || monthlyTargetPayment)}/mo at {loan.interestRate}% p.a.
                 </div>
               )}
 
-              <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.3 }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-subtle)', marginTop: '2px', lineHeight: 1.3 }}>
                 Tip: Tagging or allocating your expense transactions automatically reduces your balance and updates this projection.
               </div>
             </div>
@@ -477,9 +477,9 @@ export const LoanCard: React.FC<LoanCardProps> = ({
                   }
                 }}
                 style={{
-                  backgroundColor: isConfirmingDelete ? '#dc2626' : '#fee2e2',
+                  backgroundColor: isConfirmingDelete ? '#dc2626' : 'rgba(239, 68, 68, 0.1)',
                   color: isConfirmingDelete ? '#ffffff' : '#ef4444',
-                  border: isConfirmingDelete ? '1px solid #b91c1c' : '1px solid #fecdd3',
+                  border: isConfirmingDelete ? '1px solid #b91c1c' : '1px solid rgba(239, 68, 68, 0.25)',
                   padding: '8px 12px',
                   borderRadius: '8px',
                   fontSize: '11.5px',
