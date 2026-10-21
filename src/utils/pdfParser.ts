@@ -11,11 +11,17 @@ import { CSVParseResult } from './csvParser';
 import {
   parseCleanFinancialAmount,
   normalizeDateUniversal,
-  reconcileRunningBalances,
   cleanTransactionTitle,
   detectBankTemplateByKeywords
 } from './bankTemplates';
 import { smartCleanBankTitle } from './localAiService';
+import {
+  isQuarantinedNoiseLine,
+  extractOpeningBalanceFromLine,
+  extractSgNarrationTitle,
+  healAndReconcileTransactions,
+  countUnrecognizedTransactions
+} from './pdfAccuracyEngine';
 
 // Attach to globalThis so PDF.js fake worker fallback ALWAYS succeeds without network fetch
 if (typeof globalThis !== 'undefined') {
@@ -74,14 +80,16 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
   const parsedList: Transaction[] = [];
   let totalIncome = 0;
   let totalExpense = 0;
-  let unrecognizedCount = 0;
 
   const extractedRawRows: string[][] = [];
   const rawColumnLabels = ['Date', 'Ref / Chq No', 'Description / Narration', 'Amount', 'Withdrawal (Debit)', 'Deposit (Credit)', 'Closing Balance'];
 
   // Track discovered column X positions globally across pages
   let detectedZones: ColumnZone[] = [];
-  
+
+  // Opening balance seed from "Balance Brought Forward" line — used by the math self-healer
+  let openingBalance: number | undefined;
+
   // We will accumulate all text to detect the bank template
   let fullPdfText = '';
 
@@ -202,6 +210,21 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
       line.items.sort((a, b) => a.x - b.x);
       const fullLineText = line.items.map((i) => i.str.trim()).join(' ');
 
+      // MODULE A: Quarantine known noise lines (page headers, account labels, section pills)
+      if (isQuarantinedNoiseLine(fullLineText, matchedTemplate?.id)) {
+        return;
+      }
+
+      // MODULE B: Detect "Balance Brought Forward" / opening balance seed
+      if (openingBalance === undefined) {
+        const lineTokenStrings = line.items.map((i) => i.str.trim()).filter(Boolean);
+        const seed = extractOpeningBalanceFromLine(fullLineText, lineTokenStrings, matchedTemplate?.id);
+        if (seed !== undefined) {
+          openingBalance = seed;
+          return; // This line is a balance header — not a transaction row
+        }
+      }
+
       // Check for date in line
       const dateMatch = fullLineText.match(DATE_REGEX);
 
@@ -294,18 +317,40 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
             }
           }
 
-          // Build clean title (prefer narration/description over reference ID)
-          let title = rowDescStr || rowRefStr;
-          const originalTitle = title;
-          
-          // Apply smart bank title cleaner
+          // MODULE E: SG multi-line narration title extractor
+          // Builds the raw description from ALL accumulated description tokens across
+          // the current line. Multi-line stitching (continuation lines) happens below.
+          const rawNarration = rowDescStr || rowRefStr;
+
+          // For SG banks, attempt structured pattern extraction first (FAST, POS, Debit Card etc.)
+          const isSgBank = matchedTemplate?.currency === 'SGD' || !matchedTemplate;
+          let title: string;
+          let fxNote = '';
+          let txRef = '';
+
+          if (isSgBank && rawNarration) {
+            const narrationLines = rawNarration
+              .split(/\s*\|\s*/)
+              .map((s) => s.trim())
+              .filter(Boolean);
+            const extracted = extractSgNarrationTitle(narrationLines, txType);
+            title = extracted.rawTitle;
+            fxNote = extracted.note;
+            txRef = extracted.ref;
+          } else {
+            title = rawNarration;
+          }
+
+          const originalTitle = rawNarration;
+
+          // Apply smart bank title cleaner (strips trailing codes, normalises casing)
           title = smartCleanBankTitle(title);
 
           // Apply Smart Bank Template Rules if detected
-          if (matchedTemplate && matchedTemplate.titleExtractors) {
-             title = cleanTransactionTitle(title, matchedTemplate.titleExtractors);
+          if (matchedTemplate?.titleExtractors) {
+            title = cleanTransactionTitle(title, matchedTemplate.titleExtractors);
           }
-          
+
           if (!title || title.length < 2) {
             title = txType === 'income' ? `Inward Bank Transfer (${validDate})` : `Bank Payment (${validDate})`;
           }
@@ -316,16 +361,21 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
             category = 'Salary';
           } else {
             category = detectCategoryFromTitle(title);
-            if (category === 'General') unrecognizedCount++;
           }
 
           const runningBalance = balanceParsed.amount > 0 ? balanceParsed.amount : undefined;
 
+          // Build note: original narration + FX annotation + ref if present
+          const noteFragments = [`PDF e-Statement (${file.name})`, `Original: ${originalTitle}`];
+          if (fxNote) noteFragments.push(fxNote);
+          if (txRef) noteFragments.push(`Ref: ${txRef}`);
+          const txNote = noteFragments.join('\n');
+
           // Push raw row for user-assisted Column Mapper
           extractedRawRows.push([
             rowDateStr || (dateMatch ? dateMatch[0] : ''),
-            rowRefStr,
-            rowDescStr,
+            rowRefStr || txRef,
+            rawNarration,
             rowAmountStr,
             rowDebitStr,
             rowCreditStr,
@@ -336,11 +386,12 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
             id: `pdf-${Date.now()}-${parsedList.length}`,
             date: validDate,
             title,
+            description: originalTitle || undefined,
             amount,
             type: txType,
             category,
             isRecurring: false,
-            note: `PDF e-Statement (${file.name})\nOriginal: ${originalTitle}`,
+            note: txNote,
             source: file.name,
             runningBalance
           });
@@ -348,11 +399,38 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
         }
 
         // Multi-line narration continuation:
-        // If line has no date, but has text in description and no amounts, attach to previous transaction title
+        // If line has no date, but has text in description and no amounts, stitch into
+        // the previous transaction's description AND re-run SG title extraction.
         if (!hasDate && rowDescStr && parsedList.length > 0 && debitParsed.amount === 0 && creditParsed.amount === 0 && amountParsed.amount === 0) {
           const lastTx = parsedList[parsedList.length - 1];
-          if (!lastTx.title.includes(rowDescStr) && rowDescStr.length > 2 && !rowDescStr.toLowerCase().includes('page')) {
-            lastTx.title = `${lastTx.title} ${rowDescStr}`.trim();
+          if (rowDescStr.length > 2 && !rowDescStr.toLowerCase().includes('page')) {
+            // Stitch raw description (description field accumulates full narration)
+            if (lastTx.description && !lastTx.description.includes(rowDescStr)) {
+              lastTx.description = `${lastTx.description} | ${rowDescStr}`;
+            } else if (!lastTx.description) {
+              lastTx.description = rowDescStr;
+            }
+            // Re-run SG narration extraction with all accumulated lines
+            const isSgBank = matchedTemplate?.currency === 'SGD' || !matchedTemplate;
+            if (isSgBank && lastTx.description) {
+              const accumulatedLines = lastTx.description
+                .split(/\s*\|\s*/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+              const extracted = extractSgNarrationTitle(accumulatedLines, lastTx.type);
+              const reClean = smartCleanBankTitle(extracted.rawTitle);
+              if (reClean && reClean.length >= 2) {
+                lastTx.title = reClean;
+              }
+              if (extracted.note && !lastTx.note?.includes(extracted.note)) {
+                lastTx.note = `${lastTx.note}\n${extracted.note}`;
+              }
+              if (extracted.ref && !lastTx.note?.includes(extracted.ref)) {
+                lastTx.note = `${lastTx.note}\nRef: ${extracted.ref}`;
+              }
+            } else if (!lastTx.title.includes(rowDescStr)) {
+              lastTx.title = `${lastTx.title} ${rowDescStr}`.trim();
+            }
           }
           return;
         }
@@ -441,7 +519,6 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
       }
 
       let category: CategoryKey = isIncome ? 'Salary' : detectCategoryFromTitle(description);
-      if (category === 'General') unrecognizedCount++;
 
       extractedRawRows.push([date, '', description, isIncome ? '' : String(amount), isIncome ? String(amount) : '', runningBalance ? String(runningBalance) : '']);
 
@@ -466,23 +543,33 @@ export async function parseBankPDF(file: File): Promise<CSVParseResult> {
     );
   }
 
-  // Reconcile balances sequentially
-  const { discrepancyCount } = reconcileRunningBalances(parsedList);
+  // MODULE C: Mathematical Self-Healing Reconciler
+  // Corrects income/expense misclassifications using the running balance equation,
+  // then flags any remaining genuine discrepancies.
+  const {
+    transactions: healedList,
+    reconciliation,
+    balanceDiscrepancyCount
+  } = healAndReconcileTransactions(parsedList, openingBalance);
 
-  // Calculate final totals
-  parsedList.forEach((t) => {
+  // Compute unrecognizedCount AFTER healing (type may have changed from income→expense)
+  const unrecognizedCount = countUnrecognizedTransactions(healedList);
+
+  // Calculate final totals (post-healing, so income/expense totals are correct)
+  healedList.forEach((t) => {
     if (t.type === 'income') totalIncome += t.amount;
     else totalExpense += t.amount;
   });
 
   return {
     fileName: file.name,
-    transactions: parsedList,
+    transactions: healedList,
     totalIncome,
     totalExpense,
     unrecognizedCount,
     rawColumns: rawColumnLabels,
     rawRows: extractedRawRows,
-    balanceDiscrepancyCount: discrepancyCount
+    balanceDiscrepancyCount,
+    reconciliation
   };
 }

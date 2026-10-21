@@ -38,6 +38,8 @@ export interface BankTemplate {
   signatureKeywords: string[];
   mapping: ColumnMappingConfig;
   titleExtractors?: TitleCleaningRule[];
+  /** Per-bank regex patterns for lines that should be quarantined (headers, footers, section labels) */
+  noisePatterns?: RegExp[];
 }
 
 const STORAGE_KEY = 'budgetlens_saved_bank_templates';

@@ -3,6 +3,7 @@ import { Transaction, CategoryKey, TransactionType } from '../types/finance';
 import { detectCategoryFromTitle, matchCategory } from '../config/categoryConfig';
 
 import { parseCleanFinancialAmount, reconcileRunningBalances } from './bankTemplates';
+import type { MathReconciliationReport } from './pdfAccuracyEngine';
 
 export interface CSVParseResult {
   fileName: string;
@@ -14,6 +15,8 @@ export interface CSVParseResult {
   rawRows?: string[][];
   bankDetected?: string;
   balanceDiscrepancyCount?: number;
+  /** Mathematical self-healing reconciliation report (PDF imports only) */
+  reconciliation?: MathReconciliationReport;
 }
 
 interface ColumnMapping {
